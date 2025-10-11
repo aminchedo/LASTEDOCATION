@@ -8,9 +8,7 @@
     "start": "node dist/src/server.js",
     "start:prod": "npm run build && node dist/src/server.js",
     "dev": "ts-node src/server.ts",
-    "dev:simple": "node simple-server.js",
-    "dev:proxy": "ts-node proxy.ts",
-    "proxy:start": "ts-node src/proxy-server.ts",
+    "dev:watch": "ts-node-dev --respawn --transpile-only src/server.ts",
     "lint": "tsc --noEmit",
     "test": "node --test --experimental-test-coverage"
   },

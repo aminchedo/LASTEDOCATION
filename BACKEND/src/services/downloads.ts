@@ -1,8 +1,13 @@
+// BACKEND/src/services/downloads.ts - FIXED VERSION
+
 import { spawn } from 'child_process';
 import fs from 'fs';
 import path from 'path';
+import https from 'https';
+import http from 'http';
 import { logger } from '../middleware/logger';
 import { notificationService } from './notifications';
+import { getModelById, getAllDownloadUrls, getFilenameFromUrl } from '../config/modelCatalog';
 
 export interface DownloadJob {
   id: string;
@@ -23,9 +28,9 @@ export interface DownloadJob {
   finishedAt?: string;
 }
 
-// In-memory job storage (in production, use Redis or database)
+// In-memory job storage
 const jobs = new Map<string, DownloadJob>();
-const jobProcesses = new Map<string, ReturnType<typeof spawn>>();
+const jobProcesses = new Map<string, any>();
 
 function ensureDir(dir: string) {
   if (!fs.existsSync(dir)) {
@@ -37,50 +42,248 @@ function generateJobId(): string {
   return `dl_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
-function parseHFProgress(line: string, job: DownloadJob) {
-  // Parse huggingface-cli output for progress
-  // Example formats:
-  // "Fetching 5 files: 100%|████████| 5/5 [00:01<00:00]"
-  // "model.safetensors: 45%|███▌     | 450MB/1GB [00:30<00:37, 15.0MB/s]"
-  
-  // File completion
-  const fileMatch = line.match(/Fetching (\d+) files:.*?(\d+)\/(\d+)/);
-  if (fileMatch) {
-    const completed = parseInt(fileMatch[2]);
-    const total = parseInt(fileMatch[3]);
-    job.progress = Math.round((completed / total) * 100);
-    return;
-  }
+/**
+ * Download a single file with progress tracking
+ */
+async function downloadFile(
+  url: string, 
+  destination: string, 
+  onProgress?: (downloaded: number, total: number) => void
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const file = fs.createWriteStream(destination);
+    const client = url.startsWith('https') ? https : http;
 
-  // Download progress with bytes
-  const progressMatch = line.match(/(\d+(?:\.\d+)?)(MB|GB)\/(\d+(?:\.\d+)?)(MB|GB).*?\[.*?<.*?,\s*([\d.]+)(MB|GB)\/s\]/);
-  if (progressMatch) {
-    const downloaded = parseFloat(progressMatch[1]);
-    const downloadedUnit = progressMatch[2];
-    const total = parseFloat(progressMatch[3]);
-    const totalUnit = progressMatch[4];
-    const speed = parseFloat(progressMatch[5]);
-    const speedUnit = progressMatch[6];
+    const request = client.get(url, (response) => {
+      if (response.statusCode === 302 || response.statusCode === 301) {
+        // Handle redirects
+        const redirectUrl = response.headers.location;
+        if (redirectUrl) {
+          file.close();
+          fs.unlinkSync(destination);
+          return downloadFile(redirectUrl, destination, onProgress)
+            .then(resolve)
+            .catch(reject);
+        }
+      }
 
-    // Convert to bytes
-    const bytesDownloaded = downloadedUnit === 'GB' ? downloaded * 1024 * 1024 * 1024 : downloaded * 1024 * 1024;
-    const bytesTotal = totalUnit === 'GB' ? total * 1024 * 1024 * 1024 : total * 1024 * 1024;
-    const bytesSpeed = speedUnit === 'GB' ? speed * 1024 * 1024 * 1024 : speed * 1024 * 1024;
+      if (response.statusCode !== 200) {
+        file.close();
+        fs.unlinkSync(destination);
+        return reject(new Error(`HTTP ${response.statusCode}: ${response.statusMessage}`));
+      }
 
-    job.bytesDownloaded = bytesDownloaded;
-    job.bytesTotal = bytesTotal;
-    job.speed = bytesSpeed;
-    job.progress = Math.round((bytesDownloaded / bytesTotal) * 100);
-    job.eta = bytesSpeed > 0 ? Math.round((bytesTotal - bytesDownloaded) / bytesSpeed) : undefined;
-  }
+      const totalBytes = parseInt(response.headers['content-length'] || '0', 10);
+      let downloadedBytes = 0;
 
-  // Current file being downloaded
-  const fileNameMatch = line.match(/^([\w\-./]+\.\w+):/);
-  if (fileNameMatch) {
-    job.currentFile = fileNameMatch[1];
-  }
+      response.on('data', (chunk: Buffer) => {
+        downloadedBytes += chunk.length;
+        if (onProgress && totalBytes > 0) {
+          onProgress(downloadedBytes, totalBytes);
+        }
+      });
+
+      response.pipe(file);
+
+      file.on('finish', () => {
+        file.close();
+        resolve();
+      });
+
+      file.on('error', (err) => {
+        file.close();
+        fs.unlinkSync(destination);
+        reject(err);
+      });
+    });
+
+    request.on('error', (err) => {
+      file.close();
+      try {
+        fs.unlinkSync(destination);
+      } catch (e) {
+        // Ignore
+      }
+      reject(err);
+    });
+
+    request.setTimeout(30000); // 30 second timeout
+  });
 }
 
+/**
+ * Download model using direct URLs from catalog
+ */
+async function downloadModelDirect(
+  jobId: string,
+  modelId: string,
+  destination: string
+): Promise<void> {
+  const job = jobs.get(jobId);
+  if (!job) {
+    throw new Error('Job not found');
+  }
+
+  // Get model info from catalog
+  const model = getModelById(modelId);
+  if (!model) {
+    throw new Error(`Model not found in catalog: ${modelId}`);
+  }
+
+  // Get all download URLs
+  const urls = getAllDownloadUrls(modelId);
+  if (urls.length === 0) {
+    throw new Error(`No download URLs found for model: ${modelId}`);
+  }
+
+  logger.info({ 
+    msg: 'Starting direct download', 
+    jobId, 
+    modelId, 
+    fileCount: urls.length 
+  });
+
+  // Create destination directory
+  ensureDir(destination);
+
+  job.status = 'downloading';
+  job.progress = 0;
+
+  // Download all files
+  let completedFiles = 0;
+  const totalFiles = urls.length;
+
+  for (const url of urls) {
+    const filename = getFilenameFromUrl(url);
+    const filepath = path.join(destination, filename);
+
+    job.currentFile = filename;
+    logger.info({ msg: 'Downloading file', jobId, filename, url });
+
+    try {
+      await downloadFile(url, filepath, (downloaded, total) => {
+        // Calculate overall progress
+        const fileProgress = (downloaded / total) * 100;
+        const overallProgress = ((completedFiles / totalFiles) * 100) + 
+                              (fileProgress / totalFiles);
+        
+        job.progress = Math.round(overallProgress);
+        job.bytesDownloaded = downloaded;
+        job.bytesTotal = total;
+
+        // Update job
+        jobs.set(jobId, job);
+      });
+
+      job.completedFiles.push(filename);
+      completedFiles++;
+      
+      logger.info({ msg: 'File downloaded', jobId, filename });
+    } catch (error: any) {
+      logger.error({ msg: 'File download failed', jobId, filename, error: error.message });
+      throw new Error(`Failed to download ${filename}: ${error.message}`);
+    }
+  }
+
+  // Mark as completed
+  job.status = 'completed';
+  job.progress = 100;
+  job.finishedAt = new Date().toISOString();
+  jobs.set(jobId, job);
+
+  logger.info({ msg: 'Download completed', jobId, modelId });
+}
+
+/**
+ * Download using git clone (fallback method)
+ */
+async function downloadWithGit(
+  jobId: string,
+  modelId: string,
+  _repoType: 'model' | 'dataset',
+  destination: string
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const job = jobs.get(jobId);
+    if (!job) {
+      reject(new Error('Job not found'));
+      return;
+    }
+
+    ensureDir(destination);
+
+    const gitUrl = `https://huggingface.co/${modelId}`;
+    const gitProcess = spawn('git', ['clone', '--progress', gitUrl, destination], {
+      stdio: ['pipe', 'pipe', 'pipe']
+    });
+
+    jobProcesses.set(jobId, gitProcess);
+
+    job.status = 'downloading';
+    job.progress = 5;
+
+    let progressRegex = /(\d+)%/;
+    
+    gitProcess.stdout?.on('data', (data) => {
+      const output = data.toString();
+      const lines = output.split('\n');
+      for (const line of lines) {
+        const match = line.match(progressRegex);
+        if (match) {
+          job.progress = Math.min(95, parseInt(match[1]));
+          jobs.set(jobId, job);
+        }
+      }
+    });
+
+    gitProcess.stderr?.on('data', (data) => {
+      const errorData = data.toString();
+      logger.debug(`Git: ${errorData}`);
+      
+      const progressMatch = errorData.match(progressRegex);
+      if (progressMatch) {
+        job.progress = Math.min(95, parseInt(progressMatch[1]));
+        jobs.set(jobId, job);
+      }
+      
+      if (errorData.includes('fatal:') || errorData.includes('error:')) {
+        job.error = errorData;
+        job.status = 'error';
+        jobs.set(jobId, job);
+      }
+    });
+
+    gitProcess.on('close', (code) => {
+      jobProcesses.delete(jobId);
+      
+      if (code === 0) {
+        job.status = 'completed';
+        job.progress = 100;
+        job.finishedAt = new Date().toISOString();
+        jobs.set(jobId, job);
+        logger.info(`Git clone completed: ${modelId}`);
+        resolve();
+      } else {
+        job.status = 'error';
+        job.error = `Git clone failed with code ${code}`;
+        jobs.set(jobId, job);
+        reject(new Error(`Download failed with code ${code}`));
+      }
+    });
+
+    gitProcess.on('error', (error) => {
+      jobProcesses.delete(jobId);
+      job.status = 'error';
+      job.error = `Git process error: ${error.message}`;
+      jobs.set(jobId, job);
+      reject(error);
+    });
+  });
+}
+
+/**
+ * Start a new download job
+ */
 export async function startDownload(
   kind: 'model' | 'tts' | 'dataset',
   repoId: string,
@@ -103,91 +306,49 @@ export async function startDownload(
 
   jobs.set(jobId, job);
 
-  // Ensure destination directory exists
   ensureDir(dest);
 
-  // Log directory for this job
+  // Log directory
   const logDir = path.join('logs', 'downloads');
   ensureDir(logDir);
   const logFile = path.join(logDir, `${jobId}.json`);
-
-  // Write initial job state
   fs.writeFileSync(logFile, JSON.stringify(job, null, 2));
-
-  // Spawn huggingface-cli process
-  const args = [
-    'snapshot-download',
-    '--repo-type', repoType,
-    repoId,
-    '--local-dir', dest,
-    '--local-dir-use-symlinks', 'False'
-  ];
 
   logger.info({ msg: 'Starting download', jobId, repoId, repoType, dest });
 
-  const proc = spawn('huggingface-cli', args);
-
-  jobProcesses.set(jobId, proc);
-  job.status = 'downloading';
-
-  proc.stdout.on('data', (data: Buffer) => {
-    const lines = data.toString().split('\n');
-    for (const line of lines) {
-      if (line.trim()) {
-        parseHFProgress(line, job);
-        logger.debug({ msg: 'Download progress', jobId, line: line.trim() });
+  // Start download process (async)
+  (async () => {
+    try {
+      // Try direct download first (from catalog)
+      const model = getModelById(repoId);
+      if (model && model.downloadUrls) {
+        await downloadModelDirect(jobId, repoId, dest);
+      } else {
+        // Fallback to git clone
+        logger.info({ msg: 'Using git clone fallback', jobId, repoId });
+        await downloadWithGit(jobId, repoId, repoType, dest);
       }
-    }
-    // Update log file
-    fs.writeFileSync(logFile, JSON.stringify(job, null, 2));
-  });
 
-  proc.stderr.on('data', (data: Buffer) => {
-    const lines = data.toString().split('\n');
-    for (const line of lines) {
-      if (line.trim()) {
-        parseHFProgress(line, job);
-        logger.debug({ msg: 'Download stderr', jobId, line: line.trim() });
-      }
-    }
-  });
-
-  proc.on('close', (code: number) => {
-    jobProcesses.delete(jobId);
-
-    if (code === 0) {
-      job.status = 'completed';
-      job.progress = 100;
-      job.finishedAt = new Date().toISOString();
-      logger.info({ msg: 'Download completed', jobId, repoId });
-      
-      // Notify download completed
       notificationService.notifyDownloadCompleted(repoId.split('/').pop() || repoId);
-    } else {
-      job.status = 'error';
-      job.error = `Process exited with code ${code}`;
-      job.finishedAt = new Date().toISOString();
-      logger.error({ msg: 'Download failed', jobId, repoId, code });
+    } catch (error: any) {
+      const job = jobs.get(jobId);
+      if (job) {
+        job.status = 'error';
+        job.error = error.message;
+        job.finishedAt = new Date().toISOString();
+        jobs.set(jobId, job);
+      }
       
-      // Notify download error
-      notificationService.notifyDownloadError(repoId.split('/').pop() || repoId, `Process exited with code ${code}`);
+      logger.error({ msg: 'Download failed', jobId, repoId, error: error.message });
+      notificationService.notifyDownloadError(repoId.split('/').pop() || repoId, error.message);
     }
 
-    // Final update to log file
-    fs.writeFileSync(logFile, JSON.stringify(job, null, 2));
-  });
-
-  proc.on('error', (err: Error) => {
-    job.status = 'error';
-    job.error = err.message;
-    job.finishedAt = new Date().toISOString();
-    logger.error({ msg: 'Download process error', jobId, error: err.message });
-    
-    // Notify download error
-    notificationService.notifyDownloadError(repoId.split('/').pop() || repoId, err.message);
-    
-    fs.writeFileSync(logFile, JSON.stringify(job, null, 2));
-  });
+    // Update log file
+    const job = jobs.get(jobId);
+    if (job) {
+      fs.writeFileSync(logFile, JSON.stringify(job, null, 2));
+    }
+  })();
 
   return job;
 }
@@ -214,4 +375,3 @@ export function cancelDownload(jobId: string): boolean {
 
   return false;
 }
-
