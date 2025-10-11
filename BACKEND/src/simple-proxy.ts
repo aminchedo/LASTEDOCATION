@@ -119,14 +119,15 @@ async function followRedirects(url: string, maxRedirects: number = 5): Promise<s
 
 // ====== PROXY ENDPOINT ======
 // GET /api/v1/sources/proxy?url=ENCODED
-app.get('/api/v1/sources/proxy', async (req, res) => {
+app.get('/api/v1/sources/proxy', async (req, res): Promise<void> => {
   const raw = String(req.query.url || '');
   
   if (!raw) {
-    return res.status(400).json({ 
+    res.status(400).json({ 
       error: 'Missing url parameter',
       usage: '/api/v1/sources/proxy?url=ENCODED_URL'
     });
+    return;
   }
 
   // Decode URL
@@ -134,19 +135,21 @@ app.get('/api/v1/sources/proxy', async (req, res) => {
   try {
     targetUrl = decodeURIComponent(raw);
   } catch (error) {
-    return res.status(400).json({ 
+    res.status(400).json({ 
       error: 'Invalid URL encoding',
       url: raw
     });
+    return;
   }
 
   // Check if allowed
   if (!isAllowed(targetUrl)) {
-    return res.status(403).json({ 
+    res.status(403).json({ 
       error: 'Host not allowed',
       url: targetUrl,
       allowedHosts: Array.from(ALLOWED_HOSTS)
     });
+    return;
   }
 
   try {
@@ -161,10 +164,11 @@ app.get('/api/v1/sources/proxy', async (req, res) => {
     });
 
     if (!upstream.ok || !upstream.body) {
-      return res.status(upstream.status).json({ 
+      res.status(upstream.status).json({ 
         error: `Upstream error: ${upstream.status} ${upstream.statusText}`,
         url: finalUrl
       });
+      return;
     }
 
     // Extract filename
@@ -193,7 +197,7 @@ app.get('/api/v1/sources/proxy', async (req, res) => {
     
   } catch (error: any) {
     console.error('Proxy error:', error);
-    return res.status(500).json({ 
+    res.status(500).json({ 
       error: 'Proxy error',
       message: error.message,
       url: targetUrl
@@ -203,14 +207,15 @@ app.get('/api/v1/sources/proxy', async (req, res) => {
 
 // ====== RESOLVE ENDPOINT ======
 // GET /api/v1/sources/resolve?url=ENCODED
-app.get('/api/v1/sources/resolve', async (req, res) => {
+app.get('/api/v1/sources/resolve', async (req, res): Promise<void> => {
   const raw = String(req.query.url || '');
   
   if (!raw) {
-    return res.status(400).json({ 
+    res.status(400).json({ 
       error: 'Missing url parameter',
       usage: '/api/v1/sources/resolve?url=ENCODED_URL'
     });
+    return;
   }
 
   // Decode URL
@@ -218,19 +223,21 @@ app.get('/api/v1/sources/resolve', async (req, res) => {
   try {
     targetUrl = decodeURIComponent(raw);
   } catch (error) {
-    return res.status(400).json({ 
+    res.status(400).json({ 
       error: 'Invalid URL encoding',
       url: raw
     });
+    return;
   }
 
   // Check if allowed
   if (!isAllowed(targetUrl)) {
-    return res.status(403).json({ 
+    res.status(403).json({ 
       error: 'Host not allowed',
       url: targetUrl,
       allowedHosts: Array.from(ALLOWED_HOSTS)
     });
+    return;
   }
 
   try {
@@ -274,7 +281,7 @@ app.get('/api/v1/sources/resolve', async (req, res) => {
     
   } catch (error: any) {
     console.error('Resolve error:', error);
-    return res.status(500).json({ 
+    res.status(500).json({ 
       error: 'Resolve error',
       message: error.message,
       url: targetUrl
@@ -283,7 +290,7 @@ app.get('/api/v1/sources/resolve', async (req, res) => {
 });
 
 // ====== CORS PREFLIGHT ======
-app.options('*', (req, res) => {
+app.options('*', (_req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -291,7 +298,7 @@ app.options('*', (req, res) => {
 });
 
 // ====== HEALTH CHECK ======
-app.get('/api/v1/health', (req, res) => {
+app.get('/api/v1/health', (_req, res) => {
   res.json({ 
     ok: true,
     service: 'download-proxy',
