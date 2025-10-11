@@ -1,0 +1,4 @@
+Text: چطور می‌توانم به شما کمک کنم؟
+Language: Persian (fa)
+Duration: ~1.5 seconds
+Purpose: Question/assistance offer

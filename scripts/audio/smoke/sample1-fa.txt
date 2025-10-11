@@ -1,0 +1,4 @@
+Text: سلام، من یک دستیار هوشمند فارسی‌زبان هستم
+Language: Persian (fa)
+Duration: ~2 seconds
+Purpose: Greeting and introduction

@@ -1,0 +1,40 @@
+{
+  "name": "llm-monitoring-app",
+  "version": "2.0.0",
+  "type": "module",
+  "description": "LLM Monitoring UI - Enhanced monitoring dashboard for Persian chat application",
+  "scripts": {
+    "dev:client": "cd client && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "build:client": "cd client && npm run build",
+    "build:backend": "cd backend && npm run build",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:report": "playwright show-report",
+    "lint": "cd client && npm run lint && cd ../backend && npm run lint"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "@types/node": "^24.7.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  },
+  "keywords": [
+    "llm",
+    "monitoring",
+    "persian",
+    "react",
+    "typescript"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "npm": "^11.6.2",
+    "pino": "^10.0.0",
+    "punycode": "^2.3.1",
+    "sonic-boom": "^4.2.0",
+    "vite": "^7.1.9"
+  }
+}

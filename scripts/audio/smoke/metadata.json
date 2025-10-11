@@ -1,0 +1,34 @@
+{
+  "generated_at": "2025-10-09T21:30:00Z",
+  "samples": [
+    {
+      "id": "sample1-fa",
+      "text": "سلام، من یک دستیار هوشمند فارسی‌زبان هستم",
+      "language": "fa",
+      "duration_seconds": 2.0,
+      "format": "mp3",
+      "sample_rate": 24000,
+      "purpose": "greeting"
+    },
+    {
+      "id": "sample2-fa",
+      "text": "چطور می‌توانم به شما کمک کنم؟",
+      "language": "fa",
+      "duration_seconds": 1.5,
+      "format": "mp3",
+      "sample_rate": 24000,
+      "purpose": "question"
+    },
+    {
+      "id": "sample3-fa",
+      "text": "هوش مصنوعی یک شاخه از علوم کامپیوتر است",
+      "language": "fa",
+      "duration_seconds": 2.5,
+      "format": "mp3",
+      "sample_rate": 24000,
+      "purpose": "response"
+    }
+  ],
+  "notes": "To generate real audio: Use Google Cloud TTS or Azure TTS with Persian voice (fa-IR-Standard-A)",
+  "command": "gcloud text-to-speech synthesize --text=\"سلام\" --output=sample1-fa.mp3 --language-code=fa-IR --voice-name=fa-IR-Standard-A"
+}

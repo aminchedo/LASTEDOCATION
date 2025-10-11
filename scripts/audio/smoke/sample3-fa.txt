@@ -1,0 +1,4 @@
+Text: هوش مصنوعی یک شاخه از علوم کامپیوتر است
+Language: Persian (fa)
+Duration: ~2.5 seconds
+Purpose: Informational response
