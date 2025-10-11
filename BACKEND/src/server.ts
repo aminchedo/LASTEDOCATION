@@ -13,6 +13,7 @@ import sttRouter from './routes/stt';
 import ttsRouter from './routes/tts';
 import searchRouter from './routes/search';
 import notificationsRouter from './routes/notifications';
+import hfRouter from './routes/hf';
 import { authenticateToken } from './middleware/auth';
 import downloadProxyRouter from './simple-proxy';
 import { logger } from './utils/logger';
@@ -39,6 +40,7 @@ app.use('/api/stt', sttRouter); // Speech-to-Text (Public - بدون auth)
 app.use('/api/tts', ttsRouter); // Text-to-Speech (Public - بدون auth)
 app.use('/api/search', searchRouter); // Search Service (Public - بدون auth)
 app.use('/api/notifications', authenticateToken, notificationsRouter); // Notifications (Protected)
+app.use('/api/hf', hfRouter); // Hugging Face Proxy (Public - with rate limiting)
 
 // Routeهای fallback برای جلوگیری از 404
 app.get('/api/train/status', (_req, res) => {
