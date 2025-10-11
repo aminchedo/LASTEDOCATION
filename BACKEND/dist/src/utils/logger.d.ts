@@ -1,7 +1,9 @@
+type LogMessage = string | Record<string, any>;
 export declare const logger: {
-    info: (msg: string) => void;
-    error: (msg: string) => void;
-    debug: (msg: string) => void;
-    warn: (msg: string) => void;
+    info: (msg: LogMessage) => void;
+    error: (msg: LogMessage) => void;
+    debug: (msg: LogMessage) => void;
+    warn: (msg: LogMessage) => void;
 };
+export {};
 //# sourceMappingURL=logger.d.ts.map

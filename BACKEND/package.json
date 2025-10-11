@@ -2,15 +2,12 @@
   "name": "persian-chat-backend",
   "version": "1.0.0",
   "description": "TypeScript-only Express backend for Persian Chat",
-  "main": "dist/server.js",
+  "main": "dist/src/server.js",
   "scripts": {
     "build": "tsc",
-    "start": "node dist/server.js",
+    "start": "node dist/src/server.js",
     "dev": "ts-node src/server.ts",
-    "start:prod": "npm run build && node dist/server.js",
-    "dev:simple": "node simple-server.js",
-    "dev:proxy": "ts-node proxy.ts",
-    "proxy:start": "ts-node src/proxy-server.ts",
+    "dev:watch": "ts-node-dev --respawn --transpile-only src/server.ts",
     "lint": "tsc --noEmit",
     "test": "node --test --experimental-test-coverage"
   },
