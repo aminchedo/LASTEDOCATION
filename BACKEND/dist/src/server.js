@@ -14,22 +14,14 @@ const monitoring_1 = __importDefault(require("./routes/monitoring"));
 const models_1 = __importDefault(require("./routes/models"));
 const auth_1 = __importDefault(require("./routes/auth"));
 const chat_1 = __importDefault(require("./routes/chat"));
-<<<<<<< HEAD
-const auth_2 = require("./middleware/auth");
-const simple_proxy_1 = __importDefault(require("./simple-proxy"));
-const logger_1 = require("./utils/logger");
-const env_1 = require("./config/env");
-const errorHandler_1 = require("./middleware/errorHandler");
-=======
 const stt_1 = __importDefault(require("./routes/stt"));
 const tts_1 = __importDefault(require("./routes/tts"));
 const search_1 = __importDefault(require("./routes/search"));
 const notifications_1 = __importDefault(require("./routes/notifications"));
 const auth_2 = require("./middleware/auth");
 const simple_proxy_1 = __importDefault(require("./simple-proxy"));
-const logger_1 = require("./middleware/logger");
+const logger_1 = require("./utils/logger");
 const env_1 = require("./config/env");
->>>>>>> f47496e35559e601aeb82bbc617cb48d0d3716b9
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)({ origin: env_1.ENV.CORS_ORIGIN, credentials: true }));
 app.use(express_1.default.json({ limit: '10mb' }));
@@ -165,11 +157,6 @@ app.use((err, req, res, _next) => {
     });
 });
 const port = process.env.PORT ? Number(process.env.PORT) : 3001;
-<<<<<<< HEAD
-// Error handler should be last
-app.use(errorHandler_1.errorHandler);
-app.listen(port, () => logger_1.logger.info(`API listening on :${port}`));
-=======
 app.listen(port, () => {
     logger_1.logger.info(`🚀 Persian Chat Backend API listening on port ${port}`);
     logger_1.logger.info(`📡 Health check: http://localhost:${port}/health`);
@@ -177,5 +164,4 @@ app.listen(port, () => {
     logger_1.logger.info(`💬 Chat endpoint: http://localhost:${port}/api/chat`);
     logger_1.logger.info(`🎯 All routes registered successfully`);
 });
->>>>>>> f47496e35559e601aeb82bbc617cb48d0d3716b9
 //# sourceMappingURL=server.js.map

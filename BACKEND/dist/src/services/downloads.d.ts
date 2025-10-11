@@ -16,6 +16,9 @@ export interface DownloadJob {
     startedAt?: string;
     finishedAt?: string;
 }
+/**
+ * Start a new download job
+ */
 export declare function startDownload(kind: 'model' | 'tts' | 'dataset', repoId: string, repoType: 'model' | 'dataset', dest: string): Promise<DownloadJob>;
 export declare function getDownloadJob(jobId: string): DownloadJob | null;
 export declare function getAllDownloadJobs(): DownloadJob[];
