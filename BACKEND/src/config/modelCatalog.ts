@@ -19,11 +19,11 @@ export interface ModelEntry {
     vocab?: string;      // Vocabulary/tokenizer
     additional?: string[]; // Other files
   };
-}t?: string;
 }
 
 // Real Persian models and datasets from Hugging Face
-export const MODEL_CATALOG: ModelEntry[]   // TTS Models
+export const MODEL_CATALOG: ModelEntry[] = [
+  // TTS Models
   {
     id: 'Kamtera/persian-tts-male-vits',
     name: 'Persian TTS Male (VITS)',
@@ -37,7 +37,7 @@ export const MODEL_CATALOG: ModelEntry[]   // TTS Models
     url: 'https://huggingface.co/Kamtera/persian-tts-male-vits',
     description: 'Persian Text-to-Speech model using VITS architecture with male voice',
     language: ['fa'],
-    defaultDest: 'datasets/tts/kamtera_vits_male',
+    defaultDest: 'models/tts/male',
     downloadUrls: {
       main: 'https://huggingface.co/Kamtera/persian-tts-male-vits/resolve/main/model.pth',
       config: 'https://huggingface.co/Kamtera/persian-tts-male-vits/resolve/main/config.json',
@@ -45,7 +45,7 @@ export const MODEL_CATALOG: ModelEntry[]   // TTS Models
         'https://huggingface.co/Kamtera/persian-tts-male-vits/resolve/main/vocab.txt'
       ]
     }
-  },era_vits_male'
+  },
   {
     id: 'Kamtera/persian-tts-female-vits',
     name: 'Persian TTS Female (VITS)',
@@ -59,7 +59,7 @@ export const MODEL_CATALOG: ModelEntry[]   // TTS Models
     url: 'https://huggingface.co/Kamtera/persian-tts-female-vits',
     description: 'Persian Text-to-Speech model using VITS architecture with female voice',
     language: ['fa'],
-    defaultDest: 'datasets/tts/kamtera_vits_female',
+    defaultDest: 'models/tts/female',
     downloadUrls: {
       main: 'https://huggingface.co/Kamtera/persian-tts-female-vits/resolve/main/model.pth',
       config: 'https://huggingface.co/Kamtera/persian-tts-female-vits/resolve/main/config.json',
@@ -67,8 +67,8 @@ export const MODEL_CATALOG: ModelEntry[]   // TTS Models
         'https://huggingface.co/Kamtera/persian-tts-female-vits/resolve/main/vocab.txt'
       ]
     }
-  },a_vits_female'
-    // Chat/LLM Models (Small, CPU-friendly)
+  },
+  // Chat/LLM Models (Small, CPU-friendly)
   {
     id: 'HooshvareLab/bert-fa-base-uncased',
     name: 'Persian BERT Base',
@@ -92,7 +92,8 @@ export const MODEL_CATALOG: ModelEntry[]   // TTS Models
         'https://huggingface.co/HooshvareLab/bert-fa-base-uncased/resolve/main/special_tokens_map.json'
       ]
     }
-  },els/bert_fa_base'  {
+  },
+  {
     id: 'persiannlp/mt5-small-parsinlu-squad-reading-comprehension',
     name: 'Persian mT5 Small (QA)',
     provider: 'PersianNLP',
@@ -114,7 +115,8 @@ export const MODEL_CATALOG: ModelEntry[]   // TTS Models
         'https://huggingface.co/persiannlp/mt5-small-parsinlu-squad-reading-comprehension/resolve/main/spiece.model'
       ]
     }
-  },ls/mt5_small_qa'  // Datasets
+  },
+  // Datasets
   {
     id: 'persiannlp/parsinlu_reading_comprehension',
     name: 'ParsiNLU Reading Comprehension',
@@ -136,7 +138,8 @@ export const MODEL_CATALOG: ModelEntry[]   // TTS Models
         'https://huggingface.co/datasets/persiannlp/parsinlu_reading_comprehension/resolve/main/dev.json'
       ]
     }
-  },/text/parsinlu_rc'  {
+  },
+  {
     id: 'hezarai/common-voice-13-fa',
     name: 'Common Voice 13 (Persian)',
     provider: 'Hezar AI',
@@ -157,7 +160,8 @@ export const MODEL_CATALOG: ModelEntry[]   // TTS Models
         'https://huggingface.co/datasets/hezarai/common-voice-13-fa/resolve/main/validated.tar.gz'
       ]
     }
-  },speech/cv_fa_13'  {
+  },
+  {
     id: 'HooshvareLab/pn_summary',
     name: 'Persian News Summary',
     provider: 'HooshvareLab',
@@ -178,7 +182,8 @@ export const MODEL_CATALOG: ModelEntry[]   // TTS Models
         'https://huggingface.co/datasets/HooshvareLab/pn_summary/resolve/main/validation.json'
       ]
     }
-  },text/pn_summary'  {
+  },
+  {
     id: 'persiannlp/parsinlu_translation_fa_en',
     name: 'ParsiNLU Translation (FA-EN)',
     provider: 'PersianNLP',
@@ -198,9 +203,7 @@ export const MODEL_CATALOG: ModelEntry[]   // TTS Models
         'https://huggingface.co/datasets/persiannlp/parsinlu_translation_fa_en/resolve/main/test.json'
       ]
     }
-  },
-];_translation'
-  },
+  }
 ];
 
 export function getModelById(id: string): ModelEntry | undefined {
@@ -208,7 +211,10 @@ export function getModelById(id: string): ModelEntry | undefined {
 }
 
 export function getModelsByType(type: 'model' | 'tts' | 'dataset'): ModelEntry[] {
-  return MODEL_CATALOG.filter(m => m.typeexport function searchModels(query: string): ModelEntry[] {
+  return MODEL_CATALOG.filter(m => m.type === type);
+}
+
+export function searchModels(query: string): ModelEntry[] {
   const q = query.toLowerCase();
   return MODEL_CATALOG.filter(m => 
     m.name.toLowerCase().includes(q) ||
@@ -253,7 +259,4 @@ export function getAllDownloadUrls(modelId: string): string[] {
 export function getFilenameFromUrl(url: string): string {
   const parts = url.split('/');
   return parts[parts.length - 1] || 'model_file';
-}e().includes(q))
-  );
 }
-

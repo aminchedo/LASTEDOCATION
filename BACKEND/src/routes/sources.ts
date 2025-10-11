@@ -1,7 +1,7 @@
 // BACKEND/src/routes/sources.ts - FIXED VERSION
 
 import { Router, Request, Response } from 'express';
-import { logger } from '../utils/logger';
+import { logger } from '../middleware/logger';
 import { startDownload, getDownloadJob, getAllDownloadJobs, cancelDownload } from '../services/downloads';
 import { MODEL_CATALOG, getModelById, getModelsByType, searchModels } from '../config/modelCatalog';
 
