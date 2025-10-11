@@ -19,11 +19,11 @@ export interface ModelEntry {
     vocab?: string;      // Vocabulary/tokenizer
     additional?: string[]; // Other files
   };
-}t?: string;
 }
 
 // Real Persian models and datasets from Hugging Face
-export const MODEL_CATALOG: ModelEntry[]   // TTS Models
+export const MODEL_CATALOG: ModelEntry[] = [
+  // TTS Models - Real downloadable models
   {
     id: 'Kamtera/persian-tts-male-vits',
     name: 'Persian TTS Male (VITS)',
@@ -35,17 +35,11 @@ export const MODEL_CATALOG: ModelEntry[]   // TTS Models
     license: 'MIT',
     tags: ['persian', 'tts', 'vits', 'male-voice'],
     url: 'https://huggingface.co/Kamtera/persian-tts-male-vits',
-    description: 'Persian Text-to-Speech model using VITS architecture with male voice',
+    description: 'Persian Text-to-Speech model using VITS architecture with male voice (Use git clone for download)',
     language: ['fa'],
-    defaultDest: 'datasets/tts/kamtera_vits_male',
-    downloadUrls: {
-      main: 'https://huggingface.co/Kamtera/persian-tts-male-vits/resolve/main/model.pth',
-      config: 'https://huggingface.co/Kamtera/persian-tts-male-vits/resolve/main/config.json',
-      additional: [
-        'https://huggingface.co/Kamtera/persian-tts-male-vits/resolve/main/vocab.txt'
-      ]
-    }
-  },era_vits_male'
+    defaultDest: 'models/tts/male'
+    // No direct URLs - use git clone fallback
+  },
   {
     id: 'Kamtera/persian-tts-female-vits',
     name: 'Persian TTS Female (VITS)',
@@ -57,18 +51,12 @@ export const MODEL_CATALOG: ModelEntry[]   // TTS Models
     license: 'MIT',
     tags: ['persian', 'tts', 'vits', 'female-voice'],
     url: 'https://huggingface.co/Kamtera/persian-tts-female-vits',
-    description: 'Persian Text-to-Speech model using VITS architecture with female voice',
+    description: 'Persian Text-to-Speech model using VITS architecture with female voice (Use git clone for download)',
     language: ['fa'],
-    defaultDest: 'datasets/tts/kamtera_vits_female',
-    downloadUrls: {
-      main: 'https://huggingface.co/Kamtera/persian-tts-female-vits/resolve/main/model.pth',
-      config: 'https://huggingface.co/Kamtera/persian-tts-female-vits/resolve/main/config.json',
-      additional: [
-        'https://huggingface.co/Kamtera/persian-tts-female-vits/resolve/main/vocab.txt'
-      ]
-    }
-  },a_vits_female'
-    // Chat/LLM Models (Small, CPU-friendly)
+    defaultDest: 'models/tts/female'
+    // No direct URLs - use git clone fallback
+  },
+  // Chat/LLM Models (Small, CPU-friendly) - Real downloadable model
   {
     id: 'HooshvareLab/bert-fa-base-uncased',
     name: 'Persian BERT Base',
@@ -80,19 +68,16 @@ export const MODEL_CATALOG: ModelEntry[]   // TTS Models
     license: 'Apache 2.0',
     tags: ['persian', 'bert', 'transformer', 'nlp'],
     url: 'https://huggingface.co/HooshvareLab/bert-fa-base-uncased',
-    description: 'Persian BERT model for various NLP tasks',
+    description: 'Persian BERT model for various NLP tasks - Real downloadable files',
     language: ['fa'],
     defaultDest: 'models/bert_fa_base',
     downloadUrls: {
-      main: 'https://huggingface.co/HooshvareLab/bert-fa-base-uncased/resolve/main/pytorch_model.bin',
       config: 'https://huggingface.co/HooshvareLab/bert-fa-base-uncased/resolve/main/config.json',
       vocab: 'https://huggingface.co/HooshvareLab/bert-fa-base-uncased/resolve/main/vocab.txt',
-      additional: [
-        'https://huggingface.co/HooshvareLab/bert-fa-base-uncased/resolve/main/tokenizer_config.json',
-        'https://huggingface.co/HooshvareLab/bert-fa-base-uncased/resolve/main/special_tokens_map.json'
-      ]
+      main: 'https://huggingface.co/HooshvareLab/bert-fa-base-uncased/resolve/main/pytorch_model.bin'
     }
-  },els/bert_fa_base'  {
+  },
+  {
     id: 'persiannlp/mt5-small-parsinlu-squad-reading-comprehension',
     name: 'Persian mT5 Small (QA)',
     provider: 'PersianNLP',
@@ -114,7 +99,8 @@ export const MODEL_CATALOG: ModelEntry[]   // TTS Models
         'https://huggingface.co/persiannlp/mt5-small-parsinlu-squad-reading-comprehension/resolve/main/spiece.model'
       ]
     }
-  },ls/mt5_small_qa'  // Datasets
+  },
+  // Datasets
   {
     id: 'persiannlp/parsinlu_reading_comprehension',
     name: 'ParsiNLU Reading Comprehension',
@@ -136,7 +122,8 @@ export const MODEL_CATALOG: ModelEntry[]   // TTS Models
         'https://huggingface.co/datasets/persiannlp/parsinlu_reading_comprehension/resolve/main/dev.json'
       ]
     }
-  },/text/parsinlu_rc'  {
+  },
+  {
     id: 'hezarai/common-voice-13-fa',
     name: 'Common Voice 13 (Persian)',
     provider: 'Hezar AI',
@@ -157,7 +144,8 @@ export const MODEL_CATALOG: ModelEntry[]   // TTS Models
         'https://huggingface.co/datasets/hezarai/common-voice-13-fa/resolve/main/validated.tar.gz'
       ]
     }
-  },speech/cv_fa_13'  {
+  },
+  {
     id: 'HooshvareLab/pn_summary',
     name: 'Persian News Summary',
     provider: 'HooshvareLab',
@@ -178,7 +166,8 @@ export const MODEL_CATALOG: ModelEntry[]   // TTS Models
         'https://huggingface.co/datasets/HooshvareLab/pn_summary/resolve/main/validation.json'
       ]
     }
-  },text/pn_summary'  {
+  },
+  {
     id: 'persiannlp/parsinlu_translation_fa_en',
     name: 'ParsiNLU Translation (FA-EN)',
     provider: 'PersianNLP',
@@ -198,9 +187,7 @@ export const MODEL_CATALOG: ModelEntry[]   // TTS Models
         'https://huggingface.co/datasets/persiannlp/parsinlu_translation_fa_en/resolve/main/test.json'
       ]
     }
-  },
-];_translation'
-  },
+  }
 ];
 
 export function getModelById(id: string): ModelEntry | undefined {
@@ -208,7 +195,10 @@ export function getModelById(id: string): ModelEntry | undefined {
 }
 
 export function getModelsByType(type: 'model' | 'tts' | 'dataset'): ModelEntry[] {
-  return MODEL_CATALOG.filter(m => m.typeexport function searchModels(query: string): ModelEntry[] {
+  return MODEL_CATALOG.filter(m => m.type === type);
+}
+
+export function searchModels(query: string): ModelEntry[] {
   const q = query.toLowerCase();
   return MODEL_CATALOG.filter(m => 
     m.name.toLowerCase().includes(q) ||
@@ -253,7 +243,4 @@ export function getAllDownloadUrls(modelId: string): string[] {
 export function getFilenameFromUrl(url: string): string {
   const parts = url.split('/');
   return parts[parts.length - 1] || 'model_file';
-}e().includes(q))
-  );
 }
-

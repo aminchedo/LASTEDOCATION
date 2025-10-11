@@ -55,12 +55,24 @@ async function downloadFile(
     const client = url.startsWith('https') ? https : http;
 
     const request = client.get(url, (response) => {
-      if (response.statusCode === 302 || response.statusCode === 301) {
-        // Handle redirects
-        const redirectUrl = response.headers.location;
+      // Handle all redirects (301, 302, 307, 308)
+      if (response.statusCode && response.statusCode >= 300 && response.statusCode < 400) {
+        let redirectUrl = response.headers.location;
         if (redirectUrl) {
+          // Handle relative URLs
+          if (!redirectUrl.startsWith('http')) {
+            const urlObj = new URL(url);
+            redirectUrl = redirectUrl.startsWith('/') 
+              ? `${urlObj.protocol}//${urlObj.host}${redirectUrl}`
+              : `${urlObj.protocol}//${urlObj.host}${urlObj.pathname.substring(0, urlObj.pathname.lastIndexOf('/'))}/${redirectUrl}`;
+          }
+          
           file.close();
-          fs.unlinkSync(destination);
+          try {
+            fs.unlinkSync(destination);
+          } catch (e) {
+            // Ignore if file doesn't exist
+          }
           return downloadFile(redirectUrl, destination, onProgress)
             .then(resolve)
             .catch(reject);
@@ -69,7 +81,11 @@ async function downloadFile(
 
       if (response.statusCode !== 200) {
         file.close();
-        fs.unlinkSync(destination);
+        try {
+          fs.unlinkSync(destination);
+        } catch (e) {
+          // Ignore if file doesn't exist
+        }
         return reject(new Error(`HTTP ${response.statusCode}: ${response.statusMessage}`));
       }
 
@@ -200,7 +216,7 @@ async function downloadModelDirect(
 async function downloadWithGit(
   jobId: string,
   modelId: string,
-  repoType: 'model' | 'dataset',
+  _repoType: 'model' | 'dataset',
   destination: string
 ): Promise<void> {
   return new Promise((resolve, reject) => {
