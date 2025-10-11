@@ -32,16 +32,16 @@ export declare const SearchResponseSchema: z.ZodObject<{
         timestamp: z.ZodString;
     }, "strip", z.ZodTypeAny, {
         url: string;
-        source: string;
         timestamp: string;
         title: string;
+        source: string;
         relevanceScore: number;
         snippet?: string | undefined;
     }, {
         url: string;
-        source: string;
         timestamp: string;
         title: string;
+        source: string;
         relevanceScore: number;
         snippet?: string | undefined;
     }>, "many">;
@@ -54,9 +54,9 @@ export declare const SearchResponseSchema: z.ZodObject<{
     query: string;
     results: {
         url: string;
-        source: string;
         timestamp: string;
         title: string;
+        source: string;
         relevanceScore: number;
         snippet?: string | undefined;
     }[];
@@ -67,9 +67,9 @@ export declare const SearchResponseSchema: z.ZodObject<{
     query: string;
     results: {
         url: string;
-        source: string;
         timestamp: string;
         title: string;
+        source: string;
         relevanceScore: number;
         snippet?: string | undefined;
     }[];
