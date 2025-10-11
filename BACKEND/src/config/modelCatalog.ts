@@ -12,6 +12,14 @@ export interface ModelEntry {
   description: string;
   language: string[];
   defaultDest?: string;
+  // ✅ NEW: Direct download URLs for main files
+  downloadUrls?: {
+    main: string;        // Primary model file
+    config?: string;     // Config file
+    vocab?: string;      // Vocabulary/tokenizer
+    additional?: string[]; // Other files
+  };
+}t?: string;
 }
 
 // Real Persian models and datasets from Hugging Face
