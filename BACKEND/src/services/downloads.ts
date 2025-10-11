@@ -200,7 +200,7 @@ async function downloadModelDirect(
 async function downloadWithGit(
   jobId: string,
   modelId: string,
-  repoType: 'model' | 'dataset',
+  _repoType: 'model' | 'dataset',
   destination: string
 ): Promise<void> {
   return new Promise((resolve, reject) => {
