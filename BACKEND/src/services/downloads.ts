@@ -1,6 +1,8 @@
 import { spawn } from 'child_process';
 import fs from 'fs';
 import path from 'path';
+import https from 'https';
+import http from 'http';
 import { logger } from '../middleware/logger';
 import { notificationService } from './notifications';
 
@@ -81,11 +83,131 @@ function parseHFProgress(line: string, job: DownloadJob) {
   }
 }
 
+/**
+ * Download a file directly via HTTP/HTTPS
+ */
+async function downloadFile(
+  url: string,
+  destPath: string,
+  onProgress?: (downloaded: number, total: number) => void
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const client = url.startsWith('https') ? https : http;
+    
+    const request = client.get(url, (response) => {
+      // Handle redirects
+      if (response.statusCode === 301 || response.statusCode === 302 || response.statusCode === 307 || response.statusCode === 308) {
+        const redirectUrl = response.headers.location;
+        if (redirectUrl) {
+          logger.info({ msg: 'Following redirect', from: url, to: redirectUrl });
+          downloadFile(redirectUrl, destPath, onProgress).then(resolve).catch(reject);
+          return;
+        }
+      }
+
+      if (response.statusCode !== 200) {
+        reject(new Error(`HTTP ${response.statusCode}: ${response.statusMessage}`));
+        return;
+      }
+
+      const totalBytes = parseInt(response.headers['content-length'] || '0', 10);
+      let downloadedBytes = 0;
+
+      const fileStream = fs.createWriteStream(destPath);
+      
+      response.on('data', (chunk: Buffer) => {
+        downloadedBytes += chunk.length;
+        if (onProgress && totalBytes > 0) {
+          onProgress(downloadedBytes, totalBytes);
+        }
+      });
+
+      response.pipe(fileStream);
+
+      fileStream.on('finish', () => {
+        fileStream.close();
+        resolve();
+      });
+
+      fileStream.on('error', (err) => {
+        fs.unlink(destPath, () => {}); // Clean up partial file
+        reject(err);
+      });
+    });
+
+    request.on('error', (err) => {
+      reject(err);
+    });
+
+    request.setTimeout(300000, () => { // 5 minute timeout
+      request.destroy();
+      reject(new Error('Request timeout'));
+    });
+  });
+}
+
+/**
+ * Download multiple files directly (for models with direct download URLs)
+ */
+async function downloadMultipleFiles(
+  urls: string[],
+  destDir: string,
+  job: DownloadJob
+): Promise<void> {
+  ensureDir(destDir);
+  
+  const totalFiles = urls.length;
+  let completedFiles = 0;
+  let totalBytesAll = 0;
+  let downloadedBytesAll = 0;
+
+  for (const url of urls) {
+    const filename = url.split('/').pop() || 'file';
+    const destPath = path.join(destDir, filename);
+    
+    job.currentFile = filename;
+    logger.info({ msg: 'Downloading file', url, destPath });
+
+    try {
+      await downloadFile(url, destPath, (downloaded, total) => {
+        // Update progress for this file
+        if (totalBytesAll === 0 && total > 0) {
+          // First time we know the size
+          totalBytesAll = total * totalFiles; // Rough estimate
+        }
+        
+        downloadedBytesAll = (completedFiles * (total || 0)) + downloaded;
+        
+        job.bytesDownloaded = downloadedBytesAll;
+        job.bytesTotal = totalBytesAll;
+        job.progress = Math.round((downloadedBytesAll / totalBytesAll) * 100);
+        
+        if (total > 0) {
+          const speed = downloaded / ((Date.now() - new Date(job.startedAt!).getTime()) / 1000);
+          job.speed = speed;
+          job.eta = (totalBytesAll - downloadedBytesAll) / speed;
+        }
+      });
+
+      completedFiles++;
+      job.completedFiles.push(filename);
+      job.progress = Math.round((completedFiles / totalFiles) * 100);
+      
+      logger.info({ msg: 'File downloaded', filename, progress: job.progress });
+    } catch (err) {
+      throw new Error(`Failed to download ${filename}: ${(err as Error).message}`);
+    }
+  }
+
+  job.progress = 100;
+}
+
 export async function startDownload(
   kind: 'model' | 'tts' | 'dataset',
   repoId: string,
   repoType: 'model' | 'dataset',
-  dest: string
+  dest: string,
+  directUrls?: string[]
 ): Promise<DownloadJob> {
   const jobId = generateJobId();
   
@@ -114,7 +236,44 @@ export async function startDownload(
   // Write initial job state
   fs.writeFileSync(logFile, JSON.stringify(job, null, 2));
 
-  // Spawn huggingface-cli process
+  // ✅ NEW: Use direct download if URLs are provided
+  if (directUrls && directUrls.length > 0) {
+    logger.info({ msg: 'Starting direct download', jobId, repoId, urls: directUrls.length, dest });
+    
+    job.status = 'downloading';
+    
+    // Download files asynchronously
+    (async () => {
+      try {
+        await downloadMultipleFiles(directUrls, dest, job);
+        
+        job.status = 'completed';
+        job.progress = 100;
+        job.finishedAt = new Date().toISOString();
+        logger.info({ msg: 'Direct download completed', jobId, repoId });
+        
+        // Notify download completed
+        notificationService.notifyDownloadCompleted(repoId.split('/').pop() || repoId);
+        
+        // Final update to log file
+        fs.writeFileSync(logFile, JSON.stringify(job, null, 2));
+      } catch (err) {
+        job.status = 'error';
+        job.error = (err as Error).message;
+        job.finishedAt = new Date().toISOString();
+        logger.error({ msg: 'Direct download failed', jobId, repoId, error: (err as Error).message });
+        
+        // Notify download error
+        notificationService.notifyDownloadError(repoId.split('/').pop() || repoId, (err as Error).message);
+        
+        fs.writeFileSync(logFile, JSON.stringify(job, null, 2));
+      }
+    })();
+    
+    return job;
+  }
+
+  // ✅ FALLBACK: Use huggingface-cli for full repo download
   const args = [
     'snapshot-download',
     '--repo-type', repoType,
@@ -123,7 +282,7 @@ export async function startDownload(
     '--local-dir-use-symlinks', 'False'
   ];
 
-  logger.info({ msg: 'Starting download', jobId, repoId, repoType, dest });
+  logger.info({ msg: 'Starting download with HF CLI', jobId, repoId, repoType, dest });
 
   const proc = spawn('huggingface-cli', args);
 
@@ -214,4 +373,3 @@ export function cancelDownload(jobId: string): boolean {
 
   return false;
 }
-

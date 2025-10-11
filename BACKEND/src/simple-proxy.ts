@@ -4,8 +4,13 @@ import { URL } from 'url';
 
 const app = express();
 
+// ✅ EXPANDED: Added HuggingFace CDN domains for direct downloads
 const ALLOWED_HOSTS = new Set([
   'huggingface.co',
+  'cdn.huggingface.co',
+  'cdn-lfs.huggingface.co',
+  'cdn-lfs-us-1.huggingface.co',
+  'cdn-lfs-eu-1.huggingface.co',
   'objects.githubusercontent.com',
   'raw.githubusercontent.com',
   'github.com',
