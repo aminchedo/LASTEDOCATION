@@ -12,9 +12,11 @@ import chatRouter from './routes/chat';
 import { authenticateToken } from './middleware/auth';
 import downloadProxyRouter from './simple-proxy';
 import { logger } from './utils/logger';
+import { ENV } from './config/env';
+import { errorHandler } from './middleware/errorHandler';
 
 const app = express();
-app.use(cors());
+app.use(cors({ origin: ENV.CORS_ORIGIN, credentials: true }));
 app.use(express.json({ limit: '10mb' }));
 
 // Routeهای اصلی
@@ -93,4 +95,6 @@ app.get('/api/health', (_req, res) => {
 });
 
 const port = process.env.PORT ? Number(process.env.PORT) : 3001;
+// error handler should be last
+app.use(errorHandler);
 app.listen(port, () => logger.info(`API listening on :${port}`));
