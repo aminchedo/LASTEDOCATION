@@ -4,14 +4,18 @@
   "type": "module",
   "description": "LLM Monitoring UI - Enhanced monitoring dashboard for Persian chat application",
   "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd BACKEND && npm run dev",
+    "dev:frontend": "cd client && npm run dev",
     "dev:client": "cd client && npm run dev",
-    "dev:backend": "cd backend && npm run dev",
+    "build": "npm run build:backend && npm run build:frontend",
+    "build:backend": "cd BACKEND && npm run build",
+    "build:frontend": "cd client && npm run build",
     "build:client": "cd client && npm run build",
-    "build:backend": "cd backend && npm run build",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:report": "playwright show-report",
-    "lint": "cd client && npm run lint && cd ../backend && npm run lint"
+    "lint": "cd client && npm run lint && cd ../BACKEND && npm run lint"
   },
   "devDependencies": {
     "@playwright/test": "^1.40.0",
