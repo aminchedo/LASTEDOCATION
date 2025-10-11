@@ -13,14 +13,18 @@ const sources_1 = __importDefault(require("./routes/sources"));
 const monitoring_1 = __importDefault(require("./routes/monitoring"));
 const models_1 = __importDefault(require("./routes/models"));
 const auth_1 = __importDefault(require("./routes/auth"));
+const chat_1 = __importDefault(require("./routes/chat"));
 const auth_2 = require("./middleware/auth");
 const simple_proxy_1 = __importDefault(require("./simple-proxy"));
 const logger_1 = require("./utils/logger");
+const env_1 = require("./config/env");
+const errorHandler_1 = require("./middleware/errorHandler");
 const app = (0, express_1.default)();
-app.use((0, cors_1.default)());
+app.use((0, cors_1.default)({ origin: env_1.ENV.CORS_ORIGIN, credentials: true }));
 app.use(express_1.default.json({ limit: '10mb' }));
 // Routeهای اصلی
 app.use('/api/auth', auth_1.default);
+app.use('/api/chat', auth_2.authenticateToken, chat_1.default);
 app.use('/api/train', auth_2.authenticateToken, train_1.default);
 app.use('/api/optimization', auth_2.authenticateToken, optimization_1.default);
 app.use('/api/bootstrap', auth_2.authenticateToken, bootstrap_1.default);
@@ -86,5 +90,7 @@ app.get('/api/health', (_req, res) => {
     });
 });
 const port = process.env.PORT ? Number(process.env.PORT) : 3001;
+// Error handler should be last
+app.use(errorHandler_1.errorHandler);
 app.listen(port, () => logger_1.logger.info(`API listening on :${port}`));
 //# sourceMappingURL=server.js.map
