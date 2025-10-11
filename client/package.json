@@ -7,7 +7,12 @@
     "dev": "vite --port 3000",
     "build": "tsc && vite build",
     "preview": "vite preview --port 3000",
-    "lint": "echo \"Linting skipped - add eslint if needed\""
+    "lint": "echo \"Linting skipped - add eslint if needed\"",
+    "serve": "vite preview --port 3000",
+    "validate:html": "echo \"HTML validation - requires build first: npm run build\"",
+    "validate:a11y": "echo \"A11y validation - requires running dev server\"",
+    "validate:types": "tsc --noEmit",
+    "validate": "npm run validate:types"
   },
   "dependencies": {
     "axios": "^1.7.2",
