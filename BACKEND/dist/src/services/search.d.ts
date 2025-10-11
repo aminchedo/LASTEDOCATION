@@ -33,16 +33,16 @@ export declare const SearchResponseSchema: z.ZodObject<{
     }, "strip", z.ZodTypeAny, {
         url: string;
         source: string;
-        timestamp: string;
         title: string;
         relevanceScore: number;
+        timestamp: string;
         snippet?: string | undefined;
     }, {
         url: string;
         source: string;
-        timestamp: string;
         title: string;
         relevanceScore: number;
+        timestamp: string;
         snippet?: string | undefined;
     }>, "many">;
     totalResults: z.ZodNumber;
@@ -52,29 +52,29 @@ export declare const SearchResponseSchema: z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     language: string;
     query: string;
+    processingTime: number;
     results: {
         url: string;
         source: string;
-        timestamp: string;
         title: string;
         relevanceScore: number;
+        timestamp: string;
         snippet?: string | undefined;
     }[];
     totalResults: number;
-    processingTime: number;
 }, {
     language: string;
     query: string;
+    processingTime: number;
     results: {
         url: string;
         source: string;
-        timestamp: string;
         title: string;
         relevanceScore: number;
+        timestamp: string;
         snippet?: string | undefined;
     }[];
     totalResults: number;
-    processingTime: number;
 }>;
 export type SearchRequest = z.infer<typeof SearchRequestSchema>;
 export type SearchResponse = z.infer<typeof SearchResponseSchema>;

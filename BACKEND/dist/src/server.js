@@ -13,14 +13,20 @@ const sources_1 = __importDefault(require("./routes/sources"));
 const monitoring_1 = __importDefault(require("./routes/monitoring"));
 const models_1 = __importDefault(require("./routes/models"));
 const auth_1 = __importDefault(require("./routes/auth"));
+const chat_1 = __importDefault(require("./routes/chat"));
+const stt_1 = __importDefault(require("./routes/stt"));
+const tts_1 = __importDefault(require("./routes/tts"));
+const search_1 = __importDefault(require("./routes/search"));
+const notifications_1 = __importDefault(require("./routes/notifications"));
 const auth_2 = require("./middleware/auth");
 const simple_proxy_1 = __importDefault(require("./simple-proxy"));
-const logger_1 = require("./utils/logger");
+const logger_1 = require("./middleware/logger");
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)());
 app.use(express_1.default.json({ limit: '10mb' }));
 // Routeهای اصلی
 app.use('/api/auth', auth_1.default);
+app.use('/api/chat', auth_2.authenticateToken, chat_1.default);
 app.use('/api/train', auth_2.authenticateToken, train_1.default);
 app.use('/api/optimization', auth_2.authenticateToken, optimization_1.default);
 app.use('/api/bootstrap', auth_2.authenticateToken, bootstrap_1.default);
@@ -29,6 +35,11 @@ app.use('/api/sources', auth_2.authenticateToken, sources_1.default);
 app.use('/api/monitoring', auth_2.authenticateToken, monitoring_1.default);
 app.use('/api/models', auth_2.authenticateToken, models_1.default);
 app.use('/api/v1', simple_proxy_1.default); // Download proxy routes
+// Routes گم‌شده - اضافه شده
+app.use('/api/stt', stt_1.default); // Speech-to-Text (Public - بدون auth)
+app.use('/api/tts', tts_1.default); // Text-to-Speech (Public - بدون auth)
+app.use('/api/search', search_1.default); // Search Service (Public - بدون auth)
+app.use('/api/notifications', auth_2.authenticateToken, notifications_1.default); // Notifications (Protected)
 // Routeهای fallback برای جلوگیری از 404
 app.get('/api/train/status', (_req, res) => {
     res.json({
@@ -72,19 +83,84 @@ app.get('/api/monitoring/metrics', (_req, res) => {
     });
 });
 // Health checks
-app.get('/health', (_req, res) => res.json({ ok: true }));
+app.get('/health', (_req, res) => {
+    res.json({
+        ok: true,
+        timestamp: new Date().toISOString(),
+        service: 'persian-chat-backend'
+    });
+});
 app.get('/api/health', (_req, res) => {
     res.json({
         ok: true,
         services: {
+            auth: true,
+            chat: true,
             training: true,
             download: true,
             monitoring: true,
-            sources: true
+            sources: true,
+            stt: true,
+            tts: true,
+            search: true,
+            notifications: true
         },
         timestamp: new Date().toISOString()
     });
 });
+// 404 Handler - باید قبل از error handler باشد
+app.use('*', (req, res) => {
+    logger_1.logger.warn({
+        msg: '404_not_found',
+        method: req.method,
+        path: req.originalUrl,
+        ip: req.ip
+    });
+    res.status(404).json({
+        success: false,
+        error: 'Not Found',
+        message: `Route ${req.method} ${req.originalUrl} not found`,
+        availableRoutes: [
+            'GET /health',
+            'GET /api/health',
+            'POST /api/auth/login',
+            'POST /api/auth/verify',
+            'POST /api/chat',
+            'GET /api/train/status',
+            'POST /api/train/start',
+            'GET /api/models/detected',
+            'POST /api/stt',
+            'POST /api/tts',
+            'POST /api/search',
+            'GET /api/notifications',
+            'GET /api/monitoring/metrics',
+            'GET /api/sources/downloads'
+        ],
+        timestamp: new Date().toISOString()
+    });
+});
+// Global Error Handler
+app.use((err, req, res, _next) => {
+    logger_1.logger.error({
+        msg: 'unhandled_error',
+        error: err.message,
+        stack: err.stack,
+        method: req.method,
+        path: req.originalUrl
+    });
+    res.status(err.status || 500).json({
+        success: false,
+        error: err.message || 'Internal Server Error',
+        code: err.code || 'INTERNAL_ERROR',
+        timestamp: new Date().toISOString()
+    });
+});
 const port = process.env.PORT ? Number(process.env.PORT) : 3001;
-app.listen(port, () => logger_1.logger.info(`API listening on :${port}`));
+app.listen(port, () => {
+    logger_1.logger.info(`🚀 Persian Chat Backend API listening on port ${port}`);
+    logger_1.logger.info(`📡 Health check: http://localhost:${port}/health`);
+    logger_1.logger.info(`🔐 Auth endpoint: http://localhost:${port}/api/auth/login`);
+    logger_1.logger.info(`💬 Chat endpoint: http://localhost:${port}/api/chat`);
+    logger_1.logger.info(`🎯 All routes registered successfully`);
+});
 //# sourceMappingURL=server.js.map
