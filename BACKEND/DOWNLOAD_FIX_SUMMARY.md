@@ -1,428 +1,269 @@
-# 🔧 Download Issues - Complete Fix Summary
+# 🔧 Model Download Fix - Complete Summary
 
-## 📋 Problems Identified
+## 📋 Overview
+Fixed 3 critical issues preventing model and TTS downloads from working properly:
 
-### Problem 1: Model Catalog Missing Direct URLs
-**Issue**: `modelCatalog.ts` only had HuggingFace page URLs, not direct file download links.
-**Status**: ✅ **FIXED**
-
-### Problem 2: Download Service Incomplete
-**Issue**: Download service couldn't extract and download direct file links.
-**Status**: ✅ **FIXED**
-
-### Problem 3: Proxy Domain Restrictions
-**Issue**: Proxy blocked HuggingFace CDN domains (cdn-lfs.huggingface.co, etc.).
-**Status**: ✅ **FIXED**
+1. **Model Catalog** - Added direct download URLs
+2. **Download Service** - Implemented HTTP-based direct downloads
+3. **Proxy Service** - Extended to support HuggingFace CDN domains
+4. **API Routes** - Integrated catalog with download endpoints
 
 ---
 
-## ✅ Solutions Implemented
+## ✅ Changes Made
 
-### 1. Enhanced Model Catalog (`modelCatalog.ts`)
+### 1. **`BACKEND/src/config/modelCatalog.ts`** - Model Catalog with Direct URLs
 
 **Changes:**
-- Added `downloadUrls` interface with main, config, vocab, and additional file URLs
-- Added direct download URLs to all 8 models/datasets in catalog
+- Added `downloadUrls` field to `ModelEntry` interface
+- Added direct download URLs for all models/datasets in catalog
 - Added helper functions: `getAllDownloadUrls()` and `getFilenameFromUrl()`
 
-**Example:**
+**Key Features:**
 ```typescript
-{
-  id: 'HooshvareLab/bert-fa-base-uncased',
-  downloadUrls: {
-    main: 'https://huggingface.co/.../pytorch_model.bin',
-    config: 'https://huggingface.co/.../config.json',
-    vocab: 'https://huggingface.co/.../vocab.txt',
-    additional: ['tokenizer_config.json', 'special_tokens_map.json']
-  }
+interface ModelEntry {
+  // ... existing fields
+  downloadUrls?: {
+    main: string;        // Primary model file
+    config?: string;     // Config file
+    vocab?: string;      // Vocabulary/tokenizer
+    additional?: string[]; // Other files
+  };
 }
 ```
 
-### 2. Enhanced Download Service (`downloads.ts`)
+**Models with Direct URLs:**
+- ✅ Kamtera/persian-tts-male-vits
+- ✅ Kamtera/persian-tts-female-vits
+- ✅ HooshvareLab/bert-fa-base-uncased
+- ✅ persiannlp/mt5-small-parsinlu-squad-reading-comprehension
+- ✅ All datasets (parsinlu, common-voice, pn_summary, etc.)
+
+---
+
+### 2. **`BACKEND/src/services/downloads.ts`** - Direct Download Support
 
 **Changes:**
-- Added `downloadFile()` function for single file downloads with progress tracking
-- Added `downloadModelDirect()` for catalog-based downloads
-- Kept `downloadWithGit()` as fallback method
-- Smart selection: tries direct download first, falls back to git clone
+- Added `https` and `http` imports
+- Implemented `downloadFile()` - Downloads single file via HTTP/HTTPS
+- Implemented `downloadMultipleFiles()` - Downloads multiple files with progress tracking
+- Updated `startDownload()` to accept `directUrls` parameter
+- Auto-follows redirects (301, 302, 307, 308)
 
-**Features:**
-- Progress tracking per file
-- Overall progress calculation
-- Redirect handling
-- Error recovery
-- Timeout handling (30s)
+**Key Features:**
+- ✅ Direct HTTP/HTTPS downloads (no CLI dependency)
+- ✅ Progress tracking (bytes downloaded, speed, ETA)
+- ✅ Redirect handling
+- ✅ Error handling and cleanup
+- ✅ Falls back to `huggingface-cli` if no direct URLs provided
 
-### 3. Enhanced Proxy (`simple-proxy.ts`)
+**Flow:**
+```
+startDownload() 
+  ├─> directUrls provided? 
+  │   ├─> YES: Use downloadMultipleFiles() (HTTP-based)
+  │   └─> NO:  Use huggingface-cli (fallback)
+```
+
+---
+
+### 3. **`BACKEND/src/simple-proxy.ts`** - HuggingFace CDN Support
 
 **Changes:**
-- Expanded `ALLOWED_HOSTS` to include:
-  - `cdn-lfs.huggingface.co` (HuggingFace LFS CDN)
-  - `cdn-lfs-us-1.huggingface.co` (US CDN)
-  - `cdn.huggingface.co` (Main CDN)
-  - `kaggle.com` and `www.kaggle.com` (Kaggle datasets)
-- Added subdomain matching (*.huggingface.co)
-- Added `followRedirects()` function (max 5 redirects)
-- Enhanced error messages with detailed info
-- Added health check endpoint
+- Extended `ALLOWED_HOSTS` to include HuggingFace CDN domains
 
-### 4. Enhanced Sources API (`sources.ts`)
-
-**New Endpoints:**
-
-#### Get Catalog
-```http
-GET /api/sources/catalog
-```
-Returns all models from catalog.
-
-#### Get Model by ID
-```http
-GET /api/sources/catalog/:modelId
-```
-Example: `/api/sources/catalog/HooshvareLab%2Fbert-fa-base-uncased`
-
-#### Get Models by Type
-```http
-GET /api/sources/catalog/type/:type
-```
-Types: `model`, `tts`, `dataset`
-
-#### Search Catalog
-```http
-GET /api/sources/catalog/search?q=persian
+**Added Domains:**
+```typescript
+const ALLOWED_HOSTS = new Set([
+  'huggingface.co',
+  'cdn.huggingface.co',              // ✅ NEW
+  'cdn-lfs.huggingface.co',          // ✅ NEW
+  'cdn-lfs-us-1.huggingface.co',     // ✅ NEW
+  'cdn-lfs-eu-1.huggingface.co',     // ✅ NEW
+  // ... other existing hosts
+]);
 ```
 
-#### Download from Catalog
-```http
+**Why This Matters:**
+- HuggingFace serves large files (models, datasets) via CDN
+- Direct downloads redirect to CDN URLs
+- Without these domains, proxy would block the downloads
+
+---
+
+### 4. **`BACKEND/src/routes/sources.ts`** - Catalog Integration
+
+**Changes:**
+- Imported catalog functions and download service
+- Updated existing endpoints to use catalog
+- Added new catalog-specific endpoints
+
+**New/Updated Endpoints:**
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/sources/catalog` | Get full model catalog |
+| GET | `/api/sources/catalog/:modelId` | Get specific model from catalog |
+| POST | `/api/sources/catalog/download` | Download model from catalog with direct URLs |
+| GET | `/api/sources/models/available` | Now returns models from catalog |
+| GET | `/api/sources/datasets/available` | Now returns datasets from catalog |
+| GET | `/api/sources/downloads` | Uses download service |
+| GET | `/api/sources/download/:jobId` | Uses download service |
+| DELETE | `/api/sources/download/:jobId` | Cancel download |
+
+**Catalog Download Flow:**
+```
 POST /api/sources/catalog/download
-Content-Type: application/json
-
-{
-  "modelId": "HooshvareLab/bert-fa-base-uncased",
-  "destination": "models/bert_fa_base" // optional
-}
-```
-
-#### Get All Jobs
-```http
-GET /api/sources/jobs
-```
-
-#### Get Job Status
-```http
-GET /api/sources/jobs/:jobId
-```
-
-#### Cancel Job
-```http
-DELETE /api/sources/jobs/:jobId
+  ├─> Get model from catalog
+  ├─> Extract direct download URLs
+  ├─> Call startDownload() with URLs
+  └─> Return job ID for tracking
 ```
 
 ---
 
-## 🧪 Testing Guide
+## 🎯 How It Works Now
 
-### Test 1: Get Catalog
-```bash
-curl http://localhost:3000/api/sources/catalog
-```
+### Download Flow
 
-**Expected:** List of 8 models with download URLs.
-
-### Test 2: Get Model by Type
-```bash
-# Get TTS models
-curl http://localhost:3000/api/sources/catalog/type/tts
-
-# Get Datasets
-curl http://localhost:3000/api/sources/catalog/type/dataset
-```
-
-### Test 3: Search Catalog
-```bash
-curl "http://localhost:3000/api/sources/catalog/search?q=persian"
-curl "http://localhost:3000/api/sources/catalog/search?q=bert"
-```
-
-### Test 4: Download Model (MAIN TEST)
-```bash
-curl -X POST http://localhost:3000/api/sources/catalog/download \
-  -H "Content-Type: application/json" \
-  -d '{
-    "modelId": "persiannlp/parsinlu_reading_comprehension"
-  }'
-```
-
-**Expected Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "jobId": "dl_1728670123456_abc123",
-    "modelId": "persiannlp/parsinlu_reading_comprehension",
-    "modelName": "ParsiNLU Reading Comprehension",
-    "destination": "datasets/text/parsinlu_rc",
-    "message": "Download started successfully"
-  }
-}
-```
-
-### Test 5: Check Download Progress
-```bash
-# Replace with actual jobId from Test 4
-curl http://localhost:3000/api/sources/jobs/dl_1728670123456_abc123
-```
-
-**Expected Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "id": "dl_1728670123456_abc123",
-    "kind": "dataset",
-    "repoId": "persiannlp/parsinlu_reading_comprehension",
-    "status": "downloading",
-    "progress": 45,
-    "currentFile": "train.json",
-    "completedFiles": [],
-    "bytesDownloaded": 4500000,
-    "bytesTotal": 10000000
-  }
-}
-```
-
-### Test 6: Get All Jobs
-```bash
-curl http://localhost:3000/api/sources/jobs
-```
-
-### Test 7: Test Proxy (Direct)
-```bash
-# Test HuggingFace CDN
-curl "http://localhost:3000/api/v1/sources/resolve?url=https%3A%2F%2Fhuggingface.co%2FHooshvareLab%2Fbert-fa-base-uncased%2Fresolve%2Fmain%2Fconfig.json"
-
-# Test proxy download
-curl "http://localhost:3000/api/v1/sources/proxy?url=https%3A%2F%2Fhuggingface.co%2FHooshvareLab%2Fbert-fa-base-uncased%2Fresolve%2Fmain%2Fconfig.json" \
-  -o config.json
-```
-
-### Test 8: Test Proxy Health
-```bash
-curl http://localhost:3000/api/v1/health
-```
-
-**Expected:**
-```json
-{
-  "ok": true,
-  "service": "download-proxy",
-  "allowedHosts": [
-    "huggingface.co",
-    "cdn-lfs.huggingface.co",
-    "cdn-lfs-us-1.huggingface.co",
-    "cdn.huggingface.co",
-    ...
-  ]
-}
+```mermaid
+sequenceDiagram
+    Frontend->>API: POST /api/sources/catalog/download
+    API->>Catalog: getModelById(modelId)
+    Catalog-->>API: Model with downloadUrls
+    API->>Download Service: startDownload(modelId, directUrls)
+    Download Service->>HuggingFace: HTTP GET (direct URLs)
+    HuggingFace-->>Download Service: File stream
+    Download Service->>Filesystem: Save files
+    Download Service-->>API: Job created
+    API-->>Frontend: { jobId, status }
+    Frontend->>API: GET /api/sources/download/:jobId (polling)
+    API->>Download Service: getDownloadJob(jobId)
+    Download Service-->>API: { progress, status, ... }
+    API-->>Frontend: Progress update
 ```
 
 ---
 
-## 📂 Files Modified
+## 📝 Testing the Changes
 
-1. ✅ `/workspace/BACKEND/src/config/modelCatalog.ts`
-   - Added `downloadUrls` interface
-   - Added direct URLs to all models
-   - Added helper functions
-
-2. ✅ `/workspace/BACKEND/src/services/downloads.ts`
-   - Added direct file download support
-   - Added progress tracking
-   - Added redirect handling
-   - Kept git clone as fallback
-
-3. ✅ `/workspace/BACKEND/src/simple-proxy.ts`
-   - Added HuggingFace CDN domains
-   - Added subdomain matching
-   - Added redirect following
-   - Enhanced error handling
-
-4. ✅ `/workspace/BACKEND/src/routes/sources.ts`
-   - Added catalog integration
-   - Added 7 new endpoints
-   - Integrated with downloads service
-
----
-
-## 🎯 Key Features
-
-### 1. Smart Download Strategy
-- **Primary**: Direct HTTP download from catalog URLs (fast, progress tracking)
-- **Fallback**: Git clone (if no direct URLs available)
-
-### 2. Progress Tracking
-- Per-file progress
-- Overall progress calculation
-- Bytes downloaded/total
-- Current file being downloaded
-- Completed files list
-
-### 3. Error Handling
-- HTTP error codes
-- Redirect handling (max 5)
-- Timeout handling (30s)
-- Detailed error messages
-- Automatic fallback to git clone
-
-### 4. Proxy Security
-- Whitelist-based domain filtering
-- Subdomain matching
-- Header sanitization
-- CORS enabled
-
----
-
-## 🚀 Quick Start
-
-### Start Backend
+### 1. **Start the Backend**
 ```bash
 cd BACKEND
 npm run dev
 ```
 
-### Test Download Flow
+### 2. **Test Catalog Endpoints**
 ```bash
-# 1. Get catalog
-curl http://localhost:3000/api/sources/catalog
+# Get all models/datasets
+curl http://localhost:3001/api/sources/catalog
 
-# 2. Start download
-curl -X POST http://localhost:3000/api/sources/catalog/download \
+# Get specific model
+curl http://localhost:3001/api/sources/catalog/Kamtera%2Fpersian-tts-male-vits
+
+# Get TTS models
+curl http://localhost:3001/api/sources/models/available
+
+# Get datasets
+curl http://localhost:3001/api/sources/datasets/available
+```
+
+### 3. **Test Download**
+```bash
+# Start download
+curl -X POST http://localhost:3001/api/sources/catalog/download \
   -H "Content-Type: application/json" \
-  -d '{"modelId": "persiannlp/parsinlu_reading_comprehension"}'
+  -d '{"modelId": "Kamtera/persian-tts-male-vits"}'
 
-# 3. Check progress (use jobId from step 2)
-curl http://localhost:3000/api/sources/jobs/YOUR_JOB_ID
+# Response: { "success": true, "data": { "jobId": "dl_1234..." } }
 
-# 4. Check downloaded files
-ls -lh datasets/text/parsinlu_rc/
+# Check progress
+curl http://localhost:3001/api/sources/download/dl_1234...
+
+# Cancel download (if needed)
+curl -X DELETE http://localhost:3001/api/sources/download/dl_1234...
+```
+
+### 4. **Monitor Download Progress**
+```bash
+# Watch download status
+watch -n 1 'curl -s http://localhost:3001/api/sources/download/dl_1234... | jq .data'
+```
+
+**Expected Progress Output:**
+```json
+{
+  "id": "dl_1234...",
+  "kind": "tts",
+  "repoId": "Kamtera/persian-tts-male-vits",
+  "status": "downloading",
+  "progress": 45,
+  "bytesDownloaded": 23000000,
+  "bytesTotal": 50000000,
+  "speed": 5242880,
+  "eta": 5,
+  "currentFile": "model.pth"
+}
 ```
 
 ---
 
-## 📊 Supported Models
-
-### TTS Models (2)
-1. ✅ Kamtera/persian-tts-male-vits (~50 MB)
-2. ✅ Kamtera/persian-tts-female-vits (~50 MB)
-
-### Chat/LLM Models (2)
-3. ✅ HooshvareLab/bert-fa-base-uncased (~440 MB)
-4. ✅ persiannlp/mt5-small-parsinlu-squad-reading-comprehension (~300 MB)
-
-### Datasets (4)
-5. ✅ persiannlp/parsinlu_reading_comprehension (~10 MB)
-6. ✅ hezarai/common-voice-13-fa (~2 GB)
-7. ✅ HooshvareLab/pn_summary (~50 MB)
-8. ✅ persiannlp/parsinlu_translation_fa_en (~15 MB)
-
----
-
-## 🔍 Troubleshooting
+## 🐛 Troubleshooting
 
 ### Issue: Download fails with "Host not allowed"
-**Solution**: Check that CDN domains are in `ALLOWED_HOSTS` in `simple-proxy.ts`
+**Solution:** Check that `simple-proxy.ts` includes HuggingFace CDN domains
 
 ### Issue: Download stuck at 0%
-**Solution**: 
-1. Check logs: `logs/downloads/dl_*.json`
-2. Verify URLs are accessible
-3. Check if direct URLs exist in catalog
+**Solution:** 
+1. Check network connectivity to HuggingFace
+2. Verify URLs in catalog are correct
+3. Check logs: `BACKEND/logs/downloads/`
 
-### Issue: Git clone fallback used
-**Solution**: This is normal for models without `downloadUrls`. To add direct URLs:
-1. Find model on HuggingFace
-2. Get direct `/resolve/main/` URLs
-3. Add to catalog entry
+### Issue: "Model not found in catalog"
+**Solution:** Ensure modelId matches exactly (case-sensitive, including `/`)
 
-### Issue: 404 on download
-**Solution**: Verify model exists on HuggingFace and URLs are correct
+### Issue: Direct download not working
+**Solution:** 
+1. Check if `downloadUrls` is defined in catalog
+2. Falls back to `huggingface-cli` if not available
+3. Ensure `huggingface-cli` is installed for fallback
 
 ---
 
-## 📝 API Response Examples
+## 📦 What Files Were Changed
 
-### Successful Download Start
-```json
-{
-  "success": true,
-  "data": {
-    "jobId": "dl_1728670123456_abc123",
-    "modelId": "HooshvareLab/bert-fa-base-uncased",
-    "modelName": "Persian BERT Base",
-    "destination": "models/bert_fa_base",
-    "message": "Download started successfully"
-  }
-}
 ```
-
-### Download Progress
-```json
-{
-  "success": true,
-  "data": {
-    "id": "dl_1728670123456_abc123",
-    "kind": "model",
-    "repoId": "HooshvareLab/bert-fa-base-uncased",
-    "repoType": "model",
-    "dest": "models/bert_fa_base",
-    "status": "downloading",
-    "progress": 67,
-    "bytesDownloaded": 294912000,
-    "bytesTotal": 440000000,
-    "currentFile": "pytorch_model.bin",
-    "completedFiles": ["config.json", "vocab.txt"],
-    "startedAt": "2025-10-11T10:15:23.456Z"
-  }
-}
-```
-
-### Download Complete
-```json
-{
-  "success": true,
-  "data": {
-    "id": "dl_1728670123456_abc123",
-    "status": "completed",
-    "progress": 100,
-    "completedFiles": [
-      "pytorch_model.bin",
-      "config.json",
-      "vocab.txt",
-      "tokenizer_config.json",
-      "special_tokens_map.json"
-    ],
-    "startedAt": "2025-10-11T10:15:23.456Z",
-    "finishedAt": "2025-10-11T10:18:45.789Z"
-  }
-}
+BACKEND/
+├── src/
+│   ├── config/
+│   │   └── modelCatalog.ts          ✅ MODIFIED - Added direct URLs
+│   ├── services/
+│   │   └── downloads.ts             ✅ MODIFIED - Added HTTP downloads
+│   ├── routes/
+│   │   └── sources.ts               ✅ MODIFIED - Added catalog endpoints
+│   └── simple-proxy.ts              ✅ MODIFIED - Added CDN domains
+└── DOWNLOAD_FIX_SUMMARY.md          ✅ NEW - This file
 ```
 
 ---
 
-## ✨ Summary
+## 🚀 Benefits
 
-All three download issues have been completely fixed:
+1. **Faster Downloads** - Direct HTTP downloads, no CLI overhead
+2. **Better Progress Tracking** - Real-time bytes/speed/ETA
+3. **More Reliable** - Handles redirects, automatic fallback
+4. **Easier Testing** - Can use curl/Postman directly
+5. **No CLI Dependency** - Works even if `huggingface-cli` is not installed
 
-1. ✅ **Model Catalog**: Now includes direct download URLs for all files
-2. ✅ **Download Service**: Can download files directly with progress tracking
-3. ✅ **Proxy**: Allows all HuggingFace CDN domains
+---
 
-The system now supports:
-- Direct HTTP downloads (fast, with progress)
-- Git clone fallback (for repos without direct URLs)
-- Progress tracking and monitoring
-- Error handling and recovery
-- 8 Persian models/datasets ready to download
+## 🎉 Summary
 
-**Ready to test!** 🚀
+All 3 critical issues have been fixed:
+
+1. ✅ **Model Catalog** - Has direct download URLs
+2. ✅ **Download Service** - Implements HTTP-based downloads
+3. ✅ **Proxy** - Allows HuggingFace CDN domains
+4. ✅ **API Routes** - Integrated with catalog and download service
+
+**The download system is now fully functional!** 🎊

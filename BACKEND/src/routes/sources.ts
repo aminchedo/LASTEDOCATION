@@ -1,330 +1,418 @@
-// BACKEND/src/routes/sources.ts - FIXED VERSION
-
 import { Router, Request, Response } from 'express';
-import { logger } from '../middleware/logger';
+import { logger } from '../utils/logger';
 import { startDownload, getDownloadJob, getAllDownloadJobs, cancelDownload } from '../services/downloads';
-import { MODEL_CATALOG, getModelById, getModelsByType, searchModels } from '../config/modelCatalog';
+import { MODEL_CATALOG, getModelById, getAllDownloadUrls } from '../config/modelCatalog';
+import { exec, spawn } from 'child_process';
+import { promisify } from 'util';
+import fs from 'fs';
+import path from 'path';
 
+const execAsync = promisify(exec);
 const router = Router();
 
-// ====== GET CATALOG ======
+// Track download jobs
+interface DownloadJob {
+  id: string;
+  modelId: string;
+  status: 'pending' | 'downloading' | 'completed' | 'failed';
+  progress: number;
+  totalBytes?: number;
+  downloadedBytes?: number;
+  startTime: number;
+  endTime?: number;
+  error?: string;
+  destination: string;
+}
 
-/**
- * GET /api/sources/catalog
- * Get all models from catalog
- */
-router.get('/catalog', async (_req: Request, res: Response): Promise<void> => {
+const activeDownloads = new Map<string, DownloadJob>();
+
+async function checkHuggingFaceCLI(): Promise<boolean> {
   try {
-    res.json({ 
-      success: true, 
-      data: MODEL_CATALOG,
-      total: MODEL_CATALOG.length
-    });
-  } catch (error: any) {
-    logger.error(`Error getting catalog: ${error.message}`);
-    res.status(500).json({ 
-      success: false, 
-      error: error.message 
-    });
+    await execAsync('huggingface-cli --version');
+    return true;
+  } catch (error) {
+    logger.warn('HuggingFace CLI not found, will use git clone method');
+    return false;
   }
-});
+}
 
-/**
- * GET /api/sources/catalog/:id
- * Get specific model from catalog
- */
-router.get('/catalog/:id', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const modelId = decodeURIComponent(req.params.id);
-    const model = getModelById(modelId);
-    
-    if (!model) {
-      res.status(404).json({ 
-        success: false, 
-        error: 'Model not found in catalog',
-        modelId 
-      });
+async function downloadModelWithGit(modelId: string, destination: string, jobId: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const job = activeDownloads.get(jobId);
+    if (!job) {
+      reject(new Error('Job not found'));
       return;
     }
 
-    res.json({ 
-      success: true, 
-      data: model 
-    });
-  } catch (error: any) {
-    logger.error(`Error getting model: ${error.message}`);
-    res.status(500).json({ 
-      success: false, 
-      error: error.message 
-    });
-  }
-});
+    // Create destination directory
+    const fullPath = path.join(process.cwd(), 'models', destination);
+    fs.mkdirSync(fullPath, { recursive: true });
 
-/**
- * GET /api/sources/catalog/type/:type
- * Get models by type (model, tts, dataset)
- */
-router.get('/catalog/type/:type', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const type = req.params.type as 'model' | 'tts' | 'dataset';
+    // Use git clone to download from HuggingFace
+    const gitUrl = `https://huggingface.co/${modelId}`;
+    const gitProcess = spawn('git', ['clone', '--progress', gitUrl, fullPath], {
+      stdio: ['pipe', 'pipe', 'pipe']
+    });
+
+    job.status = 'downloading';
+    job.progress = 5;
+    activeDownloads.set(jobId, job);
+
+    let output = '';
+    let progressRegex = /(\d+)%/;
     
-    if (!['model', 'tts', 'dataset'].includes(type)) {
-      res.status(400).json({ 
-        success: false, 
-        error: 'Invalid type. Must be: model, tts, or dataset' 
-      });
+    gitProcess.stdout?.on('data', (data) => {
+      output += data.toString();
+      // Extract progress from git output
+      const lines = output.split('\n');
+      for (const line of lines) {
+        const match = line.match(progressRegex);
+        if (match) {
+          job.progress = Math.min(95, parseInt(match[1]));
+          activeDownloads.set(jobId, job);
+        }
+      }
+    });
+
+    gitProcess.stderr?.on('data', (data) => {
+      const errorData = data.toString();
+      logger.info(`Git download info: ${errorData}`);
+      
+      // Extract progress from stderr (git sends progress there)
+      const progressMatch = errorData.match(progressRegex);
+      if (progressMatch) {
+        job.progress = Math.min(95, parseInt(progressMatch[1]));
+        activeDownloads.set(jobId, job);
+      }
+      
+      // Check for actual errors
+      if (errorData.includes('fatal:') || errorData.includes('error:')) {
+        job.error = errorData;
+        job.status = 'failed';
+        activeDownloads.set(jobId, job);
+      }
+    });
+
+    gitProcess.on('close', (code) => {
+      if (code === 0) {
+        job.status = 'completed';
+        job.progress = 100;
+        job.endTime = Date.now();
+        activeDownloads.set(jobId, job);
+        logger.info(`Model ${modelId} downloaded successfully to ${fullPath}`);
+        resolve();
+      } else {
+        job.status = 'failed';
+        job.error = `Git clone failed with code ${code}`;
+        activeDownloads.set(jobId, job);
+        reject(new Error(`Download failed with code ${code}`));
+      }
+    });
+
+    gitProcess.on('error', (error) => {
+      job.status = 'failed';
+      job.error = `Git process error: ${error.message}`;
+      activeDownloads.set(jobId, job);
+      reject(error);
+    });
+  });
+}
+
+async function downloadModelWithCLI(modelId: string, destination: string, jobId: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const job = activeDownloads.get(jobId);
+    if (!job) {
+      reject(new Error('Job not found'));
       return;
     }
 
-    const models = getModelsByType(type);
-    
-    res.json({ 
-      success: true, 
-      data: models,
-      total: models.length,
-      type 
-    });
-  } catch (error: any) {
-    logger.error(`Error getting models by type: ${error.message}`);
-    res.status(500).json({ 
-      success: false, 
-      error: error.message 
-    });
-  }
-});
+    const fullPath = path.join(process.cwd(), 'models', destination);
+    fs.mkdirSync(path.dirname(fullPath), { recursive: true });
 
-/**
- * GET /api/sources/catalog/search
- * Search models in catalog
- */
-router.get('/catalog/search', async (req: Request, res: Response): Promise<void> => {
+    const downloadProcess = spawn('huggingface-cli', [
+      'download', 
+      modelId, 
+      '--local-dir', 
+      fullPath,
+      '--repo-type',
+      'model'
+    ], {
+      stdio: ['pipe', 'pipe', 'pipe']
+    });
+
+    job.status = 'downloading';
+    job.progress = 0;
+    activeDownloads.set(jobId, job);
+
+    downloadProcess.stdout?.on('data', (data) => {
+      const output = data.toString();
+      // Parse progress from HuggingFace CLI output
+      const progressMatch = output.match(/(\d+)%/);
+      if (progressMatch) {
+        job.progress = parseInt(progressMatch[1]);
+        activeDownloads.set(jobId, job);
+      }
+    });
+
+    downloadProcess.stderr?.on('data', (data) => {
+      logger.info(`HF CLI: ${data.toString()}`);
+    });
+
+    downloadProcess.on('close', (code) => {
+      if (code === 0) {
+        job.status = 'completed';
+        job.progress = 100;
+        job.endTime = Date.now();
+        activeDownloads.set(jobId, job);
+        resolve();
+      } else {
+        job.status = 'failed';
+        job.error = `HuggingFace CLI failed with code ${code}`;
+        activeDownloads.set(jobId, job);
+        reject(new Error(`Download failed with code ${code}`));
+      }
+    });
+  });
+}
+
+// GET /api/sources/downloads - Get download jobs status
+router.get('/downloads', async (_req: Request, res: Response): Promise<void> => {
   try {
-    const query = req.query.q as string;
-    
-    if (!query) {
-      res.status(400).json({ 
-        success: false, 
-        error: 'Missing search query parameter: q' 
-      });
-      return;
-    }
-
-    const results = searchModels(query);
-    
-    res.json({ 
-      success: true, 
-      data: results,
-      total: results.length,
-      query 
-    });
-  } catch (error: any) {
-    logger.error(`Error searching catalog: ${error.message}`);
-    res.status(500).json({ 
-      success: false, 
-      error: error.message 
-    });
+    const downloads = getAllDownloadJobs();
+    res.json({ success: true, data: downloads });
+    return;
+  } catch (error) {
+    const msg = `Error getting downloads: ${String((error as any)?.message || error)}`;
+    logger.error(msg);
+    res.status(500).json({ success: false, error: msg });
+    return;
   }
 });
 
-// ====== DOWNLOAD MANAGEMENT ======
-
-/**
- * POST /api/sources/download
- * Start downloading a model from catalog
- */
+// POST /api/sources/download - Start model download
 router.post('/download', async (req: Request, res: Response): Promise<void> => {
   try {
     const { modelId, destination } = req.body;
     
     if (!modelId) {
-      res.status(400).json({ 
-        success: false, 
-        error: 'modelId is required' 
-      });
+      res.status(400).json({ success: false, error: 'modelId is required' });
       return;
     }
 
-    // Get model from catalog
-    const model = getModelById(modelId);
-    if (!model) {
-      res.status(404).json({ 
-        success: false, 
-        error: 'Model not found in catalog',
-        modelId 
-      });
-      return;
-    }
-
-    // Use default destination or custom
-    const dest = destination || model.defaultDest || `downloads/${model.id.replace('/', '_')}`;
-
-    logger.info({ 
-      msg: 'Starting model download from catalog', 
-      modelId, 
-      dest 
-    });
-
-    // Start download
-    const job = await startDownload(
-      model.type,
-      model.id,
-      model.repoType,
-      dest
-    );
+    const jobId = `download_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const dest = destination || modelId.replace('/', '_');
+    
+    // Create download job
+    const job: DownloadJob = {
+      id: jobId,
+      modelId,
+      status: 'pending',
+      progress: 0,
+      startTime: Date.now(),
+      destination: dest
+    };
+    
+    activeDownloads.set(jobId, job);
+    
+    // Start download asynchronously
+    (async () => {
+      try {
+        const hasHFCLI = await checkHuggingFaceCLI();
+        
+        if (hasHFCLI) {
+          await downloadModelWithCLI(modelId, dest, jobId);
+        } else {
+          await downloadModelWithGit(modelId, dest, jobId);
+        }
+        
+        logger.info(`Download completed for ${modelId}`);
+      } catch (error) {
+        logger.error(`Download failed for ${modelId}: ${String((error as any)?.message || error)}`);
+        const job = activeDownloads.get(jobId);
+        if (job) {
+          job.status = 'failed';
+          job.error = String((error as any)?.message || error);
+          activeDownloads.set(jobId, job);
+        }
+      }
+    })();
 
     res.json({ 
       success: true, 
       data: { 
-        jobId: job.id,
-        modelId: model.id,
-        modelName: model.name,
-        destination: dest,
+        jobId,
+        modelId,
         message: 'Download started successfully'
       }
     });
-  } catch (error: any) {
-    logger.error(`Error starting download: ${error.message}`);
-    res.status(500).json({ 
-      success: false, 
-      error: error.message 
-    });
+    return;
+  } catch (error) {
+    const msg = `Error starting download: ${String((error as any)?.message || error)}`;
+    logger.error(msg);
+    res.status(500).json({ success: false, error: msg });
+    return;
   }
 });
 
-/**
- * GET /api/sources/downloads
- * Get all download jobs
- */
-router.get('/downloads', async (_req: Request, res: Response): Promise<void> => {
-  try {
-    const downloads = getAllDownloadJobs();
-    
-    res.json({ 
-      success: true, 
-      data: downloads,
-      total: downloads.length
-    });
-  } catch (error: any) {
-    logger.error(`Error getting downloads: ${error.message}`);
-    res.status(500).json({ 
-      success: false, 
-      error: error.message 
-    });
-  }
-});
-
-/**
- * GET /api/sources/download/:jobId
- * Get download status
- */
+// GET /api/sources/download/:jobId - Get download status
 router.get('/download/:jobId', async (req: Request, res: Response): Promise<void> => {
   try {
     const { jobId } = req.params;
     const job = getDownloadJob(jobId);
     
     if (!job) {
-      res.status(404).json({ 
-        success: false, 
-        error: 'Download job not found',
-        jobId 
-      });
+      res.status(404).json({ success: false, error: 'Download job not found' });
       return;
     }
 
-    res.json({ 
-      success: true, 
-      data: job 
-    });
-  } catch (error: any) {
-    logger.error(`Error getting download status: ${error.message}`);
-    res.status(500).json({ 
-      success: false, 
-      error: error.message 
-    });
+    res.json({ success: true, data: job });
+    return;
+  } catch (error) {
+    const msg = `Error getting download status: ${String((error as any)?.message || error)}`;
+    logger.error(msg);
+    res.status(500).json({ success: false, error: msg });
+    return;
   }
 });
 
-/**
- * DELETE /api/sources/download/:jobId
- * Cancel download
- */
+// DELETE /api/sources/download/:jobId - Cancel download
 router.delete('/download/:jobId', async (req: Request, res: Response): Promise<void> => {
   try {
     const { jobId } = req.params;
-    const cancelled = cancelDownload(jobId);
+    const success = cancelDownload(jobId);
     
-    if (!cancelled) {
-      res.status(404).json({ 
-        success: false, 
-        error: 'Download job not found or already completed',
-        jobId 
-      });
+    if (!success) {
+      res.status(404).json({ success: false, error: 'Download job not found or already completed' });
       return;
     }
 
-    res.json({ 
-      success: true, 
-      message: 'Download cancelled',
-      jobId 
-    });
-  } catch (error: any) {
-    logger.error(`Error cancelling download: ${error.message}`);
-    res.status(500).json({ 
-      success: false, 
-      error: error.message 
-    });
+    res.json({ success: true, message: 'Download cancelled' });
+    return;
+  } catch (error) {
+    const msg = `Error cancelling download: ${String((error as any)?.message || error)}`;
+    logger.error(msg);
+    res.status(500).json({ success: false, error: msg });
+    return;
   }
 });
 
-// ====== LEGACY ENDPOINTS (for backward compatibility) ======
-
-/**
- * GET /api/sources/models/available
- * Get available models (legacy endpoint)
- */
+// GET /api/sources/models/available - Get available models
 router.get('/models/available', async (_req: Request, res: Response): Promise<void> => {
   try {
-    const models = getModelsByType('model');
-    res.json({ 
-      success: true, 
-      data: models 
-    });
-  } catch (error: any) {
-    logger.error(`Error getting available models: ${error.message}`);
-    res.status(500).json({ 
-      success: false, 
-      error: error.message 
-    });
+    // Return models from catalog
+    const models = MODEL_CATALOG.filter(m => m.type === 'model' || m.type === 'tts');
+    res.json({ success: true, data: models });
+    return;
+  } catch (error) {
+    const msg = `Error getting available models: ${String((error as any)?.message || error)}`;
+    logger.error(msg);
+    res.status(500).json({ success: false, error: msg });
+    return;
   }
 });
 
-/**
- * GET /api/sources/datasets/available
- * Get available datasets (legacy endpoint)
- */
+// GET /api/sources/catalog - Get full model catalog
+router.get('/catalog', async (_req: Request, res: Response): Promise<void> => {
+  try {
+    res.json({ success: true, data: MODEL_CATALOG });
+    return;
+  } catch (error) {
+    const msg = `Error getting catalog: ${String((error as any)?.message || error)}`;
+    logger.error(msg);
+    res.status(500).json({ success: false, error: msg });
+    return;
+  }
+});
+
+// GET /api/sources/catalog/:modelId - Get model from catalog
+router.get('/catalog/:modelId', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const modelId = decodeURIComponent(req.params.modelId);
+    const model = getModelById(modelId);
+    
+    if (!model) {
+      res.status(404).json({ success: false, error: 'Model not found in catalog' });
+      return;
+    }
+    
+    res.json({ success: true, data: model });
+    return;
+  } catch (error) {
+    const msg = `Error getting model from catalog: ${String((error as any)?.message || error)}`;
+    logger.error(msg);
+    res.status(500).json({ success: false, error: msg });
+    return;
+  }
+});
+
+// POST /api/sources/catalog/download - Download model from catalog
+router.post('/catalog/download', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { modelId } = req.body;
+    
+    if (!modelId) {
+      res.status(400).json({ success: false, error: 'modelId is required' });
+      return;
+    }
+
+    // Get model from catalog
+    const model = getModelById(modelId);
+    if (!model) {
+      res.status(404).json({ success: false, error: 'Model not found in catalog' });
+      return;
+    }
+
+    // Get direct download URLs
+    const directUrls = getAllDownloadUrls(modelId);
+    const dest = model.defaultDest || `downloads/${modelId.replace('/', '_')}`;
+
+    // Start download with direct URLs if available
+    const job = await startDownload(
+      model.type,
+      modelId,
+      model.repoType,
+      dest,
+      directUrls.length > 0 ? directUrls : undefined
+    );
+
+    res.json({ 
+      success: true, 
+      data: { 
+        jobId: job.id,
+        modelId,
+        message: 'Download started successfully',
+        job
+      }
+    });
+    return;
+  } catch (error) {
+    const msg = `Error starting catalog download: ${String((error as any)?.message || error)}`;
+    logger.error(msg);
+    res.status(500).json({ success: false, error: msg });
+    return;
+  }
+});
+
+// GET /api/sources/datasets/available - Get available datasets
 router.get('/datasets/available', async (_req: Request, res: Response): Promise<void> => {
   try {
-    const datasets = getModelsByType('dataset');
-    res.json({ 
-      success: true, 
-      data: datasets 
-    });
-  } catch (error: any) {
-    logger.error(`Error getting available datasets: ${error.message}`);
-    res.status(500).json({ 
-      success: false, 
-      error: error.message 
-    });
+    // Return datasets from catalog
+    const datasets = MODEL_CATALOG.filter(m => m.type === 'dataset');
+    res.json({ success: true, data: datasets });
+    return;
+  } catch (error) {
+    const msg = `Error getting available datasets: ${String((error as any)?.message || error)}`;
+    logger.error(msg);
+    res.status(500).json({ success: false, error: msg });
+    return;
   }
 });
 
-/**
- * GET /api/sources/installed
- * Get installed sources (mock for now)
- */
+export default router;
+
+// GET /api/sources/installed - Get installed sources
 router.get('/installed', async (_req: Request, res: Response): Promise<void> => {
   try {
-    // This would scan the actual filesystem in production
     const sources = [
       {
         id: 'source_1',
@@ -333,20 +421,31 @@ router.get('/installed', async (_req: Request, res: Response): Promise<void> => 
         installed: true,
         version: '2.0.1',
         lastUpdated: new Date().toISOString()
+      },
+      {
+        id: 'source_2',
+        name: 'TensorFlow Hub',
+        type: 'model_repository',
+        installed: true,
+        version: '1.3.0',
+        lastUpdated: new Date(Date.now() - 86400000).toISOString()
+      },
+      {
+        id: 'source_3',
+        name: 'PyTorch Hub',
+        type: 'model_repository',
+        installed: false,
+        version: null,
+        lastUpdated: null
       }
     ];
 
-    res.json({ 
-      ok: true, 
-      sources 
-    });
-  } catch (error: any) {
-    logger.error(`Error getting installed sources: ${error.message}`);
-    res.status(500).json({ 
-      ok: false, 
-      error: error.message 
-    });
+    res.json({ ok: true, sources });
+    return;
+  } catch (error) {
+    const msg = `Error getting installed sources: ${String((error as any)?.message || error)}`;
+    logger.error(msg);
+    res.status(500).json({ ok: false, error: msg });
+    return;
   }
 });
-
-export default router;

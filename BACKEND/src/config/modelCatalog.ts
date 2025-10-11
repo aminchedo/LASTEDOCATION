@@ -1,11 +1,11 @@
 export interface ModelEntry {
   id: string;
   name: string;
-  provider: string; // 'HuggingFace', 'Custom', etc.
+  provider: string;
   type: 'model' | 'tts' | 'dataset';
   repoType: 'model' | 'dataset';
-  size: string; // Human readable
-  sizeBytes?: number; // Approximate
+  size: string;
+  sizeBytes?: number;
   license: string;
   tags: string[];
   url: string;
@@ -21,9 +21,9 @@ export interface ModelEntry {
   };
 }
 
-// Real Persian models and datasets from Hugging Face
+// ====== REAL PERSIAN MODELS WITH DIRECT DOWNLOAD LINKS ======
 export const MODEL_CATALOG: ModelEntry[] = [
-  // TTS Models
+  // ============ TTS MODELS ============
   {
     id: 'Kamtera/persian-tts-male-vits',
     name: 'Persian TTS Male (VITS)',
@@ -37,7 +37,7 @@ export const MODEL_CATALOG: ModelEntry[] = [
     url: 'https://huggingface.co/Kamtera/persian-tts-male-vits',
     description: 'Persian Text-to-Speech model using VITS architecture with male voice',
     language: ['fa'],
-    defaultDest: 'models/tts/male',
+    defaultDest: 'datasets/tts/kamtera_vits_male',
     downloadUrls: {
       main: 'https://huggingface.co/Kamtera/persian-tts-male-vits/resolve/main/model.pth',
       config: 'https://huggingface.co/Kamtera/persian-tts-male-vits/resolve/main/config.json',
@@ -59,7 +59,7 @@ export const MODEL_CATALOG: ModelEntry[] = [
     url: 'https://huggingface.co/Kamtera/persian-tts-female-vits',
     description: 'Persian Text-to-Speech model using VITS architecture with female voice',
     language: ['fa'],
-    defaultDest: 'models/tts/female',
+    defaultDest: 'datasets/tts/kamtera_vits_female',
     downloadUrls: {
       main: 'https://huggingface.co/Kamtera/persian-tts-female-vits/resolve/main/model.pth',
       config: 'https://huggingface.co/Kamtera/persian-tts-female-vits/resolve/main/config.json',
@@ -68,7 +68,8 @@ export const MODEL_CATALOG: ModelEntry[] = [
       ]
     }
   },
-  // Chat/LLM Models (Small, CPU-friendly)
+  
+  // ============ CHAT/LLM MODELS ============
   {
     id: 'HooshvareLab/bert-fa-base-uncased',
     name: 'Persian BERT Base',
@@ -116,7 +117,8 @@ export const MODEL_CATALOG: ModelEntry[] = [
       ]
     }
   },
-  // Datasets
+
+  // ============ DATASETS ============
   {
     id: 'persiannlp/parsinlu_reading_comprehension',
     name: 'ParsiNLU Reading Comprehension',
@@ -203,8 +205,10 @@ export const MODEL_CATALOG: ModelEntry[] = [
         'https://huggingface.co/datasets/persiannlp/parsinlu_translation_fa_en/resolve/main/test.json'
       ]
     }
-  }
+  },
 ];
+
+// ====== HELPER FUNCTIONS ======
 
 export function getModelById(id: string): ModelEntry | undefined {
   return MODEL_CATALOG.find(m => m.id === id);

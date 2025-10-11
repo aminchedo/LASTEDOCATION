@@ -5,6 +5,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const logger_1 = require("../utils/logger");
+const downloads_1 = require("../services/downloads");
+const modelCatalog_1 = require("../config/modelCatalog");
 const child_process_1 = require("child_process");
 const util_1 = require("util");
 const fs_1 = __importDefault(require("fs"));
@@ -12,122 +14,6 @@ const path_1 = __importDefault(require("path"));
 const execAsync = (0, util_1.promisify)(child_process_1.exec);
 const router = (0, express_1.Router)();
 const activeDownloads = new Map();
-// Real HuggingFace Persian models and datasets
-const POPULAR_MODELS = [
-    {
-        id: 'HooshvareLab/bert-fa-base-uncased',
-        name: 'ParsBERT Base',
-        type: 'text-classification',
-        size: '440MB',
-        status: 'available',
-        description: 'Persian BERT model for text understanding',
-        parameters: '110M',
-        downloads: 15000,
-        likes: 45
-    },
-    {
-        id: 'HooshvareLab/bert-fa-uncased-clf-persiannews',
-        name: 'ParsBERT News Classifier',
-        type: 'text-classification',
-        size: '440MB',
-        status: 'available',
-        description: 'Persian news classification model',
-        parameters: '110M',
-        downloads: 8500,
-        likes: 32
-    },
-    {
-        id: 'microsoft/DialoGPT-medium',
-        name: 'DialoGPT Medium',
-        type: 'text-generation',
-        size: '350MB',
-        status: 'available',
-        description: 'Conversational response generation model',
-        parameters: '117M',
-        downloads: 2500000,
-        likes: 150
-    },
-    {
-        id: 'hezarai/hezar-whisper-small-fa',
-        name: 'Hezar Whisper Small FA',
-        type: 'automatic-speech-recognition',
-        size: '244MB',
-        status: 'available',
-        description: 'Persian speech recognition model',
-        parameters: '244M',
-        downloads: 1200,
-        likes: 8
-    },
-    {
-        id: 'HooshvareLab/bert-fa-zwnj-base',
-        name: 'ParsBERT ZWNJ',
-        type: 'text-classification',
-        size: '440MB',
-        status: 'available',
-        description: 'Persian BERT with ZWNJ handling',
-        parameters: '110M',
-        downloads: 3200,
-        likes: 12
-    }
-];
-// Real Persian datasets
-const PERSIAN_DATASETS = [
-    {
-        id: 'persiandataset/persian_wikipedia_2021',
-        name: 'Persian Wikipedia 2021',
-        type: 'text-dataset',
-        size: '2.1GB',
-        status: 'available',
-        description: 'Persian Wikipedia articles from 2021',
-        records: '1.2M',
-        downloads: 850,
-        likes: 15
-    },
-    {
-        id: 'hooshvarelab/hamshahri',
-        name: 'Hamshahri News Dataset',
-        type: 'text-dataset',
-        size: '180MB',
-        status: 'available',
-        description: 'Persian news articles from Hamshahri',
-        records: '850K',
-        downloads: 1200,
-        likes: 22
-    },
-    {
-        id: 'hooshvarelab/pn_sentiment',
-        name: 'Persian Sentiment Corpus',
-        type: 'text-dataset',
-        size: '45MB',
-        status: 'available',
-        description: 'Persian sentiment analysis dataset',
-        records: '180K',
-        downloads: 2100,
-        likes: 35
-    },
-    {
-        id: 'hezarai/common-voice-13-fa',
-        name: 'Common Voice Persian',
-        type: 'speech-dataset',
-        size: '3.2GB',
-        status: 'available',
-        description: 'Persian speech dataset from Mozilla Common Voice',
-        records: '120K',
-        downloads: 650,
-        likes: 18
-    },
-    {
-        id: 'hezarai/hezar-speech',
-        name: 'Hezar Speech Dataset',
-        type: 'speech-dataset',
-        size: '850MB',
-        status: 'available',
-        description: 'Persian speech recognition dataset',
-        records: '45K',
-        downloads: 420,
-        likes: 9
-    }
-];
 async function checkHuggingFaceCLI() {
     try {
         await execAsync('huggingface-cli --version');
@@ -264,18 +150,7 @@ async function downloadModelWithCLI(modelId, destination, jobId) {
 // GET /api/sources/downloads - Get download jobs status
 router.get('/downloads', async (_req, res) => {
     try {
-        const downloads = Array.from(activeDownloads.values()).map(job => ({
-            id: job.id,
-            modelId: job.modelId,
-            status: job.status,
-            progress: job.progress,
-            totalBytes: job.totalBytes,
-            downloadedBytes: job.downloadedBytes,
-            startTime: job.startTime,
-            endTime: job.endTime,
-            error: job.error,
-            destination: job.destination
-        }));
+        const downloads = (0, downloads_1.getAllDownloadJobs)();
         res.json({ success: true, data: downloads });
         return;
     }
@@ -349,7 +224,7 @@ router.post('/download', async (req, res) => {
 router.get('/download/:jobId', async (req, res) => {
     try {
         const { jobId } = req.params;
-        const job = activeDownloads.get(jobId);
+        const job = (0, downloads_1.getDownloadJob)(jobId);
         if (!job) {
             res.status(404).json({ success: false, error: 'Download job not found' });
             return;
@@ -364,11 +239,31 @@ router.get('/download/:jobId', async (req, res) => {
         return;
     }
 });
+// DELETE /api/sources/download/:jobId - Cancel download
+router.delete('/download/:jobId', async (req, res) => {
+    try {
+        const { jobId } = req.params;
+        const success = (0, downloads_1.cancelDownload)(jobId);
+        if (!success) {
+            res.status(404).json({ success: false, error: 'Download job not found or already completed' });
+            return;
+        }
+        res.json({ success: true, message: 'Download cancelled' });
+        return;
+    }
+    catch (error) {
+        const msg = `Error cancelling download: ${String(error?.message || error)}`;
+        logger_1.logger.error(msg);
+        res.status(500).json({ success: false, error: msg });
+        return;
+    }
+});
 // GET /api/sources/models/available - Get available models
 router.get('/models/available', async (_req, res) => {
     try {
-        // Return real HuggingFace Persian models
-        res.json({ success: true, data: POPULAR_MODELS });
+        // Return models from catalog
+        const models = modelCatalog_1.MODEL_CATALOG.filter(m => m.type === 'model' || m.type === 'tts');
+        res.json({ success: true, data: models });
         return;
     }
     catch (error) {
@@ -378,11 +273,81 @@ router.get('/models/available', async (_req, res) => {
         return;
     }
 });
+// GET /api/sources/catalog - Get full model catalog
+router.get('/catalog', async (_req, res) => {
+    try {
+        res.json({ success: true, data: modelCatalog_1.MODEL_CATALOG });
+        return;
+    }
+    catch (error) {
+        const msg = `Error getting catalog: ${String(error?.message || error)}`;
+        logger_1.logger.error(msg);
+        res.status(500).json({ success: false, error: msg });
+        return;
+    }
+});
+// GET /api/sources/catalog/:modelId - Get model from catalog
+router.get('/catalog/:modelId', async (req, res) => {
+    try {
+        const modelId = decodeURIComponent(req.params.modelId);
+        const model = (0, modelCatalog_1.getModelById)(modelId);
+        if (!model) {
+            res.status(404).json({ success: false, error: 'Model not found in catalog' });
+            return;
+        }
+        res.json({ success: true, data: model });
+        return;
+    }
+    catch (error) {
+        const msg = `Error getting model from catalog: ${String(error?.message || error)}`;
+        logger_1.logger.error(msg);
+        res.status(500).json({ success: false, error: msg });
+        return;
+    }
+});
+// POST /api/sources/catalog/download - Download model from catalog
+router.post('/catalog/download', async (req, res) => {
+    try {
+        const { modelId } = req.body;
+        if (!modelId) {
+            res.status(400).json({ success: false, error: 'modelId is required' });
+            return;
+        }
+        // Get model from catalog
+        const model = (0, modelCatalog_1.getModelById)(modelId);
+        if (!model) {
+            res.status(404).json({ success: false, error: 'Model not found in catalog' });
+            return;
+        }
+        // Get direct download URLs
+        const directUrls = (0, modelCatalog_1.getAllDownloadUrls)(modelId);
+        const dest = model.defaultDest || `downloads/${modelId.replace('/', '_')}`;
+        // Start download with direct URLs if available
+        const job = await (0, downloads_1.startDownload)(model.type, modelId, model.repoType, dest, directUrls.length > 0 ? directUrls : undefined);
+        res.json({
+            success: true,
+            data: {
+                jobId: job.id,
+                modelId,
+                message: 'Download started successfully',
+                job
+            }
+        });
+        return;
+    }
+    catch (error) {
+        const msg = `Error starting catalog download: ${String(error?.message || error)}`;
+        logger_1.logger.error(msg);
+        res.status(500).json({ success: false, error: msg });
+        return;
+    }
+});
 // GET /api/sources/datasets/available - Get available datasets
 router.get('/datasets/available', async (_req, res) => {
     try {
-        // Return real Persian datasets
-        res.json({ success: true, data: PERSIAN_DATASETS });
+        // Return datasets from catalog
+        const datasets = modelCatalog_1.MODEL_CATALOG.filter(m => m.type === 'dataset');
+        res.json({ success: true, data: datasets });
         return;
     }
     catch (error) {
