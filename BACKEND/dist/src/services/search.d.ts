@@ -10,9 +10,9 @@ export declare const SearchRequestSchema: z.ZodObject<{
     includeSnippets: z.ZodDefault<z.ZodBoolean>;
     timeout: z.ZodDefault<z.ZodNumber>;
 }, "strip", z.ZodTypeAny, {
+    query: string;
     timeout: number;
     language: string;
-    query: string;
     maxResults: number;
     includeSnippets: boolean;
 }, {
@@ -33,16 +33,16 @@ export declare const SearchResponseSchema: z.ZodObject<{
     }, "strip", z.ZodTypeAny, {
         url: string;
         source: string;
+        timestamp: string;
         title: string;
         relevanceScore: number;
-        timestamp: string;
         snippet?: string | undefined;
     }, {
         url: string;
         source: string;
+        timestamp: string;
         title: string;
         relevanceScore: number;
-        timestamp: string;
         snippet?: string | undefined;
     }>, "many">;
     totalResults: z.ZodNumber;
@@ -50,28 +50,28 @@ export declare const SearchResponseSchema: z.ZodObject<{
     language: z.ZodString;
     processingTime: z.ZodNumber;
 }, "strip", z.ZodTypeAny, {
-    language: string;
     query: string;
+    language: string;
     processingTime: number;
     results: {
         url: string;
         source: string;
+        timestamp: string;
         title: string;
         relevanceScore: number;
-        timestamp: string;
         snippet?: string | undefined;
     }[];
     totalResults: number;
 }, {
-    language: string;
     query: string;
+    language: string;
     processingTime: number;
     results: {
         url: string;
         source: string;
+        timestamp: string;
         title: string;
         relevanceScore: number;
-        timestamp: string;
         snippet?: string | undefined;
     }[];
     totalResults: number;
