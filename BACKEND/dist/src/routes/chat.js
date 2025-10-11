@@ -14,17 +14,24 @@ const node_fetch_1 = __importDefault(require("node-fetch"));
 const router = (0, express_1.Router)();
 const monitoringService = new monitoringService_1.MonitoringService();
 const chatSchema = zod_1.z.object({
-    messages: zod_1.z.array(zod_1.z.object({
+    message: zod_1.z.string().min(1),
+    history: zod_1.z.array(zod_1.z.object({
         role: zod_1.z.enum(['system', 'user', 'assistant']),
         content: zod_1.z.string().min(1),
-    })).min(1),
+    })).optional(),
+    model: zod_1.z.string().optional(),
     temperature: zod_1.z.number().min(0).max(2).default(0.7).optional(),
     maxTokens: zod_1.z.number().min(50).max(8000).optional(),
     stream: zod_1.z.boolean().optional(),
 });
 router.post('/', (0, validate_1.validate)(chatSchema), async (req, res) => {
-    const { messages, temperature = 0.7, maxTokens = 1500, stream = false } = req.validated;
+    const { message, history = [], model: _model, temperature = 0.7, maxTokens = 1500, stream = false } = req.validated;
     const { source, baseUrl, apiKey } = (0, apiConfig_1.getActiveEndpoint)();
+    // Convert frontend format to backend format
+    const messages = [
+        ...history,
+        { role: 'user', content: message }
+    ];
     const started = Date.now();
     try {
         // Use real Persian LLM service for local responses
@@ -46,9 +53,9 @@ router.post('/', (0, validate_1.validate)(chatSchema), async (req, res) => {
             // Record metrics
             monitoringService.recordRequest(latency, true);
             return res.json({
-                content: [{ type: 'text', text: response.text }],
+                message: response.text,
                 model: response.model,
-                usage: response.usage,
+                tokens: (response.usage?.input_tokens || 0) + (response.usage?.output_tokens || 0),
                 latency_ms: latency,
             });
         }

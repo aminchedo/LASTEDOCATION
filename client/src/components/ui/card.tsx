@@ -3,6 +3,7 @@ import { cn } from '../../lib/utils';
 
 interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
     children: React.ReactNode;
+    variant?: string; // Optional variant prop for compatibility
 }
 
 interface CardContentProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -13,7 +14,7 @@ interface CardHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
     children: React.ReactNode;
 }
 
-export function Card({ className, children, ...props }: CardProps) {
+export function Card({ className, children, variant, ...props }: CardProps) {
     return (
         <div
             className={cn(
