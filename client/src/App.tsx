@@ -164,6 +164,7 @@ function AppContent() {
                       <Route path="/playground" element={<PlaygroundPage />} />
                       <Route path="/experiments" element={<ExperimentsPage />} />
                       <Route path="/downloads" element={<DownloadCenterPage />} />
+                      <Route path="/hf-downloads" element={<HFDownloadsPage />} />
                       <Route path="/model-hub" element={<ModelHubPage />} />
                       <Route path="/training-studio" element={<TrainingStudioPage />} />
                       <Route path="/training" element={<TrainingPage />} />
