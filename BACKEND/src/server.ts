@@ -1,96 +1,48 @@
-// server.ts
+// BACKEND/src/server.ts - COMPLETE FIXED VERSION
 import express from 'express';
 import cors from 'cors';
+
+// ====== MIDDLEWARE IMPORTS ======
+import { authenticateToken } from './middleware/auth';
+import { errorHandler } from './middleware/errorHandler';
+import { requestLogger } from './middleware/requestLogger';
+
+// ====== ROUTE IMPORTS ======
+import authRouter from './routes/auth';
+import chatRouter from './routes/chat';
 import trainRouter from './routes/train';
 import optimizationRouter from './routes/optimization';
 import bootstrapRouter from './routes/bootstrap';
 import sourcesRouter from './routes/sources';
 import monitoringRouter from './routes/monitoring';
 import modelsRouter from './routes/models';
-import authRouter from './routes/auth';
-import chatRouter from './routes/chat';
 import sttRouter from './routes/stt';
 import ttsRouter from './routes/tts';
 import searchRouter from './routes/search';
 import notificationsRouter from './routes/notifications';
-import { authenticateToken } from './middleware/auth';
+
+// ====== PROXY IMPORTS ======
 import downloadProxyRouter from './simple-proxy';
-import { logger } from './middleware/logger';
-import { ENV } from './config/env';
 
+// ====== UTILITIES ======
+import { logger } from './utils/logger';
+
+// ====== EXPRESS APP SETUP ======
 const app = express();
-app.use(cors({ origin: ENV.CORS_ORIGIN, credentials: true }));
+
+// ====== MIDDLEWARE CONFIGURATION ======
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || '*',
+  credentials: true
+}));
 app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(requestLogger);
 
-// Routeهای اصلی
-app.use('/api/auth', authRouter);
-app.use('/api/chat', authenticateToken, chatRouter);
-app.use('/api/train', authenticateToken, trainRouter);
-app.use('/api/optimization', authenticateToken, optimizationRouter);
-app.use('/api/bootstrap', authenticateToken, bootstrapRouter);
-app.use('/api/download', bootstrapRouter); // برای compatibility
-app.use('/api/sources', authenticateToken, sourcesRouter);
-app.use('/api/monitoring', authenticateToken, monitoringRouter);
-app.use('/api/models', authenticateToken, modelsRouter);
-app.use('/api/v1', downloadProxyRouter); // Download proxy routes
-
-// Routes گم‌شده - اضافه شده
-app.use('/api/stt', sttRouter); // Speech-to-Text (Public - بدون auth)
-app.use('/api/tts', ttsRouter); // Text-to-Speech (Public - بدون auth)
-app.use('/api/search', searchRouter); // Search Service (Public - بدون auth)
-app.use('/api/notifications', authenticateToken, notificationsRouter); // Notifications (Protected)
-
-// Routeهای fallback برای جلوگیری از 404
-app.get('/api/train/status', (_req, res) => {
-  res.json({
-    status: 'idle',
-    message: 'Training service is available but no active training',
-    timestamp: new Date().toISOString()
-  });
-});
-
-app.get('/api/train/stream', (_req, res) => {
-  // SSE endpoint پایه
-  res.writeHead(200, {
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
-    'Connection': 'keep-alive',
-  });
-
-  // ارسال یک پیام اولیه
-  res.write('data: ' + JSON.stringify({
-    type: 'info',
-    message: 'Training stream connected'
-  }) + '\n\n');
-});
-
-app.get('/api/sources/downloads', (_req, res) => {
-  // Fallback برای سیستم دانلود قدیمی
-  res.json({
-    success: true,
-    data: [],
-    message: 'Using new download system - check /api/download/jobs'
-  });
-});
-
-app.get('/api/monitoring/metrics', (_req, res) => {
-  res.json({
-    success: true,
-    data: {
-      cpu: Math.random() * 100,
-      memory: Math.random() * 100,
-      disk: Math.random() * 100,
-      activeDownloads: 0,
-      activeTrainings: 0,
-      timestamp: new Date().toISOString()
-    }
-  });
-});
-
-// Health checks
+// ====== PUBLIC ROUTES (No Authentication) ======
 app.get('/health', (_req, res) => {
   res.json({ 
-    ok: true,
+    ok: true, 
     timestamp: new Date().toISOString(),
     service: 'persian-chat-backend'
   });
@@ -115,20 +67,88 @@ app.get('/api/health', (_req, res) => {
   });
 });
 
-// 404 Handler - باید قبل از error handler باشد
-app.use('*', (req, res) => {
-  logger.warn({
-    msg: '404_not_found',
-    method: req.method,
-    path: req.originalUrl,
-    ip: req.ip
+// ====== AUTH ROUTES (Public) ======
+app.use('/api/auth', authRouter);
+
+// ====== PROXY ROUTES (Public for downloads) ======
+app.use('/api/v1', downloadProxyRouter);
+
+// ====== PROTECTED ROUTES (Require Authentication) ======
+app.use('/api/chat', authenticateToken, chatRouter);
+app.use('/api/train', authenticateToken, trainRouter);
+app.use('/api/optimization', authenticateToken, optimizationRouter);
+app.use('/api/bootstrap', authenticateToken, bootstrapRouter);
+app.use('/api/download', authenticateToken, bootstrapRouter); // Alias for bootstrap
+app.use('/api/sources', authenticateToken, sourcesRouter);
+app.use('/api/monitoring', authenticateToken, monitoringRouter);
+app.use('/api/models', authenticateToken, modelsRouter);
+app.use('/api/notifications', authenticateToken, notificationsRouter);
+
+// ====== TTS/STT/SEARCH ROUTES (May need auth based on your design) ======
+// Option 1: Public access
+app.use('/api/stt', sttRouter);
+app.use('/api/tts', ttsRouter);
+app.use('/api/search', searchRouter);
+
+// Option 2: Protected access (uncomment if you want auth)
+// app.use('/api/stt', authenticateToken, sttRouter);
+// app.use('/api/tts', authenticateToken, ttsRouter);
+// app.use('/api/search', authenticateToken, searchRouter);
+
+// ====== FALLBACK ROUTES FOR COMPATIBILITY ======
+app.get('/api/train/status', (_req, res) => {
+  res.json({
+    status: 'idle',
+    message: 'Training service is available but no active training',
+    timestamp: new Date().toISOString()
   });
-  
+});
+
+app.get('/api/train/stream', (_req, res) => {
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+  });
+  res.write('data: ' + JSON.stringify({
+    type: 'info',
+    message: 'Training stream connected'
+  }) + '\n\n');
+});
+
+app.get('/api/sources/downloads', (_req, res) => {
+  res.json({
+    success: true,
+    data: [],
+    message: 'Using new download system - check /api/download/jobs'
+  });
+});
+
+app.get('/api/monitoring/metrics', (_req, res) => {
+  res.json({
+    success: true,
+    data: {
+      cpu: Math.random() * 100,
+      memory: Math.random() * 100,
+      disk: Math.random() * 100,
+      activeDownloads: 0,
+      activeTrainings: 0,
+      timestamp: new Date().toISOString()
+    }
+  });
+});
+
+// ====== ERROR HANDLING ======
+// 404 Handler - MUST be after all routes
+app.use('*', (req, res) => {
+  logger.warn(`404 Not Found: ${req.method} ${req.originalUrl}`);
   res.status(404).json({
-    success: false,
+    ok: false,
     error: 'Not Found',
-    message: `Route ${req.method} ${req.originalUrl} not found`,
-    availableRoutes: [
+    path: req.originalUrl,
+    method: req.method,
+    message: 'The requested endpoint does not exist',
+    availableEndpoints: [
       'GET /health',
       'GET /api/health',
       'POST /api/auth/login',
@@ -143,34 +163,41 @@ app.use('*', (req, res) => {
       'GET /api/notifications',
       'GET /api/monitoring/metrics',
       'GET /api/sources/downloads'
-    ],
-    timestamp: new Date().toISOString()
+    ]
   });
 });
 
-// Global Error Handler
-app.use((err: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  logger.error({
-    msg: 'unhandled_error',
-    error: err.message,
-    stack: err.stack,
-    method: req.method,
-    path: req.originalUrl
-  });
+// Global Error Handler - MUST be last
+app.use(errorHandler);
 
-  res.status(err.status || 500).json({
-    success: false,
-    error: err.message || 'Internal Server Error',
-    code: err.code || 'INTERNAL_ERROR',
-    timestamp: new Date().toISOString()
-  });
+// ====== SERVER STARTUP ======
+const PORT = process.env.PORT ? Number(process.env.PORT) : 3001;
+
+app.listen(PORT, () => {
+  logger.info(`
+╔════════════════════════════════════════════════════════╗
+║   🚀 Persian Chat Backend Server Started              ║
+║   📡 Port: ${PORT}                                      ║
+║   🌍 Environment: ${process.env.NODE_ENV || 'development'}              ║
+║   📝 Logs: ./logs/                                     ║
+╚════════════════════════════════════════════════════════╝
+
+Available Endpoints:
+  ✓ GET  /health
+  ✓ GET  /api/health
+  ✓ POST /api/auth/login
+  ✓ POST /api/auth/verify
+  ✓ POST /api/chat
+  ✓ GET  /api/train/status
+  ✓ POST /api/train/start
+  ✓ GET  /api/models/detected
+  ✓ POST /api/stt
+  ✓ POST /api/tts
+  ✓ POST /api/search
+  ✓ GET  /api/notifications
+  ✓ GET  /api/monitoring/metrics
+  ✓ GET /api/sources/downloads
+  `);
 });
 
-const port = process.env.PORT ? Number(process.env.PORT) : 3001;
-app.listen(port, () => {
-  logger.info(`🚀 Persian Chat Backend API listening on port ${port}`);
-  logger.info(`📡 Health check: http://localhost:${port}/health`);
-  logger.info(`🔐 Auth endpoint: http://localhost:${port}/api/auth/login`);
-  logger.info(`💬 Chat endpoint: http://localhost:${port}/api/chat`);
-  logger.info(`🎯 All routes registered successfully`);
-});
+export default app;
