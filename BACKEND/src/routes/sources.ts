@@ -4,6 +4,8 @@ import { exec, spawn } from 'child_process';
 import { promisify } from 'util';
 import fs from 'fs';
 import path from 'path';
+import { MODEL_CATALOG, getModelById, getModelsByType, searchModels } from '../config/modelCatalog';
+import { startDownload, getDownloadJob, getAllDownloadJobs, cancelDownload } from '../services/downloads';
 
 const execAsync = promisify(exec);
 const router = Router();
@@ -425,6 +427,189 @@ router.get('/datasets/available', async (_req: Request, res: Response): Promise<
     return;
   } catch (error) {
     const msg = `Error getting available datasets: ${String((error as any)?.message || error)}`;
+    logger.error(msg);
+    res.status(500).json({ success: false, error: msg });
+    return;
+  }
+});
+
+// ====== NEW: MODEL CATALOG INTEGRATION ======
+
+// GET /api/sources/catalog - Get all models from catalog
+router.get('/catalog', async (_req: Request, res: Response): Promise<void> => {
+  try {
+    res.json({ success: true, data: MODEL_CATALOG });
+    return;
+  } catch (error) {
+    const msg = `Error getting catalog: ${String((error as any)?.message || error)}`;
+    logger.error(msg);
+    res.status(500).json({ success: false, error: msg });
+    return;
+  }
+});
+
+// GET /api/sources/catalog/:modelId - Get specific model from catalog
+router.get('/catalog/:modelId', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { modelId } = req.params;
+    // Decode the modelId (e.g., HooshvareLab%2Fbert-fa-base-uncased -> HooshvareLab/bert-fa-base-uncased)
+    const decodedModelId = decodeURIComponent(modelId);
+    const model = getModelById(decodedModelId);
+    
+    if (!model) {
+      res.status(404).json({ success: false, error: 'Model not found in catalog' });
+      return;
+    }
+
+    res.json({ success: true, data: model });
+    return;
+  } catch (error) {
+    const msg = `Error getting model from catalog: ${String((error as any)?.message || error)}`;
+    logger.error(msg);
+    res.status(500).json({ success: false, error: msg });
+    return;
+  }
+});
+
+// GET /api/sources/catalog/type/:type - Get models by type
+router.get('/catalog/type/:type', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { type } = req.params;
+    
+    if (type !== 'model' && type !== 'tts' && type !== 'dataset') {
+      res.status(400).json({ success: false, error: 'Invalid type. Must be: model, tts, or dataset' });
+      return;
+    }
+
+    const models = getModelsByType(type as 'model' | 'tts' | 'dataset');
+    res.json({ success: true, data: models });
+    return;
+  } catch (error) {
+    const msg = `Error getting models by type: ${String((error as any)?.message || error)}`;
+    logger.error(msg);
+    res.status(500).json({ success: false, error: msg });
+    return;
+  }
+});
+
+// GET /api/sources/catalog/search?q=query - Search models in catalog
+router.get('/catalog/search', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const query = String(req.query.q || '');
+    
+    if (!query) {
+      res.status(400).json({ success: false, error: 'Search query (q) is required' });
+      return;
+    }
+
+    const results = searchModels(query);
+    res.json({ success: true, data: results, count: results.length });
+    return;
+  } catch (error) {
+    const msg = `Error searching catalog: ${String((error as any)?.message || error)}`;
+    logger.error(msg);
+    res.status(500).json({ success: false, error: msg });
+    return;
+  }
+});
+
+// POST /api/sources/catalog/download - Download model from catalog
+router.post('/catalog/download', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { modelId, destination } = req.body;
+    
+    if (!modelId) {
+      res.status(400).json({ success: false, error: 'modelId is required' });
+      return;
+    }
+
+    // Get model from catalog
+    const model = getModelById(modelId);
+    if (!model) {
+      res.status(404).json({ success: false, error: 'Model not found in catalog' });
+      return;
+    }
+
+    // Use default destination or provided one
+    const dest = destination || model.defaultDest || `downloads/${modelId.replace('/', '_')}`;
+    
+    // Start download using the downloads service
+    const job = await startDownload(
+      model.type,
+      model.id,
+      model.repoType,
+      dest
+    );
+    
+    res.json({ 
+      success: true, 
+      data: { 
+        jobId: job.id,
+        modelId: model.id,
+        modelName: model.name,
+        destination: dest,
+        message: 'Download started successfully'
+      }
+    });
+    return;
+  } catch (error) {
+    const msg = `Error starting catalog download: ${String((error as any)?.message || error)}`;
+    logger.error(msg);
+    res.status(500).json({ success: false, error: msg });
+    return;
+  }
+});
+
+// GET /api/sources/jobs - Get all download jobs (using downloads service)
+router.get('/jobs', async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const jobs = getAllDownloadJobs();
+    res.json({ success: true, data: jobs });
+    return;
+  } catch (error) {
+    const msg = `Error getting download jobs: ${String((error as any)?.message || error)}`;
+    logger.error(msg);
+    res.status(500).json({ success: false, error: msg });
+    return;
+  }
+});
+
+// GET /api/sources/jobs/:jobId - Get specific download job
+router.get('/jobs/:jobId', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { jobId } = req.params;
+    const job = getDownloadJob(jobId);
+    
+    if (!job) {
+      res.status(404).json({ success: false, error: 'Job not found' });
+      return;
+    }
+
+    res.json({ success: true, data: job });
+    return;
+  } catch (error) {
+    const msg = `Error getting download job: ${String((error as any)?.message || error)}`;
+    logger.error(msg);
+    res.status(500).json({ success: false, error: msg });
+    return;
+  }
+});
+
+// DELETE /api/sources/jobs/:jobId - Cancel download job
+router.delete('/jobs/:jobId', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { jobId } = req.params;
+    const success = cancelDownload(jobId);
+    
+    if (!success) {
+      res.status(404).json({ success: false, error: 'Job not found or cannot be cancelled' });
+      return;
+    }
+
+    res.json({ success: true, message: 'Download cancelled successfully' });
+    return;
+  } catch (error) {
+    const msg = `Error cancelling download: ${String((error as any)?.message || error)}`;
     logger.error(msg);
     res.status(500).json({ success: false, error: msg });
     return;
