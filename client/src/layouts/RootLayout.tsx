@@ -4,7 +4,7 @@ import { Header } from '@/shared/components/layout/Header';
 import { Sidebar } from '@/shared/components/layout/Sidebar';
 import { SettingsDrawer } from '@/components/SettingsDrawer';
 import { X } from 'lucide-react';
-import { Button } from '@/shared/components/ui/Button';
+import { Button } from '@/components/ui/button';
 
 interface RootLayoutProps {
   children?: React.ReactNode;

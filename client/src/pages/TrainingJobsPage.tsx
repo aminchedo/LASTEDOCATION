@@ -16,9 +16,9 @@ import {
   Calendar,
   Hash
 } from 'lucide-react';
-import { Button } from '@/shared/components/ui/Button';
-import { Card, CardContent } from '@/shared/components/ui/Card';
-import { Badge } from '@/shared/components/ui/Badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { TrainingJob, JobStatus } from '@/shared/types';
 import { apiService } from '@/shared/services/api.service';
 import toast from 'react-hot-toast';

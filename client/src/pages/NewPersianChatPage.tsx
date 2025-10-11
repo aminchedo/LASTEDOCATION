@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, X, Trash2, Settings, Mic, Paperclip } from 'lucide-react';
-import { Button } from '@/shared/components/ui/Button';
-import { Card, CardContent } from '@/shared/components/ui/Card';
-import { Badge } from '@/shared/components/ui/Badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { useChat } from '@/features/chat/hooks/useChat';
 import { useKeyboardShortcuts } from '@/features/chat/hooks/useKeyboardShortcuts';
 import { ChatBubble } from '@/features/chat/components/ChatBubble';

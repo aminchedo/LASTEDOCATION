@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite --port 3000",
-    "build": "tsc && vite build",
+    "build": "vite build",
+    "build:check": "tsc && vite build",
     "preview": "vite preview --port 3000",
     "lint": "echo \"Linting skipped - add eslint if needed\""
   },

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { X, Save, RotateCcw, Monitor, Sun, Moon } from 'lucide-react';
-import { Button } from '@/shared/components/ui/Button';
-import { Card, CardContent, CardHeader } from '@/shared/components/ui/Card';
-import { Input } from '@/shared/components/ui/Input';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { useTheme, AppSettings } from '@/core/contexts/ThemeContext';
 import toast from 'react-hot-toast';
 

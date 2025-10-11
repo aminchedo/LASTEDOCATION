@@ -2,7 +2,7 @@ import React from 'react';
 import { cn } from '../../lib/utils';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-    variant?: 'default' | 'outline' | 'destructive' | 'ghost' | 'link';
+    variant?: 'default' | 'primary' | 'secondary' | 'outline' | 'destructive' | 'ghost' | 'link';
     size?: 'default' | 'sm' | 'lg' | 'icon';
     icon?: React.ReactNode;
     children?: React.ReactNode;
@@ -20,6 +20,8 @@ export function Button({
 
     const variants = {
         default: 'bg-primary text-primary-foreground hover:bg-primary/90',
+        primary: 'bg-blue-600 text-white hover:bg-blue-700',
+        secondary: 'bg-gray-200 text-gray-900 hover:bg-gray-300',
         outline: 'border border-input hover:bg-accent hover:text-accent-foreground',
         destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
         ghost: 'hover:bg-accent hover:text-accent-foreground',

@@ -13,8 +13,8 @@ import {
   AlertCircle,
   Loader2
 } from 'lucide-react';
-import { Button } from '@/shared/components/ui/Button';
-import { Card, CardContent, CardHeader } from '@/shared/components/ui/Card';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { useAppSettings } from '@/core/contexts/AppSettingsContext';
 import { CustomApiSettings, ModelType } from '@/types/settings';
 import { 

@@ -51,6 +51,7 @@ export declare const TTSResponseSchema: z.ZodObject<{
     }>;
 }, "strip", z.ZodTypeAny, {
     text: string;
+    audio: string;
     voice: string;
     language: string;
     metadata: {
@@ -58,12 +59,12 @@ export declare const TTSResponseSchema: z.ZodObject<{
         wordCount: number;
         characterCount: number;
     };
-    audio: string;
     format: string;
     sampleRate: number;
     duration: number;
 }, {
     text: string;
+    audio: string;
     voice: string;
     language: string;
     metadata: {
@@ -71,7 +72,6 @@ export declare const TTSResponseSchema: z.ZodObject<{
         wordCount: number;
         characterCount: number;
     };
-    audio: string;
     format: string;
     sampleRate: number;
     duration: number;

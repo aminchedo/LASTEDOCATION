@@ -11,10 +11,10 @@ import {
     Search,
     Filter
 } from 'lucide-react';
-import { Card, CardContent, CardHeader } from '@/shared/components/ui/Card';
-import { Button } from '@/shared/components/ui/Button';
-import { Input } from '@/shared/components/ui/Input';
-import { Badge } from '@/shared/components/ui/Badge';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { useDetectedModels, DetectedModel } from '@/hooks/useDetectedModels';
 
 interface TrainedModelSelectorProps {

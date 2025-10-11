@@ -3,6 +3,7 @@ import { cn } from '../../lib/utils';
 
 interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
     children: React.ReactNode;
+    variant?: 'default' | 'bordered' | 'elevated';
 }
 
 interface CardContentProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -13,11 +14,17 @@ interface CardHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
     children: React.ReactNode;
 }
 
-export function Card({ className, children, ...props }: CardProps) {
+export function Card({ className, children, variant = 'default', ...props }: CardProps) {
+    const variantClasses = {
+        default: 'rounded-lg border bg-card text-card-foreground shadow-sm',
+        bordered: 'rounded-lg border-2 bg-card text-card-foreground',
+        elevated: 'rounded-lg bg-card text-card-foreground shadow-lg',
+    };
+
     return (
         <div
             className={cn(
-                'rounded-lg border bg-card text-card-foreground shadow-sm',
+                variantClasses[variant],
                 className
             )}
             {...props}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent } from '@/shared/components/ui/Card';
-import { Badge } from '@/shared/components/ui/Badge';
-import { Button } from '@/shared/components/ui/Button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { 
   CheckCircle, 
   AlertCircle, 

@@ -12,9 +12,9 @@ import {
     Calendar,
     Info
 } from 'lucide-react';
-import { Button } from '@/shared/components/ui/Button';
-import { Card, CardHeader, CardContent } from '@/shared/components/ui/Card';
-import { Badge } from '@/shared/components/ui/Badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { useDetectedModels } from '@/hooks/useDetectedModels';
 
 const typeIcons = {

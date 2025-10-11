@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, X, ArrowDown } from 'lucide-react';
-import { Button } from '@/shared/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { useChat } from '../hooks/useChat';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { ChatBubble } from './ChatBubble';

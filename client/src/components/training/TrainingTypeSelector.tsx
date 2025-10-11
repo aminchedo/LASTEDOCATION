@@ -12,8 +12,8 @@ import {
     Music,
     CheckCircle
 } from 'lucide-react';
-import { Card, CardContent, CardHeader } from '@/shared/components/ui/Card';
-import { Badge } from '@/shared/components/ui/Badge';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
 export type TrainingType =
     | 'fine-tuning'

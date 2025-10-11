@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
-import { Button } from '@/shared/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import SettingsPage from '@/pages/SettingsPage';
 
 interface SettingsModalProps {

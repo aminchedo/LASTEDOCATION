@@ -9,9 +9,9 @@ import {
   RefreshCw,
   AlertCircle
 } from 'lucide-react';
-import { Button } from '@/shared/components/ui/Button';
-import { Card, CardContent, CardHeader } from '@/shared/components/ui/Card';
-import { Badge } from '@/shared/components/ui/Badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { MiniLine } from '@/features/monitoring/components/MiniBar';
 import { apiService } from '@/shared/services/api.service';
 import toast from 'react-hot-toast';

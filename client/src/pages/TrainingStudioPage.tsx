@@ -15,10 +15,10 @@ import {
   FolderOpen,
   BarChart3
 } from 'lucide-react';
-import { Button } from '@/shared/components/ui/Button';
-import { Card, CardContent, CardHeader } from '@/shared/components/ui/Card';
-import { Input } from '@/shared/components/ui/Input';
-import { Badge } from '@/shared/components/ui/Badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { useTraining, TrainingConfig, TrainingJob } from '@/hooks/useTraining';
 import { useAvailableModels } from '@/hooks/useDownloads';
 import { TrainedModelSelector } from '@/components/training/TrainedModelSelector';

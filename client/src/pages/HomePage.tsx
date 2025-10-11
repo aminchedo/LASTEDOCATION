@@ -17,9 +17,9 @@ import {
   BarChart3,
   Sparkles
 } from 'lucide-react';
-import { Button } from '@/shared/components/ui/Button';
-import { Card, CardContent, CardHeader } from '@/shared/components/ui/Card';
-import { Badge } from '@/shared/components/ui/Badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { apiService } from '@/shared/services/api.service';
 import { useTraining } from '@/hooks/useTraining';
 import { useDownloads } from '@/hooks/useDownloads';

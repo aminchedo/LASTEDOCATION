@@ -4,7 +4,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from '@/core/contexts/ThemeContext';
 import { RootLayout } from '@/layouts/RootLayout';
 import { ToastProvider } from '@/components/Toast';
-import { Card, CardContent } from '@/shared/components/ui/Card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
 import { useKeyboardShortcuts, KeyboardShortcutsHelp } from '@/hooks/useKeyboardShortcuts';
 import { AppSettingsProvider } from '@/core/contexts/AppSettingsContext';

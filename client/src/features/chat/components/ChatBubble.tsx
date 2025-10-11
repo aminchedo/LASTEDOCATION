@@ -1,10 +1,8 @@
 import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Copy, Check } from 'lucide-react';
 import { useTheme } from '@/core/contexts/ThemeContext';
-import { Button } from '@/shared/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import type { ChatMessage } from '../types/chat.types';
 
 interface ChatBubbleProps {
@@ -92,7 +90,7 @@ interface CodeBlockProps {
   theme: 'light' | 'dark';
 }
 
-function CodeBlock({ code, language, theme }: CodeBlockProps) {
+function CodeBlock({ code, language }: CodeBlockProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -120,27 +118,20 @@ function CodeBlock({ code, language, theme }: CodeBlockProps) {
           <span className="text-xs">{copied ? 'کپی شد' : 'کپی'}</span>
         </Button>
       </div>
-      <div className="overflow-x-auto border border-t-0 border-[color:var(--c-border)]">
-        <SyntaxHighlighter
-          language={language}
-          style={theme === 'dark' ? oneDark : oneLight}
-          customStyle={{
+      <div className="overflow-x-auto border border-t-0 border-border">
+        <pre
+          style={{
             margin: 0,
             borderRadius: 0,
             background: 'var(--c-surface)',
             fontSize: '0.875rem',
             padding: '1rem',
-          }}
-          codeTagProps={{
-            style: {
-              fontFamily: 'Fira Code, monospace',
-              fontSize: '0.875rem',
-              lineHeight: '1.6',
-            },
+            fontFamily: 'Fira Code, monospace',
+            lineHeight: '1.6',
           }}
         >
-          {code}
-        </SyntaxHighlighter>
+          <code>{code}</code>
+        </pre>
       </div>
     </div>
   );

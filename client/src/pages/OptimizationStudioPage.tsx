@@ -20,11 +20,11 @@ import {
   Cpu,
   HardDrive
 } from 'lucide-react';
-import { Button } from '@/shared/components/ui/Button';
-import { Card, CardContent, CardHeader } from '@/shared/components/ui/Card';
-import { Badge } from '@/shared/components/ui/Badge';
-import { EmptyState } from '@/shared/components/ui/EmptyState';
-import { Skeleton } from '@/shared/components/ui/Skeleton';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useOptimization, HyperparameterConfig, OptimizationJob, TrialResult } from '@/hooks/useOptimization';
 import { apiService } from '@/shared/services/api.service';
 import toast from 'react-hot-toast';

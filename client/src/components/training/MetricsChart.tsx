@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader } from '@/shared/components/ui/Card';
-import { Button } from '@/shared/components/ui/Button';
-import { Badge } from '@/shared/components/ui/Badge';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { 
   TrendingDown, 
   TrendingUp, 

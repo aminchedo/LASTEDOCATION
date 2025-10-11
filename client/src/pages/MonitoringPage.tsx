@@ -1,6 +1,6 @@
 import { RefreshCw, Download, Activity, Clock, CheckCircle, AlertCircle, TrendingUp, Zap } from 'lucide-react';
-import { Button } from '@/shared/components/ui/Button';
-import { Card, CardHeader, CardContent } from '@/shared/components/ui/Card';
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { useMetrics } from '@/features/monitoring/hooks/useMetrics';
 import { MiniBar, MiniLine } from '@/features/monitoring/components/MiniBar';
 import toast from 'react-hot-toast';
