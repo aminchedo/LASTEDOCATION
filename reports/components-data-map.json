@@ -1,0 +1,356 @@
+{
+  "metadata": {
+    "generated": "2025-10-11",
+    "description": "Map of components to their data sources and responsibilities",
+    "totalComponents": 25
+  },
+  "pages": {
+    "ModelsDatasetsPage": {
+      "path": "client/src/pages/ModelsDatasetsPage.tsx",
+      "responsibility": "Display and manage local models and datasets",
+      "dataSources": {
+        "models": {
+          "hook": "useDetectedModels",
+          "endpoint": "/api/models/detected",
+          "status": "real-data"
+        },
+        "datasets": {
+          "source": "mock-array",
+          "endpoint": "none",
+          "status": "mock-data",
+          "needsFix": true
+        }
+      },
+      "statePattern": {
+        "loading": "partial (modelsLoading, datasetsLoading)",
+        "error": "partial (console.error only)",
+        "empty": "missing",
+        "success": "implemented"
+      },
+      "pagination": {
+        "implemented": true,
+        "itemsPerPage": 12,
+        "needsUpdate": "Change to 10 per spec"
+      }
+    },
+    "DownloadCenterPage": {
+      "path": "client/src/pages/DownloadCenterPage.tsx",
+      "responsibility": "Browse and download models/datasets from HuggingFace",
+      "dataSources": {
+        "datasets": {
+          "source": "mock-array",
+          "endpoint": "none",
+          "status": "mock-data",
+          "needsFix": true,
+          "shouldUse": "/api/sources/catalog"
+        },
+        "downloads": {
+          "source": "component-state",
+          "endpoint": "/api/v1/sources/resolve",
+          "status": "partial-real-data"
+        }
+      },
+      "statePattern": {
+        "loading": "missing",
+        "error": "partial",
+        "empty": "missing",
+        "success": "implemented"
+      },
+      "pagination": {
+        "implemented": false,
+        "needsImplementation": true
+      }
+    },
+    "PlaygroundPage": {
+      "path": "client/src/pages/PlaygroundPage.tsx",
+      "responsibility": "Interactive LLM testing playground",
+      "dataSources": {
+        "llmResponses": {
+          "source": "mock-setTimeout",
+          "endpoint": "none",
+          "status": "completely-mock",
+          "needsFix": true,
+          "shouldUse": "/api/chat or new /api/playground endpoint"
+        }
+      },
+      "statePattern": {
+        "loading": "implemented (isRunning)",
+        "error": "partial (toast only)",
+        "empty": "n/a",
+        "success": "implemented"
+      },
+      "pagination": {
+        "implemented": false,
+        "needed": false
+      }
+    },
+    "MetricsDashboard": {
+      "path": "client/src/pages/MetricsDashboard.tsx",
+      "responsibility": "Display monitoring metrics",
+      "dataSources": {
+        "metrics": {
+          "hook": "useMetrics",
+          "endpoint": "/api/monitoring/metrics",
+          "status": "real-data-with-mock-fallback",
+          "needsFix": true
+        }
+      },
+      "statePattern": {
+        "loading": "implemented",
+        "error": "partial (falls back to mock)",
+        "empty": "missing",
+        "success": "implemented"
+      }
+    },
+    "ExperimentsPage": {
+      "path": "client/src/pages/ExperimentsPage.tsx",
+      "responsibility": "Manage training experiments",
+      "dataSources": {
+        "experiments": {
+          "source": "component-state",
+          "endpoint": "/api/experiments",
+          "status": "needs-backend-implementation",
+          "needsFix": true
+        }
+      },
+      "statePattern": {
+        "loading": "implemented",
+        "error": "implemented (toast)",
+        "empty": "missing",
+        "success": "implemented"
+      }
+    },
+    "TrainingPage": {
+      "path": "client/src/pages/TrainingPage.tsx",
+      "responsibility": "Model training interface",
+      "dataSources": {
+        "trainingStatus": {
+          "hook": "useTraining",
+          "endpoint": "/api/train/status",
+          "status": "real-data"
+        },
+        "metrics": {
+          "endpoint": "/api/train/metrics",
+          "status": "real-data"
+        },
+        "checkpoints": {
+          "endpoint": "/api/train/checkpoints",
+          "status": "real-data"
+        }
+      },
+      "statePattern": {
+        "loading": "implemented",
+        "error": "partial",
+        "empty": "partial",
+        "success": "implemented"
+      }
+    },
+    "VoiceChat": {
+      "path": "client/src/pages/VoiceChat.tsx",
+      "responsibility": "Voice-based chat with STT/TTS",
+      "dataSources": {
+        "stt": {
+          "endpoint": "/api/stt",
+          "status": "real-data"
+        },
+        "tts": {
+          "endpoint": "/api/tts",
+          "status": "real-data"
+        }
+      },
+      "statePattern": {
+        "loading": "implemented",
+        "error": "implemented (toast)",
+        "empty": "n/a",
+        "success": "implemented"
+      },
+      "issues": [
+        "Uses hardcoded apiUrl instead of env config"
+      ]
+    },
+    "MonitoringPage": {
+      "path": "client/src/pages/MonitoringPage.tsx",
+      "responsibility": "System monitoring dashboard",
+      "dataSources": {
+        "metrics": {
+          "hook": "useMetrics",
+          "endpoint": "/api/monitoring/metrics",
+          "status": "real-data"
+        }
+      }
+    },
+    "LiveMonitorPage": {
+      "path": "client/src/pages/LiveMonitorPage.tsx",
+      "responsibility": "Real-time monitoring",
+      "dataSources": {
+        "events": {
+          "source": "component-state",
+          "endpoint": "unknown",
+          "status": "needs-investigation"
+        }
+      }
+    },
+    "DataSourcesPage": {
+      "path": "client/src/pages/DataSourcesPage.tsx",
+      "responsibility": "Manage data sources",
+      "dataSources": {
+        "sources": {
+          "endpoint": "/api/sources/catalog",
+          "status": "needs-investigation"
+        }
+      }
+    },
+    "DatasetsPage": {
+      "path": "client/src/pages/DatasetsPage.tsx",
+      "responsibility": "Dataset management",
+      "dataSources": {
+        "datasets": {
+          "endpoint": "needs-investigation",
+          "status": "unknown"
+        }
+      }
+    },
+    "OptimizationStudioPage": {
+      "path": "client/src/pages/OptimizationStudioPage.tsx",
+      "responsibility": "Model optimization tools",
+      "dataSources": {
+        "jobs": {
+          "endpoint": "/api/optimization/jobs",
+          "status": "real-data"
+        }
+      }
+    },
+    "ChatPage": {
+      "path": "client/src/pages/ChatPage.tsx",
+      "responsibility": "Chat interface (multiple versions)",
+      "dataSources": {
+        "messages": {
+          "hook": "useChat",
+          "endpoint": "/api/chat",
+          "status": "real-data"
+        }
+      }
+    },
+    "NewPersianChatPage": {
+      "path": "client/src/pages/NewPersianChatPage.tsx",
+      "responsibility": "Enhanced Persian chat interface",
+      "dataSources": {
+        "messages": {
+          "source": "component-state",
+          "endpoint": "unknown",
+          "status": "needs-investigation"
+        }
+      }
+    }
+  },
+  "hooks": {
+    "useMetrics": {
+      "path": "client/src/features/monitoring/hooks/useMetrics.ts",
+      "responsibility": "Fetch and manage metrics data",
+      "endpoint": "/api/monitoring/metrics",
+      "issues": [
+        "Falls back to MOCK_DATA on error",
+        "Should show error state instead"
+      ],
+      "needsFix": true
+    },
+    "useDetectedModels": {
+      "path": "client/src/hooks/useDetectedModels.ts",
+      "responsibility": "Scan and list local models",
+      "endpoint": "/api/models/detected",
+      "status": "good"
+    },
+    "useDownloadSystem": {
+      "path": "client/src/hooks/useDownloadSystem.ts",
+      "responsibility": "Manage downloads",
+      "endpoint": "/api/download/*",
+      "status": "good"
+    },
+    "useDownloads": {
+      "path": "client/src/hooks/useDownloads.ts",
+      "responsibility": "Download management",
+      "issues": [
+        "Hardcoded 'http://localhost:3001' URLs",
+        "Should use env-based config"
+      ],
+      "needsFix": true
+    },
+    "useTraining": {
+      "path": "client/src/hooks/useTraining.ts",
+      "responsibility": "Training state management",
+      "endpoint": "/api/train/status",
+      "status": "good"
+    },
+    "useOptimization": {
+      "path": "client/src/hooks/useOptimization.ts",
+      "responsibility": "Optimization job management",
+      "endpoint": "/api/optimization/*",
+      "status": "needs-investigation"
+    }
+  },
+  "services": {
+    "api.ts": {
+      "path": "client/src/services/api.ts",
+      "type": "http-client",
+      "baseUrl": "env-driven (VITE_API_BASE_URL)",
+      "status": "good",
+      "features": ["auth", "error-handling", "credentials"]
+    },
+    "shared/utils/api.ts": {
+      "path": "client/src/shared/utils/api.ts",
+      "type": "http-client",
+      "baseUrl": "env-driven (VITE_API_BASE_URL)",
+      "status": "good",
+      "notes": "Duplicate of services/api.ts, consider consolidation"
+    },
+    "auth.service.ts": {
+      "path": "client/src/services/auth.service.ts",
+      "responsibility": "Authentication",
+      "status": "good"
+    },
+    "chat.service.ts": {
+      "path": "client/src/services/chat.service.ts",
+      "responsibility": "Chat operations",
+      "status": "good"
+    },
+    "models.service.ts": {
+      "path": "client/src/services/models.service.ts",
+      "responsibility": "Model operations",
+      "status": "good"
+    },
+    "train.service.ts": {
+      "path": "client/src/services/train.service.ts",
+      "responsibility": "Training operations",
+      "status": "good"
+    },
+    "monitoring.service.ts": {
+      "path": "client/src/services/monitoring.service.ts",
+      "responsibility": "Monitoring data",
+      "status": "good"
+    }
+  },
+  "summary": {
+    "totalComponents": 25,
+    "usingRealData": 15,
+    "usingMockData": 4,
+    "needsInvestigation": 6,
+    "criticalFixes": [
+      "DownloadCenterPage: Replace mock datasets with /api/sources/catalog",
+      "ModelsDatasetsPage: Add datasets endpoint integration",
+      "PlaygroundPage: Implement real LLM integration",
+      "useMetrics: Remove mock fallback, add proper error states",
+      "useDownloads: Remove hardcoded URLs",
+      "ExperimentsPage: Implement backend endpoints"
+    ],
+    "paginationStatus": {
+      "implemented": 1,
+      "needsImplementation": 1,
+      "needsUpdate": 1
+    },
+    "statePatternCompliance": {
+      "full": 3,
+      "partial": 12,
+      "missing": 5
+    }
+  }
+}

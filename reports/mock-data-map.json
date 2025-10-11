@@ -1,0 +1,112 @@
+{
+  "metadata": {
+    "generated": "2025-10-11",
+    "description": "Map of all mock/fake/placeholder data in the application",
+    "totalMockLocations": 6
+  },
+  "mockDataLocations": [
+    {
+      "file": "client/src/pages/ModelsDatasetsPage.tsx",
+      "lines": "117-144",
+      "type": "datasets",
+      "severity": "high",
+      "description": "Mock datasets array with 2 hardcoded items",
+      "dataType": "DatasetItem[]",
+      "mockContent": {
+        "itemCount": 2,
+        "names": ["Persian Conversations", "Persian Text Corpus"]
+      },
+      "fix": "Replace with API call to /api/sources/datasets/available or create new endpoint",
+      "impact": "Users see fake dataset information"
+    },
+    {
+      "file": "client/src/features/monitoring/hooks/useMetrics.ts",
+      "lines": "22-46",
+      "type": "metrics",
+      "severity": "high",
+      "description": "MOCK_DATA constant with fake metrics used as fallback",
+      "dataType": "MetricsData",
+      "mockContent": {
+        "totalRequests": 1247,
+        "avgResponseTime": 342,
+        "note": "Generated random data for charts"
+      },
+      "fix": "Remove fallback to mock data; show proper empty/error states",
+      "impact": "On API failure, users see fake metrics instead of error"
+    },
+    {
+      "file": "client/src/pages/PlaygroundPage.tsx",
+      "lines": "79-86",
+      "type": "llm-response",
+      "severity": "medium",
+      "description": "Mock LLM response generation with setTimeout",
+      "dataType": "string",
+      "mockContent": {
+        "mockResponse": "این یک پاسخ نمونه برای پیام شما است..."
+      },
+      "fix": "Implement real LLM API integration via backend proxy",
+      "impact": "Playground feature is completely non-functional"
+    },
+    {
+      "file": "client/src/pages/DownloadCenterPage.tsx",
+      "lines": "401-548",
+      "type": "datasets",
+      "severity": "critical",
+      "description": "Large array of mock datasets (8 items) with hardcoded data",
+      "dataType": "DatasetInfo[]",
+      "mockContent": {
+        "itemCount": 8,
+        "names": ["ParsiNLU", "PersianQA", "ParsBERT-Sentiment", "Common Voice FA", "Persian News", "Persian Poetry", "Persian Wikipedia", "Persian Slang"],
+        "totalSamples": 167301
+      },
+      "fix": "Replace with /api/sources/catalog or /api/sources/catalog/type/dataset",
+      "impact": "Download Center shows fake datasets; downloads will fail"
+    },
+    {
+      "file": "client/src/pages/DownloadCenterPage.tsx",
+      "lines": "201-221",
+      "type": "ui-component",
+      "severity": "low",
+      "description": "Suggestions placeholder in Input component",
+      "dataType": "string[]",
+      "fix": "Not critical; placeholder for autocomplete feature",
+      "impact": "Minor UX feature"
+    },
+    {
+      "file": "client/src/components/training/Controls.tsx",
+      "lines": "257",
+      "type": "todo-comment",
+      "severity": "low",
+      "description": "TODO comment about loading checkpoints",
+      "fix": "Implement checkpoint loading from API",
+      "impact": "Feature incomplete"
+    }
+  ],
+  "placeholderText": [
+    {
+      "file": "client/src/pages/PlaygroundPage.tsx",
+      "usage": "placeholder text for textarea",
+      "severity": "low",
+      "fix": "Not an issue; UI placeholder text is appropriate"
+    },
+    {
+      "file": "Multiple input components",
+      "usage": "Persian placeholder text in inputs",
+      "severity": "low",
+      "fix": "Not an issue; UI placeholder text is appropriate"
+    }
+  ],
+  "summary": {
+    "critical": 1,
+    "high": 2,
+    "medium": 1,
+    "low": 2,
+    "totalMockDataPoints": "Approximately 167,000+ fake samples shown to users",
+    "priorityFixes": [
+      "DownloadCenterPage datasets (critical)",
+      "ModelsDatasetsPage datasets (high)",
+      "useMetrics mock fallback (high)",
+      "PlaygroundPage LLM responses (medium)"
+    ]
+  }
+}

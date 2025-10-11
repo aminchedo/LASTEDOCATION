@@ -15,6 +15,7 @@ import { Button } from '@/shared/components/ui/Button';
 import { Card, CardContent, CardHeader } from '@/shared/components/ui/Card';
 import { Badge } from '@/shared/components/ui/Badge';
 import toast from 'react-hot-toast';
+import { playgroundService } from '@/services/playground.service';
 
 interface PlaygroundSettings {
   model: string;
@@ -72,41 +73,40 @@ function PlaygroundPage() {
     setResponse('');
     setCurrentMetrics(null);
 
-    // Simulate API call
-    const startTime = Date.now();
-    
     try {
-      // Mock response generation
-      await new Promise(resolve => setTimeout(resolve, Math.random() * 2000 + 1000));
-      
-      const mockResponse = `این یک پاسخ نمونه برای پیام شما است: "${prompt}". این پاسخ توسط مدل ${settings.model} تولید شده است.`;
-      const latency = Date.now() - startTime;
-      const tokens = Math.floor(Math.random() * 500) + 100;
+      const result = await playgroundService.generate({
+        prompt,
+        model: settings.model,
+        temperature: settings.temperature,
+        maxTokens: settings.maxTokens,
+        topP: settings.topP,
+        frequencyPenalty: settings.frequencyPenalty,
+        presencePenalty: settings.presencePenalty,
+      });
 
-      setResponse(mockResponse);
+      setResponse(result.response);
       setCurrentMetrics({
-        tokens,
-        latency,
+        tokens: result.tokens,
+        latency: result.latency,
         timestamp: Date.now()
       });
 
-      // Save to results
       const newResult: PlaygroundResult = {
         id: Math.random().toString(36).substr(2, 9),
         prompt,
-        response: mockResponse,
+        response: result.response,
         settings: { ...settings },
         metrics: {
-          tokens,
-          latency,
+          tokens: result.tokens,
+          latency: result.latency,
           timestamp: Date.now()
         }
       };
-      setResults(prev => [newResult, ...prev.slice(0, 9)]); // Keep last 10 results
+      setResults(prev => [newResult, ...prev.slice(0, 9)]);
 
       toast.success('پاسخ تولید شد');
     } catch (error) {
-      toast.error('خطا در تولید پاسخ');
+      toast.error('خطا در تولید پاسخ. لطفاً دوباره تلاش کنید.');
       console.error('Playground error:', error);
     } finally {
       setIsRunning(false);

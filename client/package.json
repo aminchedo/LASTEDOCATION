@@ -7,12 +7,14 @@
     "dev": "vite --port 3000",
     "build": "tsc && vite build",
     "preview": "vite preview --port 3000",
-    "lint": "echo \"Linting skipped - add eslint if needed\"",
+    "lint": "tsc --noEmit",
     "serve": "vite preview --port 3000",
-    "validate:html": "echo \"HTML validation - requires build first: npm run build\"",
-    "validate:a11y": "echo \"A11y validation - requires running dev server\"",
+    "validate:html": "echo \"HTML validation - build and check structure\"",
+    "validate:a11y": "echo \"A11y validation - manual testing recommended\"",
     "validate:types": "tsc --noEmit",
-    "validate": "npm run validate:types"
+    "validate:env": "node -e \"const vars = ['VITE_API_BASE_URL']; vars.forEach(v => { if (!process.env[v]) console.warn('Warning: ' + v + ' not set'); });\"",
+    "validate": "npm run validate:types && npm run validate:env",
+    "predev": "npm run validate:env"
   },
   "dependencies": {
     "axios": "^1.7.2",

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Card } from '@/shared/components/ui/Card';
 import { Button } from '@/shared/components/ui/Button';
 import { Badge } from '@/shared/components/ui/Badge';
-import { Input } from '@/shared/components/ui/Input';ut';
+import { Input } from '@/shared/components/ui/Input';
+import toast from 'react-hot-toast';
 import {
     HardDrive,
     Database,
@@ -65,7 +66,7 @@ interface DatasetItem {
     language?: string;
 }
 
-const ITEMS_PER_PAGE = 12;
+const ITEMS_PER_PAGE = 10;
 
 export default function ModelsDatasetsPage() {
     const { settings } = useTheme();
@@ -74,9 +75,9 @@ export default function ModelsDatasetsPage() {
     const [activeTab, setActiveTab] = useState<'models' | 'datasets'>('models');
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedType, setSelectedType] = useState<string>('all');
-    const [selectedFormat, setSelectedFormat] = useState<string>('all');
-    const [currentPage, setCurrentPage] = useState(1);
-    const [datasets, setDatasets] = useState<DatasetItem[]>([]);
+    const [selectedFormat, setSelectedFormat] = useState    const [datasets, setDatasets] = useState<DatasetItem[]>([]);
+    const [datasetsLoading, setDatasetsLoading] = useState(false);
+    const [datasetsError, setDatasetsError] = useState<string | null>(null);]>([]);
     const [datasetsLoading, setDatasetsLoading] = useState(false);
 
     // Filter models based on search and filters
@@ -104,45 +105,36 @@ export default function ModelsDatasetsPage() {
 
     const currentItems = activeTab === 'models'
         ? filteredModels.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
-        : filteredDatasets.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
-
-    // Load datasets
-    useEffect(() => {
-        loadDatasets();
-    }, []);
-
-    const loadDatasets = async () => {
+        : filteredDatasets.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage     const loadDatasets = async () => {
         setDatasetsLoading(true);
+        setDatasetsError(null);
         try {
-            // Mock datasets for now - replace with actual API call
-            const mockDatasets: DatasetItem[] = [
-                {
-                    id: '1',
-                    name: 'Persian Conversations',
-                    description: 'Large dataset of Persian conversational data',
-                    size: 1024 * 1024 * 500, // 500MB
-                    format: 'jsonl',
-                    tags: ['persian', 'conversation', 'chat'],
-                    source: 'local',
-                    lastModified: new Date().toISOString(),
-                    samples: 50000,
-                    language: 'fa'
-                },
-                {
-                    id: '2',
-                    name: 'Persian Text Corpus',
-                    description: 'General Persian text corpus for language modeling',
-                    size: 1024 * 1024 * 200, // 200MB
-                    format: 'txt',
-                    tags: ['persian', 'text', 'corpus'],
-                    source: 'local',
-                    lastModified: new Date().toISOString(),
-                    samples: 100000,
-                    language: 'fa'
-                }
-            ];
-            setDatasets(mockDatasets);
+            const response = await fetch('/api/sources/catalog/type/dataset');
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            const data = await response.json();
+            const datasets = (data.data || data || []).map((item: any) => ({
+                id: item.id,
+                name: item.name,
+                description: item.description,
+                size: item.size ? parseInt(item.size) : undefined,
+                format: item.format || 'unknown',
+                tags: item.tags || [],
+                source: item.source || 'catalog',
+                lastModified: item.lastModified || new Date().toISOString(),
+                samples: item.samples,
+                language: item.language || 'fa'
+            }));
+            setDatasets(datasets);
         } catch (error) {
+            console.error('Error loading datasets:', error);
+            setDatasetsError(error instanceof Error ? error.message : 'خطا در بارگذاری دیتاست‌ها');
+            toast.error('خطا در بارگذاری دیتاست‌ها. لطفاً دوباره تلاش کنید.');
+        } finally {
+            setDatasetsLoading(false);
+        }
+    };{
             console.error('Error loading datasets:', error);
         } finally {
             setDatasetsLoading(false);

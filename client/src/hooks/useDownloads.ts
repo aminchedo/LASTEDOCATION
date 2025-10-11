@@ -41,7 +41,8 @@ export function useDownloads() {
   const fetchJobs = useCallback(async () => {
     try {
       // استفاده از endpoint جدید
-      const response = await fetch('http://localhost:3001/api/download/jobs');
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+      const response = await fetch(`${baseUrl}/api/download/jobs`);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -68,7 +69,8 @@ export function useDownloads() {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch('http://localhost:3001/api/download', {
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+      const response = await fetch(`${baseUrl}/api/download`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -103,7 +105,8 @@ export function useDownloads() {
 
   const cancelDownload = useCallback(async (jobId: string) => {
     try {
-      const response = await fetch(`http://localhost:3001/api/download/job?id=${jobId}`, {
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+      const response = await fetch(`${baseUrl}/api/download/job?id=${jobId}`, {
         method: 'DELETE'
       });
 

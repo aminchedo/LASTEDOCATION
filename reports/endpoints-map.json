@@ -1,0 +1,343 @@
+{
+  "metadata": {
+    "generated": "2025-10-11",
+    "description": "Comprehensive map of all API endpoints used in the application",
+    "totalEndpoints": 52
+  },
+  "endpoints": {
+    "auth": {
+      "login": {
+        "method": "POST",
+        "path": "/api/auth/login",
+        "usedIn": ["LoginPage.tsx", "Auth/LoginPage.tsx"],
+        "status": "functional"
+      },
+      "verify": {
+        "method": "GET",
+        "path": "/api/auth/verify",
+        "usedIn": ["AuthGuard.tsx"],
+        "status": "functional"
+      },
+      "logout": {
+        "method": "POST",
+        "path": "/api/auth/logout",
+        "usedIn": ["auth.service.ts"],
+        "status": "functional"
+      }
+    },
+    "training": {
+      "start": {
+        "method": "POST",
+        "path": "/api/train/start",
+        "usedIn": ["CheckpointsTable.tsx", "train.service.ts"],
+        "status": "functional"
+      },
+      "status": {
+        "method": "GET",
+        "path": "/api/train/status",
+        "usedIn": ["useTraining.ts", "server.ts"],
+        "status": "functional"
+      },
+      "metrics": {
+        "method": "GET",
+        "path": "/api/train/metrics",
+        "usedIn": ["MetricsChart.tsx"],
+        "status": "functional"
+      },
+      "checkpoints": {
+        "method": "GET",
+        "path": "/api/train/checkpoints",
+        "usedIn": ["CheckpointsTable.tsx"],
+        "status": "functional"
+      },
+      "stream": {
+        "method": "GET",
+        "path": "/api/train/stream",
+        "usedIn": ["server.ts"],
+        "status": "functional",
+        "notes": "SSE endpoint"
+      }
+    },
+    "sources": {
+      "catalog": {
+        "method": "GET",
+        "path": "/api/sources/catalog",
+        "usedIn": ["sources.ts"],
+        "status": "functional"
+      },
+      "catalogById": {
+        "method": "GET",
+        "path": "/api/sources/catalog/:id",
+        "usedIn": ["sources.ts"],
+        "status": "functional"
+      },
+      "catalogByType": {
+        "method": "GET",
+        "path": "/api/sources/catalog/type/:type",
+        "usedIn": ["sources.ts"],
+        "status": "functional"
+      },
+      "catalogSearch": {
+        "method": "GET",
+        "path": "/api/sources/catalog/search",
+        "usedIn": ["sources.ts"],
+        "status": "functional"
+      },
+      "download": {
+        "method": "POST",
+        "path": "/api/sources/download",
+        "usedIn": ["sources.ts"],
+        "status": "functional"
+      },
+      "downloads": {
+        "method": "GET",
+        "path": "/api/sources/downloads",
+        "usedIn": ["server.ts", "sources.ts"],
+        "status": "functional"
+      },
+      "downloadStatus": {
+        "method": "GET",
+        "path": "/api/sources/download/:jobId",
+        "usedIn": ["sources.ts"],
+        "status": "functional"
+      },
+      "cancelDownload": {
+        "method": "DELETE",
+        "path": "/api/sources/download/:jobId",
+        "usedIn": ["sources.ts"],
+        "status": "functional"
+      },
+      "modelsAvailable": {
+        "method": "GET",
+        "path": "/api/sources/models/available",
+        "usedIn": ["sources.ts"],
+        "status": "functional"
+      },
+      "datasetsAvailable": {
+        "method": "GET",
+        "path": "/api/sources/datasets/available",
+        "usedIn": ["sources.ts"],
+        "status": "functional"
+      },
+      "installed": {
+        "method": "GET",
+        "path": "/api/sources/installed",
+        "usedIn": ["sources.ts"],
+        "status": "functional"
+      },
+      "proxy": {
+        "method": "GET",
+        "path": "/api/v1/sources/proxy",
+        "usedIn": ["simple-proxy.ts", "download-proxy.ts"],
+        "status": "functional"
+      },
+      "resolve": {
+        "method": "GET",
+        "path": "/api/v1/sources/resolve",
+        "usedIn": ["simple-proxy.ts", "DownloadCenterPage.tsx"],
+        "status": "functional"
+      }
+    },
+    "monitoring": {
+      "metrics": {
+        "method": "GET",
+        "path": "/api/monitoring/metrics",
+        "usedIn": ["useMetrics.ts", "monitoring.ts", "server.ts"],
+        "status": "functional"
+      },
+      "health": {
+        "method": "GET",
+        "path": "/api/monitoring/health",
+        "usedIn": ["monitoring.ts"],
+        "status": "functional"
+      }
+    },
+    "models": {
+      "detected": {
+        "method": "GET",
+        "path": "/api/models/detected",
+        "usedIn": ["useDetectedModels.ts"],
+        "status": "functional"
+      },
+      "scan": {
+        "method": "POST",
+        "path": "/api/models/scan",
+        "usedIn": ["useDetectedModels.ts", "models.ts"],
+        "status": "functional"
+      },
+      "analyzeDirectory": {
+        "method": "POST",
+        "path": "/api/models/analyze-directory",
+        "usedIn": ["useDetectedModels.ts"],
+        "status": "functional"
+      },
+      "defaultDirectories": {
+        "method": "GET",
+        "path": "/api/models/default-directories",
+        "usedIn": ["useDetectedModels.ts"],
+        "status": "functional"
+      },
+      "available": {
+        "method": "GET",
+        "path": "/api/models/available",
+        "usedIn": ["useDownloads.ts"],
+        "status": "functional"
+      }
+    },
+    "experiments": {
+      "list": {
+        "method": "GET",
+        "path": "/api/experiments",
+        "usedIn": ["ExperimentsPage.tsx"],
+        "status": "needs_backend"
+      },
+      "create": {
+        "method": "POST",
+        "path": "/api/experiments",
+        "usedIn": ["ExperimentsPage.tsx"],
+        "status": "needs_backend"
+      },
+      "start": {
+        "method": "POST",
+        "path": "/api/experiments/:id/start",
+        "usedIn": ["ExperimentsPage.tsx"],
+        "status": "needs_backend"
+      },
+      "stop": {
+        "method": "POST",
+        "path": "/api/experiments/:id/stop",
+        "usedIn": ["ExperimentsPage.tsx"],
+        "status": "needs_backend"
+      },
+      "delete": {
+        "method": "DELETE",
+        "path": "/api/experiments/:id",
+        "usedIn": ["ExperimentsPage.tsx"],
+        "status": "needs_backend"
+      },
+      "download": {
+        "method": "GET",
+        "path": "/api/experiments/:id/download",
+        "usedIn": ["ExperimentsPage.tsx"],
+        "status": "needs_backend"
+      }
+    },
+    "downloads": {
+      "jobs": {
+        "method": "GET",
+        "path": "/api/download/jobs",
+        "usedIn": ["useDownloadSystem.ts", "useDownloads.ts"],
+        "status": "functional"
+      },
+      "create": {
+        "method": "POST",
+        "path": "/api/download",
+        "usedIn": ["useDownloadSystem.ts", "useDownloads.ts"],
+        "status": "functional"
+      },
+      "status": {
+        "method": "GET",
+        "path": "/api/download/status",
+        "usedIn": ["useDownloadSystem.ts"],
+        "status": "functional"
+      },
+      "cancel": {
+        "method": "DELETE",
+        "path": "/api/download/job",
+        "usedIn": ["useDownloadSystem.ts", "useDownloads.ts"],
+        "status": "functional"
+      },
+      "health": {
+        "method": "GET",
+        "path": "/api/download/health",
+        "usedIn": ["useDownloadSystem.ts"],
+        "status": "functional"
+      }
+    },
+    "bootstrap": {
+      "download": {
+        "method": "POST",
+        "path": "/api/bootstrap/download",
+        "usedIn": ["DownloadCenter.tsx"],
+        "status": "functional"
+      },
+      "status": {
+        "method": "GET",
+        "path": "/api/bootstrap/download/status",
+        "usedIn": ["DownloadCenter.tsx"],
+        "status": "functional"
+      }
+    },
+    "voice": {
+      "stt": {
+        "method": "POST",
+        "path": "/api/stt",
+        "usedIn": ["VoiceChat.tsx"],
+        "status": "functional"
+      },
+      "tts": {
+        "method": "POST",
+        "path": "/api/tts",
+        "usedIn": ["VoiceChat.tsx"],
+        "status": "functional"
+      }
+    },
+    "optimization": {
+      "createJob": {
+        "method": "POST",
+        "path": "/api/optimization/jobs",
+        "usedIn": ["optimization.ts"],
+        "status": "functional"
+      },
+      "listJobs": {
+        "method": "GET",
+        "path": "/api/optimization/jobs",
+        "usedIn": ["optimization.ts"],
+        "status": "functional"
+      },
+      "getJob": {
+        "method": "GET",
+        "path": "/api/optimization/jobs/:jobId",
+        "usedIn": ["optimization.ts"],
+        "status": "functional"
+      },
+      "cancelJob": {
+        "method": "POST",
+        "path": "/api/optimization/jobs/:jobId/cancel",
+        "usedIn": ["optimization.ts"],
+        "status": "functional"
+      }
+    },
+    "health": {
+      "main": {
+        "method": "GET",
+        "path": "/health",
+        "usedIn": ["server.ts"],
+        "status": "functional"
+      },
+      "api": {
+        "method": "GET",
+        "path": "/api/health",
+        "usedIn": ["server.ts"],
+        "status": "functional"
+      }
+    }
+  },
+  "issues": {
+    "hardcodedUrls": [
+      {
+        "location": "useDownloads.ts",
+        "url": "http://localhost:3001",
+        "fix": "Use env variable VITE_API_BASE_URL"
+      },
+      {
+        "location": "VoiceChat.tsx",
+        "url": "apiUrl variable",
+        "fix": "Use centralized config"
+      }
+    ],
+    "missingBackend": [
+      "All /api/experiments/* endpoints need backend implementation"
+    ]
+  }
+}
