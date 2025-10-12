@@ -108,6 +108,8 @@ const NotificationsPage = lazy(() => import('@/pages/NotificationsPage'));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
 const ModelsDatasetsPage = lazy(() => import('@/pages/ModelsDatasetsPage'));
 const LoginPage = lazy(() => import('@/pages/LoginPage'));
+const TrainMLPage = lazy(() => import('@/pages/Train'));
+const PredictPage = lazy(() => import('@/pages/Predict'));
 
 // Loading component
 function PageLoader() {
@@ -171,6 +173,8 @@ function AppContent() {
                       <Route path="/notifications" element={<NotificationsPage />} />
                       <Route path="/settings" element={<SettingsPage />} />
                       <Route path="/models-datasets" element={<ModelsDatasetsPage />} />
+                      <Route path="/ml-train" element={<TrainMLPage />} />
+                      <Route path="/ml-predict" element={<PredictPage />} />
                       <Route path="*" element={<NotFoundPage />} />
                     </Routes>
                   </Suspense>

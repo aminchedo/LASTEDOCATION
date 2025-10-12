@@ -1,206 +1,61 @@
 import { Router } from 'express';
-import { ModelDetectionService, ModelScanOptions } from '../services/modelDetection';
-import { logger } from '../middleware/logger';
+import multer from 'multer';
+import * as ml from '../services/mlProxy';
+import fs from 'fs';
 
 const router = Router();
-const modelDetectionService = new ModelDetectionService();
 
-/**
- * GET /api/models/scan
- * Scan specified directories for models
- */
-router.post('/scan', async (req, res) => {
-    try {
-        const {
-            folders = [],
-            maxDepth = 3,
-            includeHidden = false,
-            minSizeBytes = 1024 * 1024 // 1MB default
-        } = req.body;
-
-        if (!Array.isArray(folders) || folders.length === 0) {
-            return res.status(400).json({
-                error: 'folders array is required and must not be empty'
-            });
-        }
-
-        logger.info(`Scanning ${folders.length} folders for models...`);
-
-        const options: ModelScanOptions = {
-            folders,
-            maxDepth,
-            includeHidden,
-            minSizeBytes
-        };
-
-        const models = await modelDetectionService.scanForModels(options);
-
-        logger.info(`Found ${models.length} models in scan`);
-
-        return res.json({
-            success: true,
-            models,
-            scanned_folders: folders,
-            total_found: models.length
-        });
-
-    } catch (error: any) {
-        logger.error('Error scanning for models:', error);
-        return res.status(500).json({
-            error: 'Failed to scan for models',
-            details: error.message
-        });
-    }
+const upload = multer({
+  dest: './uploads/',
+  limits: { fileSize: 50 * 1024 * 1024 }
 });
 
-/**
- * GET /api/models/default-directories
- * Get default directories that should be scanned for models
- */
-router.get('/default-directories', async (_req, res) => {
-    try {
-        const directories = ModelDetectionService.getDefaultModelDirectories();
+if (!fs.existsSync('./uploads')) {
+  fs.mkdirSync('./uploads', { recursive: true });
+}
 
-        return res.json({
-            success: true,
-            directories,
-            count: directories.length
-        });
-    } catch (error: any) {
-        logger.error('Error getting default directories:', error);
-        return res.status(500).json({
-            error: 'Failed to get default directories',
-            details: error.message
-        });
+router.post('/train', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file' });
     }
+
+    const result = await ml.startTraining(req.file.path);
+    fs.unlinkSync(req.file.path);
+
+    return res.json({ job_id: result.jobId, status: 'queued' });
+  } catch (err: any) {
+    if (req.file?.path) fs.unlinkSync(req.file.path);
+    return res.status(500).json({ error: err.message });
+  }
 });
 
-/**
- * POST /api/models/analyze-directory
- * Analyze a specific directory to check if it contains models
- */
-router.post('/analyze-directory', async (req, res) => {
-    try {
-        const { path: dirPath } = req.body;
-
-        if (!dirPath || typeof dirPath !== 'string') {
-            return res.status(400).json({
-                error: 'directory path is required'
-            });
-        }
-
-        const options: ModelScanOptions = {
-            folders: [dirPath],
-            maxDepth: 1, // Only scan the specified directory
-            includeHidden: false,
-            minSizeBytes: 0 // Allow small files for analysis
-        };
-
-        const models = await modelDetectionService.scanForModels(options);
-
-        return res.json({
-            success: true,
-            path: dirPath,
-            is_model_directory: models.length > 0,
-            models,
-            model_count: models.length
-        });
-
-    } catch (error: any) {
-        logger.error('Error analyzing directory:', error);
-        return res.status(500).json({
-            error: 'Failed to analyze directory',
-            details: error.message
-        });
-    }
+router.get('/status/:jobId', async (req, res) => {
+  try {
+    const status = await ml.getStatus(req.params.jobId);
+    return res.json(status);
+  } catch (err: any) {
+    return res.status(err.response?.status || 500).json({ error: err.message });
+  }
 });
 
-/**
- * GET /api/models/detected
- * Get all detected models from configured directories
- * This endpoint uses settings from the frontend to determine which directories to scan
- */
-router.get('/detected', async (req, res) => {
-    try {
-        // Get scan configuration from query parameters or use defaults
-        const customFolders = req.query.customFolders ?
-            (typeof req.query.customFolders === 'string' ?
-                JSON.parse(req.query.customFolders) :
-                req.query.customFolders) : [];
+router.post('/predict', async (req, res) => {
+  try {
+    const { features, modelPath } = req.body;
+    const result = await ml.predict(features, modelPath);
+    return res.json(result);
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
 
-        const scanDepth = parseInt(req.query.scanDepth as string) || 2;
-        const autoScan = req.query.autoScan !== 'false'; // Default true
-
-        let foldersToScan: string[] = [];
-
-        if (autoScan) {
-            // Include default directories
-            const defaultDirs = ModelDetectionService.getDefaultModelDirectories();
-            foldersToScan.push(...defaultDirs);
-        }
-
-        // Add custom folders
-        if (Array.isArray(customFolders)) {
-            foldersToScan.push(...customFolders);
-        }
-
-        // Remove duplicates
-        foldersToScan = [...new Set(foldersToScan)];
-
-        if (foldersToScan.length === 0) {
-            return res.json({
-                success: true,
-                models: [],
-                message: 'No directories configured for scanning'
-            });
-        }
-
-        const options: ModelScanOptions = {
-            folders: foldersToScan,
-            maxDepth: scanDepth,
-            includeHidden: false,
-            minSizeBytes: 1024 * 1024 // 1MB minimum
-        };
-
-        const models = await modelDetectionService.scanForModels(options);
-
-        logger.info(`Detected ${models.length} models from ${foldersToScan.length} directories`);
-
-        return res.json({
-            success: true,
-            models,
-            scanned_directories: foldersToScan,
-            configuration: {
-                customFolders,
-                scanDepth,
-                autoScan
-            },
-            statistics: {
-                total_models: models.length,
-                by_type: {
-                    model: models.filter(m => m.type === 'model').length,
-                    tts: models.filter(m => m.type === 'tts').length,
-                    dataset: models.filter(m => m.type === 'dataset').length,
-                    unknown: models.filter(m => m.type === 'unknown').length
-                },
-                by_format: {
-                    pytorch: models.filter(m => m.modelFormat === 'pytorch').length,
-                    onnx: models.filter(m => m.modelFormat === 'onnx').length,
-                    safetensors: models.filter(m => m.modelFormat === 'safetensors').length,
-                    gguf: models.filter(m => m.modelFormat === 'gguf').length,
-                    bin: models.filter(m => m.modelFormat === 'bin').length,
-                    other: models.filter(m => !['pytorch', 'onnx', 'safetensors', 'gguf', 'bin'].includes(m.modelFormat)).length
-                }
-            }
-        });
-
-    } catch (error: any) {
-        logger.error('Error getting detected models:', error);
-        return res.status(500).json({
-            error: 'Failed to get detected models',
-            details: error.message
-        });
-    }
+router.get('/list', async (_req, res) => {
+  try {
+    const models = await ml.listModels();
+    return res.json(models);
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 export default router;

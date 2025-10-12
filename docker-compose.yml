@@ -1,0 +1,43 @@
+version: "3.8"
+
+services:
+  ml_service:
+    build: ./ml_service
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./ml_service/models:/app/models
+      - ./ml_service/logs:/app/logs
+      - ./ml_service/jobs.db:/app/jobs.db
+    environment:
+      - ML_SERVICE_PORT=8000
+    networks:
+      - lastedocation
+
+  backend:
+    build: ./BACKEND
+    ports:
+      - "3001:3001"
+    environment:
+      - ML_SERVICE_BASE_URL=http://ml_service:8000
+      - PORT=3001
+    depends_on:
+      - ml_service
+    networks:
+      - lastedocation
+    volumes:
+      - ./BACKEND/uploads:/app/uploads
+
+  client:
+    build: ./client
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_BASE_URL=http://localhost:3001
+    depends_on:
+      - backend
+    networks:
+      - lastedocation
+
+networks:
+  lastedocation:
