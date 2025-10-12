@@ -23,19 +23,19 @@ router.post('/train', upload.single('file'), async (req, res) => {
     const result = await ml.startTraining(req.file.path);
     fs.unlinkSync(req.file.path);
 
-    res.json({ job_id: result.jobId, status: 'queued' });
+    return res.json({ job_id: result.jobId, status: 'queued' });
   } catch (err: any) {
     if (req.file?.path) fs.unlinkSync(req.file.path);
-    res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
   }
 });
 
 router.get('/status/:jobId', async (req, res) => {
   try {
     const status = await ml.getStatus(req.params.jobId);
-    res.json(status);
+    return res.json(status);
   } catch (err: any) {
-    res.status(err.response?.status || 500).json({ error: err.message });
+    return res.status(err.response?.status || 500).json({ error: err.message });
   }
 });
 
@@ -43,18 +43,18 @@ router.post('/predict', async (req, res) => {
   try {
     const { features, modelPath } = req.body;
     const result = await ml.predict(features, modelPath);
-    res.json(result);
+    return res.json(result);
   } catch (err: any) {
-    res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
   }
 });
 
-router.get('/list', async (req, res) => {
+router.get('/list', async (_req, res) => {
   try {
     const models = await ml.listModels();
-    res.json(models);
+    return res.json(models);
   } catch (err: any) {
-    res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
   }
 });
 
