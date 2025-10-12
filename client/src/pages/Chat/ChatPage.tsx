@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { Send } from 'lucide-react';
-import { Button } from '../../components/atoms/Button';
+import { Button } from '@/shared/components/ui/Button';
 import { Input } from '../../components/atoms/Input';
 import { Card } from '../../components/atoms/Card';
 import { chatService } from '../../services/chat.service';

@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { LogIn } from 'lucide-react';
-import { Button } from '../../components/atoms/Button';
+import { Button } from '@/shared/components/ui/Button';
 import { FormField } from '../../components/molecules/FormField';
 import { Card } from '../../components/atoms/Card';
 import { authService } from '../../services/auth.service';
