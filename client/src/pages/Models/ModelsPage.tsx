@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { CheckCircle } from 'lucide-react';
 import { Card } from '../../components/atoms/Card';
-import { Button } from '../../components/atoms/Button';
+import { Button } from '@/shared/components/ui/Button';
 import { Badge } from '../../components/atoms/Badge';
 import { modelsService } from '../../services/models.service';
 

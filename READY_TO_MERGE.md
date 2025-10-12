@@ -169,8 +169,8 @@ git push origin main
 - [x] .env.example ایجاد شد
 - [x] فایل‌های اضافی پاک شدند
 - [x] Health checks برای همه سرویس‌ها
-- [ ] Conflicts با main بررسی شود (احتمال کم)
-- [ ] PR Review (در صورت استفاده از PR)
+- [x] Conflicts با main بررسی شود (احتمال کم) - ✅ No conflicts detected
+- [ ] PR Review (در صورت استفاده از PR) - Pending manual review
 
 ---
 

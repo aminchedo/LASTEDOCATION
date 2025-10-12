@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent } from '@/shared/components/ui/Card';
-import { Loader2, AlertTriangle } from 'lucide-react';t';
+import { Loader2, AlertTriangle } from 'lucide-react';
 
 interface AuthGuardProps {
     children: React.ReactNode;
