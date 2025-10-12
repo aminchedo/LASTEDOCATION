@@ -15,7 +15,10 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:report": "playwright show-report",
-    "lint": "cd client && npm run lint && cd ../BACKEND && npm run lint"
+    "lint": "cd client && npm run lint && cd ../BACKEND && npm run lint",
+    "setup": "bash scripts/setup.sh",
+    "health-check": "npx tsx scripts/health-check.ts",
+    "detect-hardware": "python3 scripts/detect_hardware.py"
   },
   "devDependencies": {
     "@playwright/test": "^1.40.0",
