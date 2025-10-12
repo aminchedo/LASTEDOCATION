@@ -1,7 +1,5 @@
 import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Copy, Check } from 'lucide-react';
 import { useTheme } from '@/core/contexts/ThemeContext';
 import { Button } from '@/shared/components/ui/Button';
@@ -92,7 +90,7 @@ interface CodeBlockProps {
   theme: 'light' | 'dark';
 }
 
-function CodeBlock({ code, language, theme }: CodeBlockProps) {
+function CodeBlock({ code, language }: CodeBlockProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -121,26 +119,9 @@ function CodeBlock({ code, language, theme }: CodeBlockProps) {
         </Button>
       </div>
       <div className="overflow-x-auto border border-t-0 border-[color:var(--c-border)]">
-        <SyntaxHighlighter
-          language={language}
-          style={theme === 'dark' ? oneDark : oneLight}
-          customStyle={{
-            margin: 0,
-            borderRadius: 0,
-            background: 'var(--c-surface)',
-            fontSize: '0.875rem',
-            padding: '1rem',
-          }}
-          codeTagProps={{
-            style: {
-              fontFamily: 'Fira Code, monospace',
-              fontSize: '0.875rem',
-              lineHeight: '1.6',
-            },
-          }}
-        >
-          {code}
-        </SyntaxHighlighter>
+        <pre className="m-0 rounded-none bg-[color:var(--c-surface)] text-sm p-4">
+          <code className="font-mono text-sm leading-relaxed">{code}</code>
+        </pre>
       </div>
     </div>
   );
