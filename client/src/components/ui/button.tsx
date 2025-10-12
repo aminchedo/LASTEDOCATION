@@ -5,6 +5,7 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
     variant?: 'default' | 'primary' | 'secondary' | 'outline' | 'destructive' | 'ghost' | 'link' | 'soft' | 'danger';
     size?: 'default' | 'sm' | 'lg' | 'icon';
     icon?: React.ReactNode;
+    loading?: boolean;
     children?: React.ReactNode;
 }
 
@@ -13,6 +14,7 @@ export function Button({
     variant = 'default',
     size = 'default',
     icon,
+    loading,
     children,
     ...props
 }: ButtonProps) {

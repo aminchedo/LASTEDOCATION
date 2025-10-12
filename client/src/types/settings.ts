@@ -1,8 +1,10 @@
 // Settings types
+export type ModelType = 'openai' | 'anthropic' | 'custom' | string;
+
 export interface AppSettings {
-  theme: 'light' | 'dark' | 'auto';
+  theme: 'light' | 'dark' | 'auto' | 'system';
   direction: 'ltr' | 'rtl';
-  fontSize: number;
+  fontSize: number | string;
   accentColor: string;
   api: {
     baseUrl: string;
@@ -14,6 +16,7 @@ export interface AppSettings {
   };
   aiModel: string;
   models?: string[];
+  customApi?: CustomApiSettings;
 }
 
 export interface CustomApiSettings {
@@ -21,4 +24,5 @@ export interface CustomApiSettings {
   baseUrl: string;
   apiKey: string;
   modelType: string;
+  modelName?: string;
 }
