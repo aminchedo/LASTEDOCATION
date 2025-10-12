@@ -18,6 +18,7 @@ const stt_1 = __importDefault(require("./routes/stt"));
 const tts_1 = __importDefault(require("./routes/tts"));
 const search_1 = __importDefault(require("./routes/search"));
 const notifications_1 = __importDefault(require("./routes/notifications"));
+const experiments_1 = __importDefault(require("./routes/experiments"));
 const auth_2 = require("./middleware/auth");
 const simple_proxy_1 = __importDefault(require("./simple-proxy"));
 const logger_1 = require("./utils/logger");
@@ -41,6 +42,7 @@ app.use('/api/stt', stt_1.default); // Speech-to-Text (Public - بدون auth)
 app.use('/api/tts', tts_1.default); // Text-to-Speech (Public - بدون auth)
 app.use('/api/search', search_1.default); // Search Service (Public - بدون auth)
 app.use('/api/notifications', auth_2.authenticateToken, notifications_1.default); // Notifications (Protected)
+app.use('/api/experiments', auth_2.authenticateToken, experiments_1.default); // Experiments (Protected)
 // Routeهای fallback برای جلوگیری از 404
 app.get('/api/train/status', (_req, res) => {
     res.json({

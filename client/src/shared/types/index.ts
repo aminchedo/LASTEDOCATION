@@ -1,4 +1,4 @@
-export type JobStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+export type JobStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled' | 'queued' | 'succeeded' | 'canceled';
 
 export interface Dataset {
   id: string;

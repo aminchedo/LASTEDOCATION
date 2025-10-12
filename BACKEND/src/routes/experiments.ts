@@ -56,13 +56,13 @@ router.post('/', (req: Request, res: Response) => {
 
     experiments.push(experiment);
 
-    res.json({
+    return res.json({
       success: true,
       data: experiment,
     });
   } catch (error: any) {
     console.error('Error creating experiment:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: error.message || 'Failed to create experiment',
     });
@@ -84,7 +84,7 @@ router.post('/:id/start', (req: Request, res: Response) => {
   experiment.startTime = new Date().toISOString();
   experiment.updatedAt = new Date().toISOString();
 
-  res.json({
+  return res.json({
     success: true,
     data: experiment,
   });
@@ -105,7 +105,7 @@ router.post('/:id/stop', (req: Request, res: Response) => {
   experiment.endTime = new Date().toISOString();
   experiment.updatedAt = new Date().toISOString();
 
-  res.json({
+  return res.json({
     success: true,
     data: experiment,
   });
@@ -124,7 +124,7 @@ router.delete('/:id', (req: Request, res: Response) => {
 
   experiments.splice(index, 1);
 
-  res.json({
+  return res.json({
     success: true,
     message: 'Experiment deleted',
   });
@@ -145,7 +145,7 @@ router.get('/:id/download', (req: Request, res: Response) => {
   
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Content-Disposition', `attachment; filename="experiment_${id}.json"`);
-  res.send(data);
+  return res.send(data);
 });
 
 export default router;
