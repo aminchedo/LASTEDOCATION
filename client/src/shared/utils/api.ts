@@ -10,6 +10,10 @@ export function getApi() {
   return { baseUrl: apiOverrides.baseUrl || API_BASE_URL, ...apiOverrides };
 }
 
+export function resetApiInstance() {
+  apiOverrides = {};
+}
+
 interface ApiRequestOptions extends RequestInit {
   signal?: AbortSignal;
 }

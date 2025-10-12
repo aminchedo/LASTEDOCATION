@@ -1,34 +1,9 @@
 // File: client/src/pages/Models/ModelsPage.tsx
 import React, { useState, useEffect } from 'react';
-import styled from 'styled-components';
 import { CheckCircle } from 'lucide-react';
-import { Card } from '../../components/atoms/Card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/shared/components/ui/Button';
-import { Badge } from '../../components/atoms/Badge';
 import { modelsService } from '../../services/models.service';
-
-const PageContainer = styled.div`
-  padding: ${({ theme }) => theme.spacing(3)};
-`;
-
-const ModelsGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: ${({ theme }) => theme.spacing(2)};
-  margin-top: ${({ theme }) => theme.spacing(3)};
-`;
-
-const ModelCard = styled(Card)<{ $isActive: boolean }>`
-  border: 2px solid ${({ $isActive, theme }) => 
-    $isActive ? theme.colors.success.main : 'transparent'};
-`;
-
-const ModelHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: ${({ theme }) => theme.spacing(2)};
-`;
 
 interface Model {
   id: string;
@@ -36,6 +11,18 @@ interface Model {
   version: string;
   isActive: boolean;
 }
+
+const Badge: React.FC<{ variant?: string; children: React.ReactNode }> = ({ variant, children }) => {
+  const variantClasses = variant === 'success' 
+    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+    : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
+  
+  return (
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${variantClasses}`}>
+      {children}
+    </span>
+  );
+};
 
 export const ModelsPage: React.FC = () => {
   const [models, setModels] = useState<Model[]>([]);
@@ -66,34 +53,43 @@ export const ModelsPage: React.FC = () => {
   };
   
   return (
-    <PageContainer>
-      <h1>مدیریت مدل‌ها</h1>
-      <ModelsGrid>
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-6">مدیریت مدل‌ها</h1>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {models.map(model => (
-          <ModelCard key={model.id} $isActive={model.isActive} padding="lg">
-            <ModelHeader>
-              <h3>{model.name}</h3>
-              {model.isActive && (
-                <Badge variant="success" dot>
-                  فعال
-                </Badge>
+          <Card 
+            key={model.id} 
+            className={`${model.isActive ? 'border-2 border-green-500' : ''}`}
+          >
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold">{model.name}</h3>
+                {model.isActive && (
+                  <Badge variant="success">
+                    فعال
+                  </Badge>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                نسخه: {model.version}
+              </p>
+              {!model.isActive && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  icon={<CheckCircle size={16} />}
+                  onClick={() => handleActivate(model.id)}
+                  className="w-full"
+                >
+                  فعال‌سازی
+                </Button>
               )}
-            </ModelHeader>
-            <p>نسخه: {model.version}</p>
-            {!model.isActive && (
-              <Button
-                variant="primary"
-                size="sm"
-                leftIcon={<CheckCircle size={16} />}
-                onClick={() => handleActivate(model.id)}
-                fullWidth
-              >
-                فعال‌سازی
-              </Button>
-            )}
-          </ModelCard>
+            </CardContent>
+          </Card>
         ))}
-      </ModelsGrid>
-    </PageContainer>
+      </div>
+    </div>
   );
 };

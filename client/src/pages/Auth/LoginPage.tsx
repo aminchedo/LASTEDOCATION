@@ -1,37 +1,11 @@
 // File: client/src/pages/Auth/LoginPage.tsx
 import React, { useState } from 'react';
-import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { LogIn } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
-import { FormField } from '../../components/molecules/FormField';
-import { Card } from '../../components/atoms/Card';
+import { Input } from '@/shared/components/ui/Input';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { authService } from '../../services/auth.service';
-
-const PageContainer = styled.div`
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: ${({ theme }) => theme.colors.background.paper};
-`;
-
-const LoginCard = styled(Card)`
-  width: 100%;
-  max-width: 400px;
-`;
-
-const Title = styled.h1`
-  text-align: center;
-  margin-bottom: ${({ theme }) => theme.spacing(3)};
-  color: ${({ theme }) => theme.colors.text.primary};
-`;
-
-const Form = styled.form`
-  display: flex;
-  flex-direction: column;
-  gap: ${({ theme }) => theme.spacing(2)};
-`;
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -58,37 +32,54 @@ export const LoginPage: React.FC = () => {
   };
   
   return (
-    <PageContainer>
-      <LoginCard padding="lg" elevation="lg">
-        <Title>ورود به سیستم</Title>
-        <Form onSubmit={handleSubmit}>
-          <FormField
-            name="username"
-            label="نام کاربری"
-            value={credentials.username}
-            onChange={(e) => setCredentials({ ...credentials, username: e.target.value })}
-            required
-          />
-          <FormField
-            name="password"
-            label="رمز عبور"
-            type="password"
-            value={credentials.password}
-            onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
-            error={error}
-            required
-          />
-          <Button
-            type="submit"
-            variant="primary"
-            leftIcon={<LogIn size={20} />}
-            loading={loading}
-            fullWidth
-          >
-            ورود
-          </Button>
-        </Form>
-      </LoginCard>
-    </PageContainer>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <Card className="w-full max-w-md p-6">
+        <CardHeader>
+          <h1 className="text-2xl font-bold text-center mb-6">ورود به سیستم</h1>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <label htmlFor="username" className="text-sm font-medium">
+                نام کاربری
+              </label>
+              <Input
+                id="username"
+                name="username"
+                value={credentials.username}
+                onChange={(e) => setCredentials({ ...credentials, username: e.target.value })}
+                required
+                placeholder="نام کاربری خود را وارد کنید"
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <label htmlFor="password" className="text-sm font-medium">
+                رمز عبور
+              </label>
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                value={credentials.password}
+                onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
+                required
+                placeholder="رمز عبور خود را وارد کنید"
+              />
+              {error && <span className="text-sm text-red-600">{error}</span>}
+            </div>
+            <Button
+              type="submit"
+              variant="primary"
+              icon={<LogIn size={20} />}
+              loading={loading}
+              className="w-full"
+              disabled={loading}
+            >
+              ورود
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
   );
 };

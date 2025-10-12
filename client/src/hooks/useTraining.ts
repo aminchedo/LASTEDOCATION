@@ -1,4 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { TrainingJob as TrainingJobType } from '@/shared/types';
+
+// Re-export for convenience
+export type { TrainingJob } from '@/shared/types';
 
 // Define the API URL for SSE connection
 const SSE_URL = '/api/train/stream'; 

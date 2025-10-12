@@ -13,7 +13,9 @@ import {
   Cpu,
   Database as DatabaseIcon,
   FolderOpen,
-  BarChart3
+  BarChart3,
+  Rocket,
+  RotateCcw
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import { Card, CardContent, CardHeader } from '@/shared/components/ui/Card';

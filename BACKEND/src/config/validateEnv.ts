@@ -32,10 +32,18 @@ interface EnvConfig {
   LOG_LEVEL: 'debug' | 'info' | 'warn' | 'error';
 }
 
+interface ValidationRule {
+  required: boolean;
+  validator?: (value: string) => boolean;
+  default?: string;
+  transform?: (value: string) => any;
+  message: string;
+}
+
 /**
  * Validation rules for each environment variable
  */
-const validationRules = {
+const validationRules: Record<string, ValidationRule> = {
   NODE_ENV: {
     required: true,
     validator: (value: string) => ['development', 'production', 'test'].includes(value),

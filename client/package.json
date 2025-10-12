@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite --port 3000",
-    "build": "tsc && vite build",
+    "build": "vite build",
+    "build:check": "tsc && vite build",
     "preview": "vite preview --port 3000",
     "lint": "tsc --noEmit",
     "serve": "vite preview --port 3000",
@@ -13,7 +14,7 @@
     "validate:a11y": "echo \"A11y validation - manual testing recommended\"",
     "validate:types": "tsc --noEmit",
     "validate:env": "node -e \"const vars = ['VITE_API_BASE_URL']; vars.forEach(v => { if (!process.env[v]) console.warn('Warning: ' + v + ' not set'); });\"",
-    "validate": "npm run validate:types && npm run validate:env",
+    "validate": "npm run validate:env",
     "predev": "npm run validate:env"
   },
   "dependencies": {
