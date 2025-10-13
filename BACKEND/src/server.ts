@@ -23,10 +23,14 @@ import downloadProxyRouter from './simple-proxy';
 import { logger } from './utils/logger';
 import { ENV } from './config/env';
 import { setupWebSocket } from './services/websocket.service';
+import { setupSwagger } from './swagger';
 
 const app = express();
 app.use(cors({ origin: ENV.CORS_ORIGIN, credentials: true }));
 app.use(express.json({ limit: '10mb' }));
+
+// Setup Swagger API documentation
+setupSwagger(app);
 
 // Routeهای اصلی
 app.use('/api/auth', authRouter);

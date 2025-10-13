@@ -51,14 +51,65 @@ function readStatus(jobId: string): any | null {
 }
 
 /**
- * POST /api/training
- * Start a new training job
- * 
- * Body params:
- * - dataset: path to dataset file (optional)
- * - epochs: number of epochs (default: 3)
- * - batch_size: batch size (default: 16)
- * - lr: learning rate (default: 0.01)
+ * @swagger
+ * /api/training:
+ *   post:
+ *     summary: Create a new training job
+ *     tags: [Training]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               dataset:
+ *                 type: string
+ *                 description: Path to dataset file
+ *                 example: data/datasets/1234567890-sample.csv
+ *               epochs:
+ *                 type: integer
+ *                 minimum: 1
+ *                 default: 3
+ *                 example: 10
+ *               batch_size:
+ *                 type: integer
+ *                 minimum: 1
+ *                 default: 16
+ *                 example: 32
+ *               lr:
+ *                 type: number
+ *                 format: float
+ *                 minimum: 0
+ *                 default: 0.01
+ *                 example: 0.001
+ *     responses:
+ *       200:
+ *         description: Training job created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: boolean
+ *                   example: true
+ *                 job_id:
+ *                   type: string
+ *                   example: job_1699999999_a1b2c3d4
+ *                 pid:
+ *                   type: number
+ *                 status:
+ *                   type: string
+ *                   example: QUEUED
+ *                 message:
+ *                   type: string
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error
  */
 router.post("/", authenticateToken, express.json(), (req: Request, res): any => {
   try {
@@ -142,8 +193,38 @@ router.post("/", authenticateToken, express.json(), (req: Request, res): any => 
 });
 
 /**
- * GET /api/training/status?job_id=xxx
- * Get status of a training job
+ * @swagger
+ * /api/training/status:
+ *   get:
+ *     summary: Get training job status
+ *     tags: [Training]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: job_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Job ID to query
+ *         example: job_1699999999_a1b2c3d4
+ *     responses:
+ *       200:
+ *         description: Job status retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: boolean
+ *                   example: true
+ *                 status:
+ *                   $ref: '#/components/schemas/JobStatus'
+ *       400:
+ *         description: Missing job_id parameter
+ *       404:
+ *         description: Job not found
  */
 router.get("/status", authenticateToken, (req: Request, res): any => {
   const jobId = String(req.query.job_id || "");
@@ -186,8 +267,41 @@ router.get("/status", authenticateToken, (req: Request, res): any => {
 });
 
 /**
- * POST /api/training/:jobId/stop
- * Stop a running training job
+ * @swagger
+ * /api/training/{jobId}/stop:
+ *   post:
+ *     summary: Stop a running training job
+ *     tags: [Training]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: jobId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Job ID to stop
+ *         example: job_1699999999_a1b2c3d4
+ *     responses:
+ *       200:
+ *         description: Job stopped successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: boolean
+ *                   example: true
+ *                 job_id:
+ *                   type: string
+ *                 status:
+ *                   type: string
+ *                   example: STOPPED
+ *                 message:
+ *                   type: string
+ *       404:
+ *         description: Job not found or not running
  */
 router.post("/:jobId/stop", authenticateToken, express.json(), (req: Request, res): any => {
   const jobId = req.params.jobId || String((req.body && req.body.job_id) || "");
@@ -240,8 +354,30 @@ router.post("/:jobId/stop", authenticateToken, express.json(), (req: Request, re
 });
 
 /**
- * GET /api/training/jobs
- * List all training jobs
+ * @swagger
+ * /api/training/jobs:
+ *   get:
+ *     summary: List all training jobs
+ *     tags: [Training]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of all training jobs
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: boolean
+ *                   example: true
+ *                 jobs:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/JobStatus'
+ *                 count:
+ *                   type: number
  */
 router.get("/jobs", authenticateToken, (req: Request, res): any => {
   try {
@@ -272,8 +408,33 @@ router.get("/jobs", authenticateToken, (req: Request, res): any => {
 });
 
 /**
- * GET /api/training/:jobId/download
- * Download trained model
+ * @swagger
+ * /api/training/{jobId}/download:
+ *   get:
+ *     summary: Download trained model
+ *     tags: [Training]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: jobId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Job ID of completed training
+ *         example: job_1699999999_a1b2c3d4
+ *     responses:
+ *       200:
+ *         description: Model file download
+ *         content:
+ *           application/octet-stream:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       400:
+ *         description: Job not completed yet
+ *       404:
+ *         description: Job or model file not found
  */
 router.get("/:jobId/download", authenticateToken, (req: Request, res): any => {
   const jobId = req.params.jobId;

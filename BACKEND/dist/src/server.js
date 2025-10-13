@@ -28,9 +28,12 @@ const simple_proxy_1 = __importDefault(require("./simple-proxy"));
 const logger_1 = require("./utils/logger");
 const env_1 = require("./config/env");
 const websocket_service_1 = require("./services/websocket.service");
+const swagger_1 = require("./swagger");
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)({ origin: env_1.ENV.CORS_ORIGIN, credentials: true }));
 app.use(express_1.default.json({ limit: '10mb' }));
+// Setup Swagger API documentation
+(0, swagger_1.setupSwagger)(app);
 // Routeهای اصلی
 app.use('/api/auth', auth_1.default);
 app.use('/api/chat', auth_2.authenticateToken, chat_1.default);
