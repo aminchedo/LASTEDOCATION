@@ -24,5 +24,5 @@ export interface CustomApiSettings {
   baseUrl: string;
   apiKey: string;
   modelType: string;
-  modelName?: string;
+  modelName: string;
 }

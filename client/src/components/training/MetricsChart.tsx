@@ -24,12 +24,9 @@ interface MetricData {
   accuracy?: number;
   valAccuracy?: number;
   throughput?: number;
-  stepTimeMs?: number;
-  lr?: number;
-}
-
-export function MetricsChart() {
-  const { status } = useTraining();
+  stepTimeMs?: export function MetricsChart() {
+  const { jobs } = useTraining();
+  const currentJob = jobs.find(j => j.status === 'running' || j.status === 'queued');nst { status } = useTraining();
   const [activeTab, setActiveTab] = useState<'loss' | 'accuracy' | 'throughput'>('loss');
   const [metrics, setMetrics] = useState<MetricData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -42,7 +39,7 @@ export function MetricsChart() {
   ];
 
   const fetchMetrics = async () => {
-    if (!status?.currentRun) return;
+    if (!currentJob) return;
     
     setIsLoading(true);
     try {

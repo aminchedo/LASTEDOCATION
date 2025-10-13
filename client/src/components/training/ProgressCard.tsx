@@ -12,10 +12,10 @@ import {
   CheckCircle,
   AlertCircle
 } from 'lucide-react';
-import { useTraining } from '@/hooks/useTraining';
-
-export function ProgressCard() {
-  const { status, isLoading } = useTraining();
+import { useTraining } from '@/hooks/uexport function ProgressCard() {
+  const { jobs, loading } = useTraining();
+  const currentJob = jobs.find(j => j.status === 'running' || j.status === 'queued');
+  const isLoading = loading; = useTraining();
 
   if (isLoading) {
     return (
@@ -35,7 +35,7 @@ export function ProgressCard() {
     );
   }
 
-  if (!status?.currentRun) {
+  if (!currentJob) {
     return (
       <Card variant="elevated">
         <CardHeader>

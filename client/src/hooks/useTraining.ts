@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { apiService } from '@/shared/utils/api';
 
-interface TrainingJob {
+export interface TrainingJob {
   id: string;
   name: string;
   status: 'queued' | 'running' | 'completed' | 'failed';
@@ -12,6 +12,17 @@ interface TrainingJob {
     loss: number;
     accuracy: number;
     epoch: number;
+  };
+}
+
+export interface TrainingConfig {
+  totalEpochs?: number;
+  totalSteps?: number;
+  learningRate?: number;
+  batchSize?: number;
+  saveEverySteps?: number;
+  resumeCheckpointId?: string;
+}umber;
   };
 }
 

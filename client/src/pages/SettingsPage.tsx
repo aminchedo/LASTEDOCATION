@@ -85,8 +85,8 @@ function SettingsPage() {
         updated.voice = { ...prev.voice, [nestedKey]: value };
       } else if (key === 'models') {
         updated.models = { ...prev.models, [nestedKey]: value };
-      } else if (key === 'training') {
-        updated.training = { ...prev.training, [nestedKey]: value };
+      // } else if (key === 'training') {
+        // updated.training = { ...prev.training, [nestedKey]: value };
       }
       return updated;
     });

@@ -354,23 +354,27 @@ export function SettingsPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4 relative">
-          <Input
-            label="آدرس API"
-            type="url"
-            value={localSettings.api.baseUrl}
-            onChange={(e) => handleNestedChange('api', 'baseUrl', e.target.value)}
-            placeholder="http://localhost:3001"
-            helperText="آدرس سرور API"
-          />
+          <div>
+            <label className="block text-sm font-medium mb-2">آدرس API</label>
+            <Input
+              type="url"
+              value={localSettings.api.baseUrl}
+              onChange={(e) => handleNestedChange('api', 'baseUrl', e.target.value)}
+              placeholder="http://localhost:3001"
+            />
+            <p className="text-xs text-muted-foreground mt-1">آدرس سرور API</p>
+          </div>
 
-          <Input
-            label="کلید API"
-            type="password"
-            value={localSettings.api.key}
-            onChange={(e) => handleNestedChange('api', 'key', e.target.value)}
-            placeholder="sk-..."
-            helperText="کلید احراز هویت (اختیاری)"
-          />
+          <div>
+            <label className="block text-sm font-medium mb-2">کلید API</label>
+            <Input
+              type="password"
+              value={localSettings.api.key}
+              onChange={(e) => handleNestedChange('api', 'key', e.target.value)}
+              placeholder="sk-..."
+            />
+            <p className="text-xs text-muted-foreground mt-1">کلید احراز هویت (اختیاری)</p>
+          </div>
         </CardContent>
       </Card>
 

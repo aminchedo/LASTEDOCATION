@@ -112,32 +112,34 @@ export function CustomApiPanel() {
 
     const validation = validateApiUrl(formData.baseUrl);
     if (!validation.isValid) {
-      setUrlError(validation.error || 'Invalid       const sanitizedData: CustomApiSettings = {
-        enabled: true,
+      setUrlError(validation.error || 'Invalid URL');
+      toast.error('لطفا URL معتبر وارد کنید');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const sanitizedData: CustomApiSettings = {
         baseUrl: formData.baseUrl.trim(),
-        apiKey: formData.apiKey ? sanitizeApiKey(formData.apiKey) : '',
-        modelName: formData.modelName?.trim() || '',
-        modelType: formData.modelType || '',
-      };ndefined,
+        apiKey: formData.apiKey ? sanitizeApiKey(formData.apiKey) : undefined,
         modelName: formData.modelName?.trim() || undefined,
         modelType: formData.modelType,
       };
 
       updateCustomApi(sanitizedData);
       toast.success('تنظیمات API سفارشی ذخیره شد');
-    } catch (error:  const handleReset = () => {
+    } catc  const handleReset = () => {
     setFormData({
       enabled: false,
       baseUrl: '',
       apiKey: '',
       modelName: '',
       modelType: '',
-    }); = () => {
-    setFormData({
-      baseUrl: '',
-      apiKey: '',
-      modelName: '',
-      modelType: undefined,
+    });
+    resetCustomApi();
+    setUrlError(null);
+    toast.success('تنظیمات به حالت پیش‌فرض بازگردانده شد');
+  };elType: undefined,
     });
     resetCustomApi();
     setUrlError(null);

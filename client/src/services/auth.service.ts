@@ -101,6 +101,11 @@ export class AuthService {
     this.clearTokens();
   }
 
+  static async refreshAuth(): Promise<boolean> {
+    // Token refresh not implemented yet
+    return false;
+  }
+
   static async getCurrentUser(): Promise<User> {
     try {
       const response = await axios.get(`${API_BASE}/api/auth/me`, {

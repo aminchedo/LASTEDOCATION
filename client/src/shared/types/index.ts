@@ -8,6 +8,12 @@ export interface Dataset {
   format: string;
   createdAt: string;
   updatedAt: string;
+  tags?: string[];
+  domain?: string;
+  records?: number;
+  sources?: string[];
+  language?: string;
+  validated?: boolean;
 }
 
 export interface TrainingJob {
@@ -17,8 +23,17 @@ export interface TrainingJob {
   progress: number;
   startTime?: string;
   endTime?: string;
-  config: Record<string, unknown>;
+  startedAt?: string;
+  finishedAt?: string;
+  config?: Record<string, unknown>;
   metrics?: Record<string, unknown>;
+  model?: string;
+  dataset?: string;
+  epochs?: number;
+  currentPhase?: string;
+  error?: string;
+  logs?: string[];
+  lastLog?: string;
 }
 
 export interface Experiment {
@@ -30,6 +45,10 @@ export interface Experiment {
   updatedAt: string;
   config: Record<string, unknown>;
   results?: Record<string, unknown>;
+  dataset?: string;
+  model?: string;
+  metrics?: Record<string, number>;
+  notes?: string;
 }
 
 export interface Model {
@@ -40,6 +59,13 @@ export interface Model {
   size: number;
   createdAt: string;
   updatedAt: string;
+  installed?: boolean;
+  description?: string;
+  tags?: string[];
+  license?: string;
+  url?: string;
+  speed?: number;
+  parameters?: number;
 }
 
 export interface DataSource {
@@ -49,9 +75,11 @@ export interface DataSource {
   url?: string;
   status: 'active' | 'inactive' | 'error';
   lastSync?: string;
+  connected?: boolean;
+  recordsCount?: number;
 }
 
-export type DataSourceKind = 'huggingface' | 'local' | 'url' | 'database' | 'api';
+export type DataSourceKind = 'huggingface' | 'local' | 'url' | 'database' | 'api' | 'github' | 'gdrive' | 'web' | 'upload';
 
 export interface Notification {
   id: string;
@@ -72,6 +100,18 @@ export interface Download {
   downloadedSize?: number;
   startTime?: string;
   endTime?: string;
+}
+
+export interface DownloadJob {
+  id: string;
+  modelId: string;
+  status: 'pending' | 'running' | 'completed' | 'error';
+  progress: number;
+  repoId?: string;
+  speed?: number;
+  eta?: string;
+  bytesDownloaded?: number;
+  currentFile?: string;
 }
 
 export interface SystemMetrics {

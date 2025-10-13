@@ -11,12 +11,21 @@ interface AppSettingsContextType {
 
 const AppSettingsContext = createContext<AppSettingsContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'persian_chat_app_settings';
-
-const defaultSettings: AppSettings = {
+const STORAGE_KEY = 'persian_chat_appconst defaultSettings: AppSettings = {
   theme: 'system',
-  language: 'fa',
   fontSize: 'medium',
+  direction: 'rtl',
+  accentColor: '#3B82F6',
+  api: {
+    baseUrl: 'http://localhost:3001',
+    key: '',
+  },
+  voice: {
+    enabled: false,
+    autoPlay: false,
+  },
+  aiModel: 'gpt-4',
+};Size: 'medium',
 };
 
 interface AppSettingsProviderProps {

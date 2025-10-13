@@ -22,11 +22,9 @@ interface Checkpoint {
   path: string;
   tag: 'latest' | 'best' | 'manual';
   metric?: number;
-  resumeToken?: string;
-}
-
-export function CheckpointsTable() {
-  const { status } = useTraining();
+  rexport function CheckpointsTable() {
+  const { jobs } = useTraining();
+  const currentJob = jobs.find(j => j.status === 'running' || j.status === 'queued'); { status } = useTraining();
   const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedCheckpoint, setSelectedCheckpoint] = useState<string>('');
