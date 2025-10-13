@@ -29,15 +29,16 @@ router.get('/', (_req: Request, res: Response) => {
   });
 });
 
-router.post('/', (req: Request, res: Response) => {
+router.post('/', (req: Request, res: Response): void => {
   try {
     const { name, description, dataset, model, config, notes } = req.body;
 
     if (!name) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: 'Experiment name is required',
       });
+      return;
     }
 
     const experiment: Experiment = {
@@ -56,96 +57,100 @@ router.post('/', (req: Request, res: Response) => {
 
     experiments.push(experiment);
 
-    return res.json({
+    res.json({
       success: true,
       data: experiment,
     });
   } catch (error: any) {
     console.error('Error creating experiment:', error);
-    return res.status(500).json({
+    res.status(500).json({
       success: false,
       error: error.message || 'Failed to create experiment',
     });
   }
 });
 
-router.post('/:id/start', (req: Request, res: Response) => {
+router.post('/:id/start', (req: Request, res: Response): void => {
   const { id } = req.params;
   const experiment = experiments.find((e) => e.id === id);
 
   if (!experiment) {
-    return res.status(404).json({
+    res.status(404).json({
       success: false,
       error: 'Experiment not found',
     });
+    return;
   }
 
   experiment.status = 'running';
   experiment.startTime = new Date().toISOString();
   experiment.updatedAt = new Date().toISOString();
 
-  return res.json({
+  res.json({
     success: true,
     data: experiment,
   });
 });
 
-router.post('/:id/stop', (req: Request, res: Response) => {
+router.post('/:id/stop', (req: Request, res: Response): void => {
   const { id } = req.params;
   const experiment = experiments.find((e) => e.id === id);
 
   if (!experiment) {
-    return res.status(404).json({
+    res.status(404).json({
       success: false,
       error: 'Experiment not found',
     });
+    return;
   }
 
   experiment.status = 'completed';
   experiment.endTime = new Date().toISOString();
   experiment.updatedAt = new Date().toISOString();
 
-  return res.json({
+  res.json({
     success: true,
     data: experiment,
   });
 });
 
-router.delete('/:id', (req: Request, res: Response) => {
+router.delete('/:id', (req: Request, res: Response): void => {
   const { id } = req.params;
   const index = experiments.findIndex((e) => e.id === id);
 
   if (index === -1) {
-    return res.status(404).json({
+    res.status(404).json({
       success: false,
       error: 'Experiment not found',
     });
+    return;
   }
 
   experiments.splice(index, 1);
 
-  return res.json({
+  res.json({
     success: true,
     message: 'Experiment deleted',
   });
 });
 
-router.get('/:id/download', (req: Request, res: Response) => {
+router.get('/:id/download', (req: Request, res: Response): void => {
   const { id } = req.params;
   const experiment = experiments.find((e) => e.id === id);
 
   if (!experiment) {
-    return res.status(404).json({
+    res.status(404).json({
       success: false,
       error: 'Experiment not found',
     });
+    return;
   }
 
   const data = JSON.stringify(experiment, null, 2);
   
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Content-Disposition', `attachment; filename="experiment_${id}.json"`);
-  return res.send(data);
+  res.send(data);
 });
 
 export default router;
