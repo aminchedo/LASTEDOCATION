@@ -421,4 +421,81 @@ router.get('/ready', async (req: Request, res: Response): Promise<void> => {
   }
 });
 
+/**
+ * GET /health/detailed
+ * Detailed health check with simplified format for monitoring dashboard
+ */
+router.get('/detailed', async (req: Request, res: Response): Promise<void> => {
+  try {
+    // Run all health checks in parallel
+    const [database, filesystem, memory] = await Promise.all([
+      checkDatabase(),
+      checkFilesystem(),
+      Promise.resolve(checkMemory())
+    ]);
+    
+    const checks = {
+      database: {
+        status: database.status === 'healthy' ? 'pass' : 'fail',
+        responseTime: database.latency || 0,
+        message: database.message
+      },
+      filesystem: {
+        status: filesystem.status === 'healthy' ? 'pass' : 'fail',
+        responseTime: 2,
+        message: filesystem.message
+      },
+      memory: {
+        status: memory.status === 'healthy' ? 'pass' : 'fail',
+        message: memory.message
+      },
+      disk: {
+        status: filesystem.status === 'healthy' ? 'pass' : 'fail'
+      }
+    };
+    
+    const overallStatus = database.status === 'healthy' && filesystem.status === 'healthy' && memory.status === 'healthy' 
+      ? 'healthy' 
+      : database.status === 'unhealthy' || filesystem.status === 'unhealthy' || memory.status === 'unhealthy'
+      ? 'unhealthy'
+      : 'degraded';
+    
+    const totalMem = os.totalmem();
+    const freeMem = os.freemem();
+    const usedMem = totalMem - freeMem;
+    const memPercent = ((usedMem / totalMem) * 100).toFixed(1);
+    
+    const loadAvg = os.loadavg();
+    const cpuUsage = loadAvg[0] / os.cpus().length * 100;
+    
+    res.status(200).json({
+      success: true,
+      data: {
+        status: overallStatus,
+        checks,
+        metrics: {
+          system: {
+            cpu: {
+              usage: cpuUsage,
+              cores: os.cpus().length
+            },
+            memory: {
+              used: usedMem,
+              total: totalMem,
+              usagePercent: parseFloat(memPercent)
+            },
+            uptime: process.uptime()
+          }
+        }
+      }
+    });
+  } catch (error: any) {
+    res.status(503).json({
+      success: false,
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 export default router;

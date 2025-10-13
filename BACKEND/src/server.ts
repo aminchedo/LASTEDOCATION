@@ -19,6 +19,7 @@ import searchRouter from './routes/search';
 import notificationsRouter from './routes/notifications';
 import experimentsRouter from './routes/experiments';
 import settingsRouter from './routes/settings';
+import healthRouter from './routes/health';
 import { authenticateToken } from './middleware/auth';
 import downloadProxyRouter from './simple-proxy';
 import { logger } from './utils/logger';
@@ -30,8 +31,14 @@ const app = express();
 app.use(cors({ origin: ENV.CORS_ORIGIN, credentials: true }));
 app.use(express.json({ limit: '10mb' }));
 
+// Serve static files from public directory
+app.use(express.static('public'));
+
 // Setup Swagger API documentation
 setupSwagger(app);
+
+// Health check routes (before authentication)
+app.use('/health', healthRouter);
 
 // Routeهای اصلی
 app.use('/api/auth', authRouter);
