@@ -4,7 +4,7 @@ export { EmptyState } from './EmptyState';
 export { StatusBadge } from './StatusBadge';
 export { QuickActions } from './QuickActions';
 export { Button } from './Button';
-export { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from './Card';
+export { Card, CardHeader, CardContent } from './Card';
 export { Badge } from './Badge';
 export { Alert } from './Alert';
 export { Input } from './Input';

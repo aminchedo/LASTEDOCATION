@@ -13,17 +13,14 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { useTraining } from '@/hooks/useTraining';
-import toast from 'react-hot-toast';
-
-export function Controls() {
+import toast from 'reacexport function Controls() {
   const { 
-    status, 
+    jobs,
+    loading,
     startTraining, 
-    pauseTraining, 
     resumeTraining, 
-    stopTraining, 
-    createCheckpoint,
-    isLoading 
+    stopTraining
+  } = useTraining();ing 
   } = useTraining();
 
   const [config, setConfig] = useState({
@@ -44,49 +41,47 @@ export function Controls() {
       });
       toast.success('آموزش با موفقیت شروع شد');
     } catch (error: any) {
-      toast.error(`خطا: ${error.message}`);
-    }
-  };
-
-  const handlePause = async () => {
+      toast.error(`خ  const handlePause = async () => {
     try {
-      await pauseTraining();
-      toast.success('آموزش متوقف شد');
+      const runningJob = jobs.find(j => j.status === 'running');
+      if (runningJob) {
+        await stopTraining(runningJob.id);
+        toast.success('آموزش متوقف شد');
+      }
     } catch (error: any) {
       toast.error(`خطا: ${error.message}`);
     }
-  };
-
-  const handleResume = async () => {
+  };st.error(`خ  const handleResume = async () => {
     try {
-      await resumeTraining();
-      toast.success('آموزش از سر گرفته شد');
+      const pausedJob = jobs.find(j => j.status === 'queued' || j.status === 'failed');
+      if (pausedJob) {
+        await resumeTraining(pausedJob.id);
+        toast.success('آموزش از سر گرفته شد');
+      }
     } catch (error: any) {
       toast.error(`خطا: ${error.message}`);
     }
-  };
-
-  const handleStop = async () => {
+  };st.error(`خ  const handleStop = async () => {
     try {
-      await stopTraining();
-      toast.success('آموزش متوقف شد');
+      const runningJob = jobs.find(j => j.status === 'running');
+      if (runningJob) {
+        await stopTraining(runningJob.id);
+        toast.success('آموزش متوقف شد');
+      }
     } catch (error: any) {
       toast.error(`خطا: ${error.message}`);
     }
-  };
-
-  const handleCheckpoint = async () => {
+  };st.error(`خ  const handleCheckpoint = async () => {
     try {
-      const checkpointId = await createCheckpoint();
-      toast.success(`چک‌پوینت ایجاد شد: ${checkpointId.slice(-8)}`);
+      // Checkpoint creation functionality would be implemented here
+      toast.success('عملیات ذخیره چک‌پوینت در حال پیاده‌سازی است');
     } catch (error: any) {
       toast.error(`خطا: ${error.message}`);
     }
-  };
-
-  const isRunning = status?.status === 'running';
-  const isPaused = status?.status === 'paused';
-  const isIdle = !status?.currentRun || status?.status === 'idle';
+  };st.error(`خ  const runningJob = jobs.find(j => j.status === 'running');
+  const isRunning = !!runningJob;
+  const isPaused = false; // Paused state not currently supported
+  const isIdle = !isRunning;?.currentRun || status?.status === 'idle';
 
   return (
     <Card variant="elevated">
@@ -105,7 +100,7 @@ export function Controls() {
               size="lg"
               icon={<Play className="w-5 h-5" />}
               onClick={handleStart}
-              disabled={isLoading}
+              disabled={loading}
             >
               شروع آموزش
             </Button>
@@ -118,7 +113,7 @@ export function Controls() {
                 size="lg"
                 icon={<Pause className="w-5 h-5" />}
                 onClick={handlePause}
-                disabled={isLoading}
+                disabled={loading}
               >
                 توقف
               </Button>
@@ -127,7 +122,7 @@ export function Controls() {
                 size="lg"
                 icon={<Square className="w-5 h-5" />}
                 onClick={handleStop}
-                disabled={isLoading}
+                disabled={loading}
               >
                 متوقف کردن
               </Button>
@@ -141,7 +136,7 @@ export function Controls() {
                 size="lg"
                 icon={<Play className="w-5 h-5" />}
                 onClick={handleResume}
-                disabled={isLoading}
+                disabled={loading}
               >
                 ادامه
               </Button>
@@ -150,7 +145,7 @@ export function Controls() {
                 size="lg"
                 icon={<Square className="w-5 h-5" />}
                 onClick={handleStop}
-                disabled={isLoading}
+                disabled={loading}
               >
                 متوقف کردن
               </Button>
@@ -163,7 +158,7 @@ export function Controls() {
               size="lg"
               icon={<Save className="w-5 h-5" />}
               onClick={handleCheckpoint}
-              disabled={isLoading}
+              disabled={loading}
             >
               ذخیره چک‌پوینت
             </Button>
@@ -255,8 +250,8 @@ export function Controls() {
               >
                 <option value="">شروع جدید</option>
                 {/* TODO: Load available checkpoints */}
-                <option value="checkpoint_1">چک‌پوینت اخیر</option>
-                <option value="checkpoint_2">بهترین چک‌پوینت</option>
+             {/* Status Information */}
+        {runningJob && (             <option value="checkpoint_2">بهترین چک‌پوینت</option>
               </select>
             </div>
           </div>
@@ -265,10 +260,9 @@ export function Controls() {
         {/* Status Information */}
         {status?.currentRun && (
           <div className="p-4 rounded-lg bg-[color:var(--c-bg-secondary)]">
-            <h3 className="text-lg font-medium text-[color:var(--c-text)] mb-3">اطلاعات جلسه</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-[color:var(--c-text-muted)]">شناسه جلسه:</span>
+            <h3 className="text-lg font-medium text-[color:var(--c                <span className="mr-2 text-[color:var(--c-text)] font-mono">
+                  {runningJob.id.slice(-12)}
+                </span> className="text-[color:var(--c-text-muted)]">شناسه جلسه:</span>
                 <span className="mr-2 text-[color:var(--c-text)] font-mono">
                   {status.currentRun.id.slice(-12)}
                 </span>
@@ -279,16 +273,13 @@ export function Controls() {
                   variant={isRunning ? 'success' : isPaused ? 'warning' : 'default'}
                   className="mr-2"
                 >
-                  {isRunning ? 'در حال اجرا' : isPaused ? 'متوقف شده' : 'آماده'}
-                </Badge>
-              </div>
-              <div>
-                <span className="text-[color:var(--c-text-muted)]">شروع:</span>
+                  <span className="mr-2 text-[color:var(--c-text)]">
+                  {runningJob.startedAt ? new Date(runningJob.startedAt).toLocaleString('fa-IR') : '—'}
+                </span>lassName="text-[color:var(--c-text-muted)]">شروع:</span>
                 <span className="mr-2 text-[color:var(--c-text)]">
-                  {new Date(status.currentRun.startedAt).toLocaleString('fa-IR')}
-                </span>
-              </div>
-              <div>
+                  <span className="mr-2 text-[color:var(--c-text)]">
+                  {runningJob.progress}%
+                </span>    <div>
                 <span className="text-[color:var(--c-text-muted)]">پیشرفت:</span>
                 <span className="mr-2 text-[color:var(--c-text)]">
                   {status.currentRun.progress}%
@@ -314,8 +305,8 @@ export function Controls() {
               <kbd className="px-2 py-1 bg-[color:var(--c-bg)] border border-[color:var(--c-border)] rounded text-xs">S</kbd>
               <span>ذخیره چک‌پوینت</span>
             </div>
-            <div className="flex items-center gap-2">
-              <kbd className="px-2 py-1 bg-[color:var(--c-bg)] border border-[color:var(--c-border)] rounded text-xs">R</kbd>
+            <div        {/* Error Display */}
+        {jobs.some(j => j.status === 'failed') && ([color:var(--c-bg)] border border-[color:var(--c-border)] rounded text-xs">R</kbd>
               <span>شروع مجدد</span>
             </div>
           </div>

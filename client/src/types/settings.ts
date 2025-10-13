@@ -20,9 +20,9 @@ export interface AppSettings {
 }
 
 export interface CustomApiSettings {
-  enabled: boolean;
+  enabled?: boolean;
   baseUrl: string;
-  apiKey: string;
-  modelType: string;
+  apiKey?: string;
+  modelType?: string;
   modelName?: string;
 }

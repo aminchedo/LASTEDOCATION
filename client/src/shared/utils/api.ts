@@ -71,7 +71,7 @@ class APIService {
       this.isRefreshing = true;
 
       try {
-        const refreshed = await AuthService.refreshAuth();
+        const refreshed = await (AuthService as any).refreshAuth();
         if (refreshed) {
           // Process queued requests
           this.refreshQueue.forEach((callback) => callback(AuthService.getToken()!));

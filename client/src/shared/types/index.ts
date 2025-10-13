@@ -1,4 +1,4 @@
-export type JobStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled' | 'queued' | 'succeeded' | 'canceled';
+export type JobStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled' | 'queued' | 'succeeded' | 'canceled' | 'training' | 'preparing' | 'evaluating' | 'error';
 
 export interface Dataset {
   id: string;
@@ -8,6 +8,12 @@ export interface Dataset {
   format: string;
   createdAt: string;
   updatedAt: string;
+  tags?: string[];
+  domain?: string;
+  validated?: boolean;
+  records?: number;
+  sources?: string[];
+  language?: string;
 }
 
 export interface TrainingJob {
@@ -17,8 +23,17 @@ export interface TrainingJob {
   progress: number;
   startTime?: string;
   endTime?: string;
+  startedAt?: string;
+  completedAt?: string;
+  finishedAt?: string;
   config: Record<string, unknown>;
   metrics?: Record<string, unknown>;
+  model?: string;
+  epochs?: number;
+  lastLog?: string;
+  error?: string;
+  currentPhase?: string;
+  logs?: string[];
 }
 
 export interface Experiment {
@@ -30,6 +45,10 @@ export interface Experiment {
   updatedAt: string;
   config: Record<string, unknown>;
   results?: Record<string, unknown>;
+  dataset?: string;
+  model?: string;
+  metrics?: Record<string, unknown>;
+  notes?: string;
 }
 
 export interface Model {
@@ -40,6 +59,11 @@ export interface Model {
   size: number;
   createdAt: string;
   updatedAt: string;
+  installed?: boolean;
+  description?: string;
+  tags?: string[];
+  license?: string;
+  url?: string;
 }
 
 export interface DataSource {
@@ -49,9 +73,11 @@ export interface DataSource {
   url?: string;
   status: 'active' | 'inactive' | 'error';
   lastSync?: string;
+  recordsCount?: number;
+  connected?: boolean;
 }
 
-export type DataSourceKind = 'huggingface' | 'local' | 'url' | 'database' | 'api';
+export type DataSourceKind = 'huggingface' | 'local' | 'url' | 'database' | 'api' | 'github' | 'gdrive' | 'web' | 'upload';
 
 export interface Notification {
   id: string;
@@ -67,11 +93,19 @@ export interface Download {
   filename: string;
   url: string;
   progress: number;
-  status: 'pending' | 'downloading' | 'completed' | 'failed' | 'paused';
+  status: 'pending' | 'downloading' | 'completed' | 'failed' | 'paused' | 'running' | 'error';
   size?: number;
   downloadedSize?: number;
   startTime?: string;
   endTime?: string;
+}
+
+export interface DownloadJob extends Download {
+  repoId?: string;
+  speed?: number;
+  eta?: number;
+  bytesDownloaded?: number;
+  currentFile?: string;
 }
 
 export interface SystemMetrics {

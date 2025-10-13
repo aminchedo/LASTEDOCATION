@@ -22,7 +22,7 @@ export const LoginPage: React.FC = () => {
     setError('');
     
     try {
-      await authService.login(credentials);
+      await authService.login(credentials.email, credentials.password);
       navigate('/dashboard');
     } catch (err: any) {
       setError(err.message || 'خطا در ورود');

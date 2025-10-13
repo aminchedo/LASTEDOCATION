@@ -198,11 +198,9 @@ export function NotificationsPage() {
         <Card variant="elevated">
           <CardContent className="text-center py-12">
             <Bell className="w-12 h-12 mx-auto mb-4 text-[color:var(--c-text-muted)] animate-pulse" />
-            <p className="text-[color:var(--c-text-muted)]">در حال بارگذاری...</p>
-          </CardContent>
-        </Card>
-      ) : notifications.length === 0 ? (
-        <Card variant="elevated">
+            <p classNam            <EmptyState
+              icon="bell"
+              title={filter === 'unread' ? 'اعلان خوانده نشده‌ای وجود ندارد' : 'هیچ اعلانی وجود ندارد'} <Card variant="elevated">
           <CardContent>
             <EmptyState
               icon={Bell}
