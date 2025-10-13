@@ -1,240 +1,231 @@
 #!/bin/bash
-#
-# LASTEDOCATION Setup Script
-# Version: 1.0.0
-#
-# This script validates the environment and sets up the project
-# Usage: bash scripts/setup.sh
-#
+
+#####################################################################
+# Model Training Project - Setup Script
+# 
+# This script automates the setup process for the model training
+# project, including dependency installation, configuration, and
+# environment validation.
+#####################################################################
 
 set -e  # Exit on error
-
-echo ""
-echo "🚀 LASTEDOCATION Setup Script"
-echo "=============================="
-echo ""
 
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Check if command exists
-command_exists() {
-    command -v "$1" >/dev/null 2>&1
+# Logging functions
+log_info() {
+    echo -e "${BLUE}[INFO]${NC} $1"
 }
 
-# Print status message
-print_status() {
-    if [ $1 -eq 0 ]; then
-        echo -e "${GREEN}✅ $2${NC}"
-    else
-        echo -e "${RED}❌ $2${NC}"
-    fi
+log_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
 }
 
-print_warning() {
-    echo -e "${YELLOW}⚠️  $1${NC}"
+log_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
 }
 
-print_info() {
-    echo -e "ℹ️  $1"
+log_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# Check Python version
-echo "Checking Python version..."
-if command_exists python3; then
-    python_version=$(python3 --version 2>&1 | grep -oP '\d+\.\d+' | head -1)
-    python_major=$(echo $python_version | cut -d. -f1)
-    python_minor=$(echo $python_version | cut -d. -f2)
-    
-    if [ "$python_major" -ge 3 ] && [ "$python_minor" -ge 10 ]; then
-        print_status 0 "Python $python_version (OK)"
-    else
-        print_status 1 "Python $python_version (3.10+ required)"
-        echo "Please install Python 3.10 or higher"
-        exit 1
-    fi
-else
-    print_status 1 "Python 3 not found"
-    echo "Please install Python 3.10 or higher"
+# Header
+echo "======================================================================"
+echo "  Model Training Project - Automated Setup"
+echo "======================================================================"
+echo ""
+
+# Check prerequisites
+log_info "Checking prerequisites..."
+
+# Check Node.js
+if ! command -v node &> /dev/null; then
+    log_error "Node.js is not installed. Please install Node.js 20+ first."
     exit 1
 fi
-
-# Check Node.js version
-echo "Checking Node.js version..."
-if command_exists node; then
-    node_version=$(node --version | grep -oP '\d+' | head -1)
-    
-    if [ "$node_version" -ge 18 ]; then
-        print_status 0 "Node.js v$node_version (OK)"
-    else
-        print_status 1 "Node.js v$node_version (18+ required)"
-        echo "Please install Node.js 18 or higher"
-        exit 1
-    fi
-else
-    print_status 1 "Node.js not found"
-    echo "Please install Node.js 18 or higher"
-    exit 1
-fi
+NODE_VERSION=$(node -v)
+log_success "Node.js found: $NODE_VERSION"
 
 # Check npm
-echo "Checking npm..."
-if command_exists npm; then
-    npm_version=$(npm --version)
-    print_status 0 "npm v$npm_version"
-else
-    print_status 1 "npm not found"
+if ! command -v npm &> /dev/null; then
+    log_error "npm is not installed."
     exit 1
 fi
+NPM_VERSION=$(npm -v)
+log_success "npm found: v$NPM_VERSION"
 
-# Check GPU availability
-echo ""
-echo "Checking GPU availability..."
-if command_exists nvidia-smi; then
-    gpu_info=$(nvidia-smi --query-gpu=name,memory.total --format=csv,noheader | head -1)
-    print_status 0 "GPU detected: $gpu_info"
-    export USE_GPU=true
+# Check Python
+if ! command -v python3 &> /dev/null; then
+    log_warning "Python 3 is not installed. Training will use simulation mode."
+    PYTHON_AVAILABLE=false
 else
-    print_warning "No GPU detected - will use CPU (slower)"
-    export USE_GPU=false
+    PYTHON_VERSION=$(python3 --version)
+    log_success "Python found: $PYTHON_VERSION"
+    PYTHON_AVAILABLE=true
 fi
 
-# Check disk space
-echo ""
-echo "Checking disk space..."
-available_space=$(df -BG . | awk 'NR==2 {print $4}' | sed 's/G//')
-if [ "$available_space" -ge 20 ]; then
-    print_status 0 "Disk space: ${available_space}GB available"
+# Check pip
+if ! command -v pip3 &> /dev/null; then
+    log_warning "pip3 is not installed. Cannot install Python dependencies."
+    PIP_AVAILABLE=false
 else
-    print_warning "Low disk space: ${available_space}GB (20GB+ recommended)"
+    PIP_VERSION=$(pip3 --version)
+    log_success "pip3 found: $PIP_VERSION"
+    PIP_AVAILABLE=true
 fi
 
-# Create required directories
 echo ""
-echo "Creating required directories..."
-mkdir -p logs
-mkdir -p models/fine-tuned
-mkdir -p data/downloads
-mkdir -p BACKEND/temp/audio
-mkdir -p test_results
-print_status 0 "Directories created"
+log_info "Installing Node.js dependencies..."
 
-# Check for .env file
-echo ""
-echo "Checking environment configuration..."
-if [ ! -f ".env" ]; then
-    if [ -f ".env.example" ]; then
-        cp .env.example .env
-        print_warning "Created .env from .env.example - please configure it"
-        echo "   Edit .env and set required variables:"
-        echo "   - JWT_SECRET (generate with: openssl rand -base64 32)"
-        echo "   - HF_TOKEN (optional, from https://huggingface.co/settings/tokens)"
-    else
-        print_warning "No .env file - create one with required variables"
-    fi
-else
-    print_status 0 ".env file exists"
-fi
+# Install root dependencies
+log_info "Installing root dependencies..."
+npm install --silent
+log_success "Root dependencies installed"
 
-# Verify dataset files
-echo ""
-echo "Verifying training dataset..."
-if [ -f "combined.jsonl" ]; then
-    line_count=$(wc -l < combined.jsonl)
-    file_size=$(du -h combined.jsonl | cut -f1)
-    print_status 0 "Dataset found: $line_count samples ($file_size)"
-    
-    # Verify checksum if available
-    if [ -f "checksums/datasets.sha256.txt" ]; then
-        if sha256sum -c checksums/datasets.sha256.txt 2>/dev/null; then
-            print_status 0 "Dataset integrity verified"
-        else
-            print_warning "Dataset checksum mismatch"
-        fi
-    fi
-else
-    print_warning "combined.jsonl not found"
-    echo "   Training dataset is missing. Download or generate it before training."
-fi
+# Install backend dependencies
+log_info "Installing backend dependencies..."
+cd BACKEND
+npm install --silent
+log_success "Backend dependencies installed"
+cd ..
 
-# Run hardware detection
+# Install frontend dependencies
+log_info "Installing frontend dependencies..."
+cd client
+npm install --silent
+log_success "Frontend dependencies installed"
+cd ..
+
 echo ""
-echo "Detecting hardware configuration..."
-if [ -f "scripts/detect_hardware.py" ]; then
-    python3 scripts/detect_hardware.py
-else
-    print_warning "Hardware detection script not found"
-fi
 
 # Install Python dependencies
-echo ""
-echo "Installing Python dependencies..."
-if [ -f "requirements.txt" ]; then
-    pip3 install -q -r requirements.txt
-    print_status 0 "Python dependencies installed"
+if [ "$PYTHON_AVAILABLE" = true ] && [ "$PIP_AVAILABLE" = true ]; then
+    log_info "Installing Python dependencies..."
+    
+    if pip3 install -r requirements.txt; then
+        log_success "Python dependencies installed (PyTorch, Transformers, etc.)"
+    else
+        log_warning "Some Python packages failed to install. Training may use simulation mode."
+    fi
 else
-    print_warning "requirements.txt not found"
+    log_warning "Skipping Python dependencies (Python/pip not available)"
+    log_warning "Training will use simulation mode until PyTorch is installed"
 fi
 
-# Install Node.js dependencies
 echo ""
-echo "Installing Node.js dependencies..."
-print_info "Installing backend dependencies..."
-npm install --silent
-print_status 0 "Backend dependencies installed"
+log_info "Setting up environment configuration..."
 
-print_info "Installing frontend dependencies..."
-cd client && npm install --silent && cd ..
-print_status 0 "Frontend dependencies installed"
-
-# Build frontend (optional)
-echo ""
-read -p "Build frontend now? (y/N): " -n 1 -r
-echo
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-    print_info "Building frontend..."
-    cd client && npm run build && cd ..
-    print_status 0 "Frontend built"
+# Setup environment files
+if [ ! -f ".env" ]; then
+    log_info "Creating root .env file..."
+    cp .env.example .env
+    log_success "Created .env from .env.example"
+else
+    log_info ".env already exists, skipping..."
 fi
 
-# Final summary
+if [ ! -f "BACKEND/.env" ]; then
+    log_info "Creating backend .env file..."
+    cp BACKEND/.env.example BACKEND/.env
+    log_success "Created BACKEND/.env from .env.example"
+else
+    log_info "BACKEND/.env already exists, skipping..."
+fi
+
+if [ ! -f "client/.env" ]; then
+    log_info "Creating frontend .env file..."
+    cp client/.env.example client/.env
+    log_success "Created client/.env from .env.example"
+else
+    log_info "client/.env already exists, skipping..."
+fi
+
 echo ""
-echo "=============================="
-echo "✅ Setup Complete!"
-echo "=============================="
+log_info "Creating necessary directories..."
+
+# Create directories
+mkdir -p models data/datasets logs uploads BACKEND/logs
+
+log_success "Directories created"
+
 echo ""
-echo "📝 Next Steps:"
+log_info "Building backend..."
+
+# Build backend
+cd BACKEND
+npm run build
+log_success "Backend built successfully"
+cd ..
+
 echo ""
-echo "1. Configure environment variables:"
-echo "   - Edit .env file"
-echo "   - Set JWT_SECRET (required)"
-echo "   - Set HF_TOKEN (optional, for HuggingFace API)"
+log_info "Building frontend..."
+
+# Build frontend
+cd client
+npm run build
+log_success "Frontend built successfully"
+cd ..
+
 echo ""
-echo "2. Start the backend server:"
-echo "   npm run dev"
+log_info "Making scripts executable..."
+
+# Make scripts executable
+chmod +x scripts/*.py 2>/dev/null || true
+chmod +x scripts/*.sh 2>/dev/null || true
+
+log_success "Scripts are now executable"
+
 echo ""
-echo "3. Start the frontend (in another terminal):"
-echo "   cd client && npm run dev"
+log_info "Validating environment..."
+
+# Check JWT_SECRET
+if grep -q "change-me" .env || grep -q "change-me" BACKEND/.env; then
+    log_warning "JWT_SECRET is still set to default value"
+    log_warning "Please update JWT_SECRET in BACKEND/.env before running in production"
+    log_warning "Generate a secure secret with: openssl rand -base64 32"
+fi
+
 echo ""
-echo "4. Run health check to verify setup:"
-echo "   npm run health-check"
-echo ""
-echo "5. (Optional) Train a model:"
-echo "   python3 scripts/train_cpu.py --epochs 3"
+echo "======================================================================"
+log_success "Setup completed successfully!"
+echo "======================================================================"
 echo ""
 
-if [ "$USE_GPU" = false ]; then
-    echo "⚠️  NOTE: No GPU detected. Training will be slow on CPU."
-    echo "   Consider using Google Colab for faster training:"
-    echo "   https://colab.research.google.com/"
+# Final instructions
+log_info "Next steps:"
+echo ""
+echo "  1. Configure environment variables:"
+echo "     ${BLUE}nano BACKEND/.env${NC}"
+echo "     Set JWT_SECRET to a strong random string"
+echo ""
+echo "  2. Start the development servers:"
+echo "     ${BLUE}npm run dev${NC}"
+echo ""
+echo "  3. Or start with Docker:"
+echo "     ${BLUE}docker-compose up -d${NC}"
+echo ""
+echo "  4. Access the application:"
+echo "     Frontend:  ${GREEN}http://localhost:3000${NC}"
+echo "     Backend:   ${GREEN}http://localhost:3001${NC}"
+echo "     Health:    ${GREEN}http://localhost:3001/health${NC}"
+echo ""
+
+if [ "$PYTHON_AVAILABLE" = false ] || [ "$PIP_AVAILABLE" = false ]; then
+    log_warning "Python ML dependencies are not installed"
+    echo "  To enable real training, install:"
+    echo "     ${BLUE}pip3 install torch transformers datasets accelerate${NC}"
     echo ""
 fi
 
-echo "For more information, see:"
-echo "  - README.md"
-echo "  - docs/SETUP.md"
-echo "  - docs/IMPLEMENTATION_STATUS.md"
+log_info "Documentation:"
+echo "  - Quick Setup:   ${BLUE}QUICK_SETUP_GUIDE.md${NC}"
+echo "  - Deployment:    ${BLUE}DEPLOYMENT_GUIDE.md${NC}"
+echo "  - Technical:     ${BLUE}MODEL_TRAINING_PROJECT_ANALYSIS_REPORT.md${NC}"
 echo ""
+
+log_success "Happy coding! 🚀"
