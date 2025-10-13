@@ -1,19 +1,72 @@
 import { useState } from 'react';
-import { Save, RotateCcw, Settings, Palette, Cpu, Mic, Code, Sparkles, Rocket, FolderOpen, X, Plus, HardDrive } from 'lucide-react';
+import { Save, RotateCcw, Settings, Palette, Cpu, Mic, Code, Sparkles, Rocket, FolderOpen, X, Plus, HardDrive, Cloud, Key, Eye, EyeOff, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import { useTheme } from '@/core/contexts/ThemeContext';
 import { APP_CONFIG } from '@/core/config/app.config';
 import { Button } from '@/shared/components/ui/Button';
 import { Input } from '@/shared/components/ui/Input';
 import { Card, CardHeader, CardContent } from '@/shared/components/ui/Card';
+import { Badge } from '@/shared/components/ui/Badge';
 import { CustomApiPanel } from '@/components/settings/CustomApiPanel';
 import { DetectedModelsPanel } from '@/components/settings/DetectedModelsPanel';
 import toast from 'react-hot-toast';
 import { resetApiInstance } from '@/shared/utils/api';
 
+interface HuggingFaceSettings {
+  token: string;
+  customApiUrl?: string;
+  autoDownload: boolean;
+  maxConcurrentDownloads: number;
+}
+
+interface CustomModel {
+  id: string;
+  name: string;
+  repoId: string;
+  type: 'model' | 'tts' | 'dataset';
+  url: string;
+  token?: string;
+  description?: string;
+}
+
 function SettingsPage() {
   const { settings, updateSettings } = useTheme();
   const [localSettings, setLocalSettings] = useState(settings);
   const [hasChanges, setHasChanges] = useState(false);
+  
+  // HuggingFace state
+  const [showToken, setShowToken] = useState(false);
+  const [hfToken, setHfToken] = useState(() => {
+    const saved = localStorage.getItem('app_settings');
+    return saved ? JSON.parse(saved).huggingfaceToken || '' : '';
+  });
+  const [hfCustomUrl, setHfCustomUrl] = useState(() => {
+    const saved = localStorage.getItem('app_settings');
+    return saved ? JSON.parse(saved).huggingfaceCustomUrl || 'https://huggingface.co' : 'https://huggingface.co';
+  });
+  const [hfAutoDownload, setHfAutoDownload] = useState(() => {
+    const saved = localStorage.getItem('app_settings');
+    return saved ? JSON.parse(saved).huggingfaceAutoDownload || false : false;
+  });
+  const [hfMaxConcurrent, setHfMaxConcurrent] = useState(() => {
+    const saved = localStorage.getItem('app_settings');
+    return saved ? JSON.parse(saved).huggingfaceMaxConcurrent || 2 : 2;
+  });
+  const [tokenStatus, setTokenStatus] = useState<'idle' | 'validating' | 'valid' | 'invalid'>('idle');
+  const [tokenInfo, setTokenInfo] = useState<{ username?: string; type?: string } | null>(null);
+  
+  // Custom models state
+  const [customModels, setCustomModels] = useState<CustomModel[]>(() => {
+    const saved = localStorage.getItem('app_settings');
+    return saved ? JSON.parse(saved).customModels || [] : [];
+  });
+  const [showAddModel, setShowAddModel] = useState(false);
+  const [newModel, setNewModel] = useState<Omit<CustomModel, 'id'>>({
+    name: '',
+    repoId: '',
+    type: 'model',
+    url: '',
+    description: '',
+  });
 
   const handleChange = <K extends keyof typeof localSettings>(
     key: K,
@@ -40,8 +93,102 @@ function SettingsPage() {
     setHasChanges(true);
   };
 
+  // HuggingFace handlers
+  const validateHfToken = async () => {
+    if (!hfToken || !hfToken.startsWith('hf_')) {
+      toast.error('توکن نامعتبر است. توکن باید با hf_ شروع شود');
+      setTokenStatus('invalid');
+      return;
+    }
+
+    setTokenStatus('validating');
+    try {
+      const response = await fetch('https://huggingface.co/api/whoami', {
+        headers: { 'Authorization': `Bearer ${hfToken}` }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setTokenStatus('valid');
+        setTokenInfo({ username: data.name, type: data.type });
+        toast.success(`توکن معتبر است! کاربر: ${data.name}`);
+      } else {
+        setTokenStatus('invalid');
+        setTokenInfo(null);
+        toast.error('توکن نامعتبر است');
+      }
+    } catch (error) {
+      setTokenStatus('invalid');
+      setTokenInfo(null);
+      toast.error('خطا در اعتبارسنجی توکن');
+      console.error('Token validation error:', error);
+    }
+  };
+
+  const saveHfSettings = () => {
+    const currentSettings = JSON.parse(localStorage.getItem('app_settings') || '{}');
+    const updatedSettings = {
+      ...currentSettings,
+      huggingfaceToken: hfToken,
+      huggingfaceCustomUrl: hfCustomUrl,
+      huggingfaceAutoDownload: hfAutoDownload,
+      huggingfaceMaxConcurrent: hfMaxConcurrent,
+      customModels,
+    };
+    localStorage.setItem('app_settings', JSON.stringify(updatedSettings));
+    
+    // Also save to backend
+    fetch('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updatedSettings),
+    }).catch(err => console.error('Failed to save to backend:', err));
+    
+    toast.success('تنظیمات HuggingFace ذخیره شد');
+  };
+
+  const handleAddCustomModel = () => {
+    if (!newModel.name || !newModel.repoId || !newModel.url) {
+      toast.error('لطفا تمام فیلدهای الزامی را پر کنید');
+      return;
+    }
+
+    const model: CustomModel = {
+      ...newModel,
+      id: `custom-${Date.now()}`,
+    };
+
+    setCustomModels(prev => [...prev, model]);
+    setNewModel({
+      name: '',
+      repoId: '',
+      type: 'model',
+      url: '',
+      description: '',
+    });
+    setShowAddModel(false);
+    toast.success('مدل سفارشی اضافه شد');
+  };
+
+  const validateModelUrl = async (url: string) => {
+    try {
+      const response = await fetch(url, { method: 'HEAD' });
+      if (response.ok) {
+        toast.success('URL معتبر است');
+        return true;
+      } else {
+        toast.error('URL قابل دسترسی نیست');
+        return false;
+      }
+    } catch (error) {
+      toast.error('خطا در اعتبارسنجی URL');
+      return false;
+    }
+  };
+
   const handleSave = () => {
     updateSettings(localSettings);
+    saveHfSettings();
     setHasChanges(false);
 
     // Reset API instance if API settings changed
@@ -471,6 +618,283 @@ function SettingsPage() {
                 </div>
               )}
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* HuggingFace Integration */}
+      <Card variant="elevated" className="group hover:shadow-[var(--shadow-3)] transition-all duration-300 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        <CardHeader className="relative">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-yellow-500/10 flex items-center justify-center">
+              <Cloud className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+            </div>
+            <h2 className="text-lg font-semibold text-[color:var(--c-text)]">HuggingFace Integration</h2>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6 relative">
+          {/* Token Input */}
+          <div>
+            <label className="block text-sm font-medium text-[color:var(--c-text)] mb-3">
+              <Key className="w-4 h-4 inline-block ml-1" />
+              Access Token
+            </label>
+            <div className="flex gap-2">
+              <div className="flex-1 relative">
+                <input
+                  type={showToken ? 'text' : 'password'}
+                  value={hfToken}
+                  onChange={(e) => {
+                    setHfToken(e.target.value);
+                    setTokenStatus('idle');
+                    setHasChanges(true);
+                  }}
+                  placeholder="hf_..."
+                  className="w-full px-4 py-2.5 pr-12 border border-[color:var(--c-border)] rounded-lg bg-[color:var(--c-surface)] text-[color:var(--c-text)] placeholder:text-[color:var(--c-text-muted)] focus:outline-none focus:ring-2 focus:ring-[color:var(--c-primary)]"
+                />
+                <button
+                  onClick={() => setShowToken(!showToken)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[color:var(--c-text-muted)] hover:text-[color:var(--c-text)] transition-colors"
+                  type="button"
+                  aria-label={showToken ? 'مخفی کردن توکن' : 'نمایش توکن'}
+                >
+                  {showToken ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                icon={tokenStatus === 'validating' ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                onClick={validateHfToken}
+                disabled={!hfToken || tokenStatus === 'validating'}
+                className="px-4"
+              >
+                اعتبارسنجی
+              </Button>
+            </div>
+            {tokenStatus !== 'idle' && (
+              <div className={`mt-2 flex items-center gap-2 text-sm ${
+                tokenStatus === 'valid' ? 'text-green-600 dark:text-green-400' :
+                tokenStatus === 'invalid' ? 'text-red-600 dark:text-red-400' :
+                'text-[color:var(--c-text-muted)]'
+              }`}>
+                {tokenStatus === 'valid' && <CheckCircle className="w-4 h-4" />}
+                {tokenStatus === 'invalid' && <AlertCircle className="w-4 h-4" />}
+                {tokenStatus === 'validating' && <RefreshCw className="w-4 h-4 animate-spin" />}
+                <span>
+                  {tokenStatus === 'valid' && tokenInfo ? `توکن معتبر - ${tokenInfo.username} (${tokenInfo.type})` :
+                   tokenStatus === 'invalid' ? 'توکن نامعتبر است' :
+                   'در حال بررسی...'}
+                </span>
+              </div>
+            )}
+            <p className="text-xs text-[color:var(--c-muted)] mt-2">
+              برای دسترسی به مدل‌های خصوصی و افزایش سرعت دانلود، توکن HuggingFace خود را وارد کنید
+            </p>
+          </div>
+
+          {/* Custom API URL */}
+          <div>
+            <label className="block text-sm font-medium text-[color:var(--c-text)] mb-3">
+              Custom API URL (اختیاری)
+            </label>
+            <input
+              type="url"
+              value={hfCustomUrl}
+              onChange={(e) => {
+                setHfCustomUrl(e.target.value);
+                setHasChanges(true);
+              }}
+              placeholder="https://huggingface.co"
+              className="w-full px-4 py-2.5 border border-[color:var(--c-border)] rounded-lg bg-[color:var(--c-surface)] text-[color:var(--c-text)] placeholder:text-[color:var(--c-text-muted)] focus:outline-none focus:ring-2 focus:ring-[color:var(--c-primary)]"
+            />
+          </div>
+
+          {/* Settings */}
+          <div className="space-y-4">
+            <label className="flex items-start gap-3 cursor-pointer group/item hover:bg-[color:var(--c-border)]/20 p-4 rounded-xl transition-all duration-200">
+              <input
+                type="checkbox"
+                checked={hfAutoDownload}
+                onChange={(e) => {
+                  setHfAutoDownload(e.target.checked);
+                  setHasChanges(true);
+                }}
+                className="mt-0.5 w-5 h-5 rounded border-2 border-[color:var(--c-border)] text-[color:var(--c-primary)] focus:ring-2 focus:ring-[color:var(--c-primary)] focus:ring-offset-2 transition-all cursor-pointer"
+              />
+              <div className="flex-1">
+                <div className="text-sm font-semibold text-[color:var(--c-text)] group-hover/item:text-[color:var(--c-primary)] transition-colors">
+                  دانلود خودکار پس از انتخاب
+                </div>
+                <div className="text-xs text-[color:var(--c-muted)] mt-1">
+                  شروع دانلود به محض انتخاب مدل
+                </div>
+              </div>
+            </label>
+
+            <div>
+              <label className="block text-sm font-medium text-[color:var(--c-text)] mb-3">
+                حداکثر دانلودهای همزمان
+              </label>
+              <div className="flex items-center gap-4">
+                <input
+                  type="range"
+                  min="1"
+                  max="3"
+                  value={hfMaxConcurrent}
+                  onChange={(e) => {
+                    setHfMaxConcurrent(parseInt(e.target.value));
+                    setHasChanges(true);
+                  }}
+                  className="flex-1 h-3 bg-gradient-to-r from-[color:var(--c-border)] to-[color:var(--c-primary)]/20 rounded-lg appearance-none cursor-pointer accent-[color:var(--c-primary)] shadow-inner"
+                />
+                <span className="px-3 py-1.5 rounded-lg bg-[color:var(--c-primary)]/10 text-[color:var(--c-primary)] font-bold min-w-[3rem] text-center">
+                  {hfMaxConcurrent}
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-xs text-[color:var(--c-muted)] mt-2">
+                <span>1</span>
+                <span>3</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Custom Models */}
+      <Card variant="elevated" className="group hover:shadow-[var(--shadow-3)] transition-all duration-300 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        <CardHeader className="relative">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center">
+                <Cloud className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+              </div>
+              <h2 className="text-lg font-semibold text-[color:var(--c-text)]">مدل‌های سفارشی</h2>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              icon={<Plus className="w-4 h-4" />}
+              onClick={() => setShowAddModel(!showAddModel)}
+            >
+              افزودن مدل
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4 relative">
+          {/* Add Model Form */}
+          {showAddModel && (
+            <div className="p-4 border border-[color:var(--c-border)] rounded-lg bg-[color:var(--c-border)]/10 space-y-4">
+              <Input
+                label="نام مدل"
+                value={newModel.name}
+                onChange={(e) => setNewModel(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="Persian TTS Model"
+                required
+              />
+              <Input
+                label="Repository ID"
+                value={newModel.repoId}
+                onChange={(e) => setNewModel(prev => ({ ...prev, repoId: e.target.value }))}
+                placeholder="username/model-name"
+                required
+              />
+              <div>
+                <label className="block text-sm font-medium text-[color:var(--c-text)] mb-2">نوع</label>
+                <select
+                  value={newModel.type}
+                  onChange={(e) => setNewModel(prev => ({ ...prev, type: e.target.value as any }))}
+                  className="w-full px-4 py-2.5 border border-[color:var(--c-border)] rounded-lg bg-[color:var(--c-surface)] text-[color:var(--c-text)] focus:outline-none focus:ring-2 focus:ring-[color:var(--c-primary)]"
+                >
+                  <option value="model">Model</option>
+                  <option value="tts">TTS</option>
+                  <option value="dataset">Dataset</option>
+                </select>
+              </div>
+              <Input
+                label="URL"
+                type="url"
+                value={newModel.url}
+                onChange={(e) => setNewModel(prev => ({ ...prev, url: e.target.value }))}
+                placeholder="https://huggingface.co/..."
+                required
+              />
+              <Input
+                label="توضیحات (اختیاری)"
+                value={newModel.description || ''}
+                onChange={(e) => setNewModel(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="توضیحات مدل"
+              />
+              <div className="flex gap-2">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleAddCustomModel}
+                  className="flex-1"
+                >
+                  افزودن
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => validateModelUrl(newModel.url)}
+                  disabled={!newModel.url}
+                >
+                  اعتبارسنجی URL
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowAddModel(false)}
+                >
+                  لغو
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Custom Models List */}
+          <div className="space-y-2">
+            {customModels.length === 0 ? (
+              <div className="text-center py-8 text-[color:var(--c-muted)]">
+                <Cloud className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">هیچ مدل سفارشی تعریف نشده است</p>
+              </div>
+            ) : (
+              customModels.map((model) => (
+                <div
+                  key={model.id}
+                  className="flex items-start gap-3 p-4 bg-[color:var(--c-border)]/10 rounded-lg border border-[color:var(--c-border)]/20 group/model hover:bg-[color:var(--c-border)]/20 transition-all duration-200"
+                >
+                  <div className="w-10 h-10 rounded-lg bg-indigo-500/10 flex items-center justify-center flex-shrink-0">
+                    <Cloud className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="text-sm font-semibold text-[color:var(--c-text)]">{model.name}</h3>
+                      <Badge variant="secondary" className="text-xs">{model.type}</Badge>
+                    </div>
+                    <p className="text-xs text-[color:var(--c-muted)] mb-1">{model.repoId}</p>
+                    {model.description && (
+                      <p className="text-xs text-[color:var(--c-text-muted)]">{model.description}</p>
+                    )}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    icon={<X className="w-4 h-4" />}
+                    onClick={() => {
+                      setCustomModels(prev => prev.filter(m => m.id !== model.id));
+                      setHasChanges(true);
+                    }}
+                    className="opacity-0 group-hover/model:opacity-100 hover:bg-[color:var(--c-error)]/10 hover:text-[color:var(--c-error)] transition-all duration-200"
+                    aria-label="حذف مدل"
+                  />
+                </div>
+              ))
+            )}
           </div>
         </CardContent>
       </Card>

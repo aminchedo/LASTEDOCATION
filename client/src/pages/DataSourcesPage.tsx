@@ -320,3 +320,6 @@ export function DataSourcesPage() {
     </div>
   );
 }
+
+// Default export for compatibility
+export default DataSourcesPage;

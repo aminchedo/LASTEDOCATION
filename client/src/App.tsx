@@ -95,18 +95,14 @@ class LazyLoadErrorBoundary extends Component<
 // Lazy load pages - به صورت explicit default export تعریف کنیم
 const HomePage = lazy(() => import('@/pages/HomePage'));
 const ChatPage = lazy(() => import('@/pages/NewPersianChatPage'));
-const MetricsDashboard = lazy(() => import('@/pages/MetricsDashboard'));
-const LiveMonitorPage = lazy(() => import('@/pages/LiveMonitorPage'));
-const PlaygroundPage = lazy(() => import('@/pages/PlaygroundPage'));
-const ExperimentsPage = lazy(() => import('@/pages/ExperimentsPage'));
-const DownloadCenterPage = lazy(() => import('@/pages/DownloadCenterPage'));
-const ModelHubPage = lazy(() => import('@/pages/ModelHubPage'));
-const TrainingStudioPage = lazy(() => import('@/pages/TrainingStudioPage'));
-const OptimizationStudioPage = lazy(() => import('@/pages/OptimizationStudioPage'));
 const NotificationsPage = lazy(() => import('@/pages/NotificationsPage'));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
-const DatasetsPage = lazy(() => import('@/pages/DatasetsPage'));
 const LoginPage = lazy(() => import('@/pages/LoginPage'));
+
+// New consolidated hub pages
+const ModelsHubPage = lazy(() => import('@/pages/ModelsHubPage'));
+const PlaygroundHubPage = lazy(() => import('@/pages/PlaygroundHubPage'));
+const TrainingHubPage = lazy(() => import('@/pages/TrainingHubPage'));
 
 // Loading component
 function PageLoader() {
@@ -157,18 +153,12 @@ function AppContent() {
                   <Suspense fallback={<PageLoader />}>
                     <Routes>
                       <Route path="/" element={<HomePage />} />
-                      <Route path="/chat" element={<ChatPage />} />
-                      <Route path="/metrics" element={<MetricsDashboard />} />
-                      <Route path="/monitor" element={<LiveMonitorPage />} />
-                      <Route path="/playground" element={<PlaygroundPage />} />
-                      <Route path="/experiments" element={<ExperimentsPage />} />
-                      <Route path="/downloads" element={<DownloadCenterPage />} />
-                      <Route path="/model-hub" element={<ModelHubPage />} />
-                      <Route path="/training-studio" element={<TrainingStudioPage />} />
-                      <Route path="/optimization-studio" element={<OptimizationStudioPage />} />
-                      <Route path="/notifications" element={<NotificationsPage />} />
+                      <Route path="/models" element={<ModelsHubPage />} />
+                      <Route path="/playground" element={<PlaygroundHubPage />} />
+                      <Route path="/training" element={<TrainingHubPage />} />
                       <Route path="/settings" element={<SettingsPage />} />
-                      <Route path="/datasets" element={<DatasetsPage />} />
+                      <Route path="/chat" element={<ChatPage />} />
+                      <Route path="/notifications" element={<NotificationsPage />} />
                       <Route path="*" element={<NotFoundPage />} />
                     </Routes>
                   </Suspense>
