@@ -1,0 +1,58 @@
+name: Rollback Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to rollback'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+      version:
+        description: 'Version to rollback to (tag or commit)'
+        required: true
+        type: string
+
+jobs:
+  rollback:
+    name: Rollback to Previous Version
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.version }}
+      
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+      
+      - name: Rollback via SSH
+        run: |
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+            cd /opt/persian-tts
+            
+            # Checkout specified version
+            git fetch --all
+            git checkout ${{ github.event.inputs.version }}
+            
+            # Pull Docker images for this version
+            docker-compose pull
+            
+            # Restart services
+            docker-compose up -d
+            
+            # Health check
+            curl -f http://localhost:3001/health || exit 1
+            
+            echo "✅ Rollback to ${{ github.event.inputs.version }} complete"
+          EOF
+      
+      - name: Notify rollback
+        run: |
+          echo "⚠️ Rollback performed on ${{ github.event.inputs.environment }} to version ${{ github.event.inputs.version }}"

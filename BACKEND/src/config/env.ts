@@ -26,4 +26,8 @@ export const ENV = {
   
   // HuggingFace
   HF_TOKEN: process.env.HF_TOKEN || '',
+  
+  // Monitoring
+  SENTRY_DSN: process.env.SENTRY_DSN || '',
 };;
+

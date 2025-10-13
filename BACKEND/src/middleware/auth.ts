@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
 interface TokenPayload {
+    id: string;
     userId: string;
     role: 'admin' | 'user';
     username: string;
@@ -52,6 +53,31 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
         });
     }
 };
+
+export const requireRole = (allowedRoles: Array<'admin' | 'user'>) => {
+    return (req: Request, res: Response, next: NextFunction) => {
+        if (!req.user) {
+            return res.status(401).json({
+                success: false,
+                error: 'Authentication required',
+                message: 'احراز هویت الزامی است'
+            });
+        }
+
+        if (!allowedRoles.includes(req.user.role)) {
+            return res.status(403).json({
+                success: false,
+                error: 'Insufficient permissions',
+                message: 'دسترسی کافی ندارید'
+            });
+        }
+
+        return next();
+    };
+};
+
+// Admin-only middleware
+export const requireAdmin = requireRole(['admin']);
 
 export const generateToken = (payload: Omit<TokenPayload, 'exp'>): string => {
     const tokenPayload: TokenPayload = {
