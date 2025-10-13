@@ -62,7 +62,11 @@ router.post("/train", express_1.default.json(), (req, res) => {
         const batch_size = params.batch_size || 16;
         const lr = params.lr || 0.01;
         // Python script path (go up one level from BACKEND to root)
-        const scriptPath = path_1.default.join(process.cwd(), "..", "scripts", "train_minimal_job.py");
+        let scriptPath = path_1.default.join(process.cwd(), "..", "scripts", "train_minimal_job.py");
+        // Fallback to simulation if PyTorch version doesn't exist
+        if (!fs_1.default.existsSync(scriptPath)) {
+            scriptPath = path_1.default.join(process.cwd(), "..", "scripts", "train_simulation_fallback.py");
+        }
         // Check if script exists
         if (!fs_1.default.existsSync(scriptPath)) {
             return res.status(500).json({
