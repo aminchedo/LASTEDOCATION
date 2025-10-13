@@ -12,8 +12,10 @@ import {
   CheckCircle,
   AlertCircle
 } from 'lucide-react';
-import { useTraining } from '@/hooks/uexport function ProgressCard() {
-  const { jobs, loading } = useTraining(); = useTraining();
+import { useTraining } from '@/hooks/useTraining';
+
+export function ProgressCard() {
+  const { jobs, loading } = useTraining();
 
   if (loading) {
     return (
@@ -50,10 +52,15 @@ import { useTraining } from '@/hooks/uexport function ProgressCard() {
             <p className="text-[color:var(--c-text-muted)]">
               برای شروع آموزش، از بخش کنترل‌ها استفاده کنید
             </p>
-          </div>  const run = runningJob;
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const run = runningJob;
   const metrics = runningJob.metrics;
-  const summary = null; // Summary not currently availablerics = status.metrics;
-  const summary = status.summary;
+  const summary = null; // Summary not currently available
 
   const getStatusIcon = () => {
     switch (run.status) {

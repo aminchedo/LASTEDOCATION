@@ -11,7 +11,9 @@ interface AppSettingsContextType {
 
 const AppSettingsContext = createContext<AppSettingsContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'persian_chat_appconst defaultSettings: AppSettings = {
+const STORAGE_KEY = 'persian_chat_app_settings';
+
+const defaultSettings: AppSettings = {
   theme: 'system',
   direction: 'rtl',
   fontSize: 16,
@@ -25,7 +27,6 @@ const STORAGE_KEY = 'persian_chat_appconst defaultSettings: AppSettings = {
     autoPlay: false,
   },
   aiModel: 'gpt-4',
-};Size: 'medium',
 };
 
 interface AppSettingsProviderProps {
