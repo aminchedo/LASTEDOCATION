@@ -18,6 +18,7 @@
     "predev": "npm run validate:env"
   },
   "dependencies": {
+    "@heroicons/react": "^2.2.0",
     "@tensorflow/tfjs": "^4.22.0",
     "axios": "^1.7.2",
     "clsx": "^2.1.1",
@@ -31,6 +32,7 @@
     "react-markdown": "^9.0.1",
     "react-router-dom": "^6.26.2",
     "react-syntax-highlighter": "^5.8.0",
+    "recharts": "^3.2.1",
     "socket.io-client": "^4.8.1",
     "tailwind-merge": "^3.3.1"
   },

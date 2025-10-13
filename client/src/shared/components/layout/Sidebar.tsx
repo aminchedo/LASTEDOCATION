@@ -14,7 +14,8 @@ import {
   Settings,
   Database,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  LayoutDashboard
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 
@@ -28,6 +29,7 @@ const navItems = [
   { to: '/models', icon: Package, label: 'مدیریت مدل‌ها' },
   { to: '/playground', icon: Beaker, label: 'پلتفرم تست' },
   { to: '/training', icon: Cpu, label: 'استودیو آموزش' },
+  { to: '/dashboard', icon: LayoutDashboard, label: 'مانیتورینگ' },
   { to: '/settings', icon: Settings, label: 'تنظیمات' },
   { to: '/chat', icon: MessageSquare, label: 'گفتگو' },
   { to: '/notifications', icon: Bell, label: 'اعلان‌ها' }
