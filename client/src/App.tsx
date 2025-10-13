@@ -102,11 +102,10 @@ const ExperimentsPage = lazy(() => import('@/pages/ExperimentsPage'));
 const DownloadCenterPage = lazy(() => import('@/pages/DownloadCenterPage'));
 const ModelHubPage = lazy(() => import('@/pages/ModelHubPage'));
 const TrainingStudioPage = lazy(() => import('@/pages/TrainingStudioPage'));
-const TrainingPage = lazy(() => import('@/pages/TrainingPage'));
 const OptimizationStudioPage = lazy(() => import('@/pages/OptimizationStudioPage'));
 const NotificationsPage = lazy(() => import('@/pages/NotificationsPage'));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
-const ModelsDatasetsPage = lazy(() => import('@/pages/ModelsDatasetsPage'));
+const DatasetsPage = lazy(() => import('@/pages/DatasetsPage'));
 const LoginPage = lazy(() => import('@/pages/LoginPage'));
 
 // Loading component
@@ -166,11 +165,10 @@ function AppContent() {
                       <Route path="/downloads" element={<DownloadCenterPage />} />
                       <Route path="/model-hub" element={<ModelHubPage />} />
                       <Route path="/training-studio" element={<TrainingStudioPage />} />
-                      <Route path="/training" element={<TrainingPage />} />
                       <Route path="/optimization-studio" element={<OptimizationStudioPage />} />
                       <Route path="/notifications" element={<NotificationsPage />} />
                       <Route path="/settings" element={<SettingsPage />} />
-                      <Route path="/models-datasets" element={<ModelsDatasetsPage />} />
+                      <Route path="/datasets" element={<DatasetsPage />} />
                       <Route path="*" element={<NotFoundPage />} />
                     </Routes>
                   </Suspense>

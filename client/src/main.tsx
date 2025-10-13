@@ -3,7 +3,13 @@ import ReactDOM from 'react-dom/client';
 import { App } from './App';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { setupGlobalErrorHandlers } from './utils/errorHandlers';
+import { worker } from './mocks/browser';
 import './index.css';
+
+// Start MSW
+if (import.meta.env.DEV) {
+  worker.start({ onUnhandledRequest: 'bypass' });
+}
 
 // Setup global error handlers before app initialization
 setupGlobalErrorHandlers();
