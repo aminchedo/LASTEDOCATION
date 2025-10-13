@@ -24,12 +24,12 @@ COPY . .
 RUN npm run build
 
 # Copy and install Python dependencies
-COPY ../requirements.txt /tmp/requirements.txt
+COPY requirements.txt /tmp/requirements.txt
 RUN pip3 install --no-cache-dir -r /tmp/requirements.txt || \
     echo "Warning: Some Python packages failed to install. Training may use simulation mode."
 
-# Copy Python scripts
-COPY ../scripts/*.py ../scripts/
+# Copy Python scripts (if needed)
+# COPY scripts/*.py /app/scripts/
 
 # Create necessary directories
 RUN mkdir -p logs models data/datasets uploads
