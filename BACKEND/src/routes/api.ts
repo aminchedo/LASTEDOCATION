@@ -1,26 +1,41 @@
 /**
- * Main API router - aggregates all routes
+ * Main API router - aggregates all routes with rate limiting
  */
 import { Router } from 'express';
 import authRoutes from './auth';
 import modelsRoutes from './models';
-import sourcesRoutes from './sources';
-import trainingRoutes from './training';
+import sourcesRoutes from './sources-new';
+import trainingRoutes from './training-new';
 import datasetsRoutes from './datasets';
-import settingsRoutes from './settings';
+import settingsRoutes from './settings-new';
 import { authenticateToken } from '../middleware/auth';
+import { 
+  authLimiter, 
+  trainingLimiter,
+  searchLimiter,
+  settingsLimiter
+} from '../middleware/rate-limiter';
 
 const router = Router();
 
-// Public routes (no authentication)
-router.use('/auth', authRoutes);
+// Public routes (with strict rate limiting)
+router.use('/auth', authLimiter, authRoutes);
 
-// Protected routes (require authentication)
+// Protected routes (require authentication + specific rate limits)
 router.use('/models', authenticateToken, modelsRoutes);
+
+// Sources with search rate limiting
+router.use('/sources/search', authenticateToken, searchLimiter);
 router.use('/sources', authenticateToken, sourcesRoutes);
-router.use('/training', authenticateToken, trainingRoutes);
+
+// Training with strict rate limiting
+router.use('/training', authenticateToken, trainingLimiter, trainingRoutes);
+
+// Datasets
 router.use('/datasets', authenticateToken, datasetsRoutes);
-router.use('/settings', authenticateToken, settingsRoutes);
+
+// Settings with moderate rate limiting
+router.use('/settings', authenticateToken, settingsLimiter, settingsRoutes);
 
 // Health check
 router.get('/health', (req, res) => {

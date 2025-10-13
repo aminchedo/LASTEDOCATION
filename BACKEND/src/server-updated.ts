@@ -8,13 +8,28 @@ import morgan from 'morgan';
 import { createServer } from 'http';
 import { ENV } from './config/env';
 import { logger } from './middleware/logger';
-import { errorHandler } from './middleware/errorHandler';
+// Security Middlewares
+import { 
+  globalErrorHandler, 
+  notFoundHandler,
+  handleUnhandledRejection,
+  handleUncaughtException 
+} from './middleware/error-handler';
+import { generalLimiter, publicLimiter } from './middleware/rate-limiter';
 import { initDatabase, closeDatabase, healthCheck } from './database/connection';
 import { initWebSocket } from './services/websocket-real.service';
 import apiRouter from './routes/api';
+import healthRouter from './routes/health';
 
 const app: Express = express();
 const httpServer = createServer(app);
+
+// Handle uncaught exceptions and unhandled rejections
+handleUncaughtException();
+handleUnhandledRejection();
+
+// Trust proxy (for rate limiting behind reverse proxy)
+app.set('trust proxy', 1);
 
 // Middleware
 app.use(helmet({
@@ -30,44 +45,24 @@ app.use(cors({
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Logging
+// HTTP Request Logging
 app.use(morgan('combined', {
   stream: {
     write: (message: string) => {
       logger.info({ msg: 'http_request', details: message.trim() });
     }
-  }
+  },
+  skip: (req) => req.path === '/health/live' // Skip health check spam
 }));
 
-// Health check endpoint (before authentication)
-app.get('/health', async (req: Request, res: Response) => {
-  try {
-    const dbHealthy = await healthCheck();
-    
-    res.json({
-      success: true,
-      data: {
-        status: dbHealthy ? 'healthy' : 'degraded',
-        database: dbHealthy ? 'connected' : 'disconnected',
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-        memory: process.memoryUsage()
-      }
-    });
-  } catch (error: any) {
-    res.status(503).json({
-      success: false,
-      data: {
-        status: 'unhealthy',
-        database: 'error',
-        error: error.message
-      }
-    });
-  }
-});
+// Rate limiting for public endpoints
+app.use('/health', publicLimiter);
 
-// API routes
-app.use('/api', apiRouter);
+// Health check routes (before other middlewares)
+app.use('/health', healthRouter);
+
+// API routes (with general rate limiting)
+app.use('/api', generalLimiter, apiRouter);
 
 // Root endpoint
 app.get('/', (req: Request, res: Response) => {
@@ -83,17 +78,11 @@ app.get('/', (req: Request, res: Response) => {
   });
 });
 
-// 404 handler
-app.use((req: Request, res: Response) => {
-  res.status(404).json({
-    success: false,
-    error: 'Endpoint not found',
-    path: req.path
-  });
-});
+// 404 handler (must be after all routes)
+app.use(notFoundHandler);
 
-// Error handler
-app.use(errorHandler);
+// Global error handler (must be last)
+app.use(globalErrorHandler);
 
 /**
  * Initialize server
