@@ -27,16 +27,37 @@ import csv
 import random
 import numpy as np
 
+# For HTTP status updates
+try:
+    import requests
+    HAS_REQUESTS = True
+except ImportError:
+    HAS_REQUESTS = False
+    print("WARNING: requests not installed, WebSocket updates disabled", file=sys.stderr)
+
 def safe_mkdir(p: Path):
     p.parent.mkdir(parents=True, exist_ok=True)
 
-def write_status(job_id, status_dict):
-    """Write job status to artifacts/jobs/<job_id>.json"""
+def write_status(job_id, status_dict, backend_url="http://localhost:3001"):
+    """Write job status to artifacts/jobs/<job_id>.json and notify backend via WebSocket"""
+    # Write to file
     out = Path("artifacts/jobs")
     out.mkdir(parents=True, exist_ok=True)
     path = out / f"{job_id}.json"
     with open(path, "w", encoding="utf-8") as f:
         json.dump(status_dict, f, ensure_ascii=False, indent=2)
+    
+    # Send HTTP POST to backend for WebSocket broadcast
+    if HAS_REQUESTS:
+        try:
+            requests.post(
+                f"{backend_url}/api/training/internal/status-update",
+                json={"job_id": job_id, "status": status_dict},
+                timeout=2
+            )
+        except Exception as e:
+            # Don't fail the training if status update fails
+            print(f"WARNING: Failed to send status update: {e}", file=sys.stderr)
 
 def load_tabular_dataset(dataset_path):
     """Load CSV/JSONL dataset or generate synthetic data"""
