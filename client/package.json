@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite --port 3000",
     "build": "vite build",
-    "build:check": "tsc && vite build",
+    "build:check": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
     "preview": "vite preview --port 3000",
     "lint": "tsc --noEmit",
     "serve": "vite preview --port 3000",
