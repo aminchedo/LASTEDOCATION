@@ -26,7 +26,41 @@ import { setupWebSocket } from './services/websocket.service';
 import { setupSwagger } from './swagger';
 
 const app = express();
-app.use(cors({ origin: ENV.CORS_ORIGIN, credentials: true }));
+
+// Enhanced CORS configuration
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin) {
+      return callback(null, true);
+    }
+    
+    // Check if origin is in allowed list
+    if (ENV.CORS_ORIGIN.includes(origin)) {
+      return callback(null, true);
+    }
+    
+    // Also allow localhost on any port in development
+    if (ENV.NODE_ENV === 'development' && origin.includes('localhost')) {
+      return callback(null, true);
+    }
+    
+    callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'X-Requested-With', 
+    'X-Request-ID',
+    'Accept',
+    'Origin'
+  ],
+  exposedHeaders: ['X-Request-ID', 'X-RateLimit-Remaining'],
+  maxAge: 86400 // 24 hours
+}));
+
 app.use(express.json({ limit: '10mb' }));
 
 // Setup Swagger API documentation

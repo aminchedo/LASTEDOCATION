@@ -4,6 +4,7 @@ import { Router, Request, Response } from 'express';
 import { logger } from '../middleware/logger';
 import { startDownload, getDownloadJob, getAllDownloadJobs, cancelDownload } from '../services/downloads';
 import { MODEL_CATALOG, getModelById, getModelsByType, searchModels } from '../config/modelCatalog';
+import { scanAllSources } from '../services/modelScanner';
 
 const router = Router();
 
@@ -320,47 +321,47 @@ router.get('/datasets/available', async (_req: Request, res: Response): Promise<
 
 /**
  * GET /api/sources/installed
- * Get installed models and datasets
+ * Get installed models and datasets by scanning filesystem
  */
 router.get('/installed', async (_req: Request, res: Response): Promise<void> => {
   try {
-    // Get downloaded models and datasets
-    const allJobs = getAllDownloadJobs();
-    const completedJobs = allJobs.filter(job => job.status === 'completed');
+    logger.info({ msg: 'Scanning filesystem for installed models and datasets' });
+    
+    // Scan actual filesystem for downloaded models and datasets
+    const scanned = scanAllSources();
+    
+    // Format response to match expected structure
+    const models = scanned.models.map(model => ({
+      id: model.id,
+      name: model.name,
+      type: model.type,
+      size: model.size,
+      sizeBytes: model.sizeBytes,
+      downloadedAt: model.downloadedAt,
+      path: model.path,
+      files: model.files,
+      hasConfig: model.hasConfig,
+      hasModel: model.hasModel,
+      isComplete: model.isComplete
+    }));
 
-    const models = completedJobs
-      .filter(job => {
-        const modelInfo = getModelById(job.repoId);
-        return modelInfo && (modelInfo.type === 'model' || modelInfo.type === 'tts');
-      })
-      .map(job => {
-        const modelInfo = getModelById(job.repoId);
-        return {
-          id: job.repoId,
-          name: modelInfo?.name || job.repoId,
-          type: modelInfo?.type || 'model',
-          size: modelInfo?.size || 'Unknown',
-          downloadedAt: job.finishedAt,
-          path: job.dest
-        };
-      });
+    const datasets = scanned.datasets.map(dataset => ({
+      id: dataset.id,
+      name: dataset.name,
+      type: dataset.type,
+      size: dataset.size,
+      sizeBytes: dataset.sizeBytes,
+      downloadedAt: dataset.downloadedAt,
+      path: dataset.path,
+      files: dataset.files,
+      isComplete: dataset.isComplete
+    }));
 
-    const datasets = completedJobs
-      .filter(job => {
-        const modelInfo = getModelById(job.repoId);
-        return modelInfo && modelInfo.type === 'dataset';
-      })
-      .map(job => {
-        const modelInfo = getModelById(job.repoId);
-        return {
-          id: job.repoId,
-          name: modelInfo?.name || job.repoId,
-          type: 'dataset',
-          size: modelInfo?.size || 'Unknown',
-          downloadedAt: job.finishedAt,
-          path: job.dest
-        };
-      });
+    logger.info({ 
+      msg: 'Filesystem scan results', 
+      modelsCount: models.length, 
+      datasetsCount: datasets.length 
+    });
 
     res.json({
       success: true,
@@ -368,13 +369,19 @@ router.get('/installed', async (_req: Request, res: Response): Promise<void> => 
         models,
         datasets,
         all: [...models, ...datasets]
+      },
+      meta: {
+        totalModels: models.length,
+        totalDatasets: datasets.length,
+        scannedAt: new Date().toISOString()
       }
     });
   } catch (error: any) {
-    logger.error(`Error getting installed sources: ${error.message}`);
+    logger.error({ msg: 'Error getting installed sources', error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
-      error: error.message
+      error: error.message,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });

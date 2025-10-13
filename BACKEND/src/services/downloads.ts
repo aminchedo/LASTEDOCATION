@@ -8,6 +8,7 @@ import http from 'http';
 import { logger } from '../middleware/logger';
 import { notificationService } from './notifications';
 import { getModelById, getAllDownloadUrls, getFilenameFromUrl } from '../config/modelCatalog';
+import { ENV } from '../config/env';
 
 export interface DownloadJob {
   id: string;
@@ -43,43 +44,93 @@ function generateJobId(): string {
 }
 
 /**
- * Download a single file with progress tracking
+ * Download a single file with progress tracking and retry logic
  */
 async function downloadFile(
   url: string, 
   destination: string, 
-  onProgress?: (downloaded: number, total: number) => void
+  onProgress?: (downloaded: number, total: number) => void,
+  retryCount = 0,
+  maxRetries = 3
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const file = fs.createWriteStream(destination);
     const client = url.startsWith('https') ? https : http;
 
-    const request = client.get(url, (response) => {
+    // Prepare request options with HuggingFace token if needed
+    const isHuggingFaceUrl = url.includes('huggingface.co');
+    const requestOptions: any = {
+      headers: {}
+    };
+
+    // Add HuggingFace authentication if token is available
+    if (isHuggingFaceUrl && ENV.HUGGINGFACE_TOKEN) {
+      requestOptions.headers['Authorization'] = `Bearer ${ENV.HUGGINGFACE_TOKEN}`;
+      logger.info({ msg: 'Using HuggingFace token for download', url: url.substring(0, 50) + '...' });
+    }
+
+    const request = client.get(url, requestOptions, (response) => {
+      // Handle redirects
       if (response.statusCode === 302 || response.statusCode === 301) {
-        // Handle redirects
         const redirectUrl = response.headers.location;
         if (redirectUrl) {
           file.close();
-          fs.unlinkSync(destination);
-          return downloadFile(redirectUrl, destination, onProgress)
+          try {
+            fs.unlinkSync(destination);
+          } catch (e) {
+            // Ignore if file doesn't exist
+          }
+          return downloadFile(redirectUrl, destination, onProgress, retryCount, maxRetries)
             .then(resolve)
             .catch(reject);
         }
       }
 
+      // Handle HTTP errors
       if (response.statusCode !== 200) {
         file.close();
-        fs.unlinkSync(destination);
-        return reject(new Error(`HTTP ${response.statusCode}: ${response.statusMessage}`));
+        try {
+          fs.unlinkSync(destination);
+        } catch (e) {
+          // Ignore
+        }
+        
+        const error = new Error(`HTTP ${response.statusCode}: ${response.statusMessage}`);
+        
+        // Retry on certain errors (503 Service Unavailable, 429 Too Many Requests, etc.)
+        if (retryCount < maxRetries && [429, 500, 502, 503, 504].includes(response.statusCode || 0)) {
+          const delayMs = Math.min(1000 * Math.pow(2, retryCount), 10000); // Exponential backoff, max 10s
+          logger.warn({ 
+            msg: 'Download failed, retrying...', 
+            statusCode: response.statusCode, 
+            retryCount: retryCount + 1,
+            delayMs,
+            url: url.substring(0, 50) + '...' 
+          });
+          
+          setTimeout(() => {
+            downloadFile(url, destination, onProgress, retryCount + 1, maxRetries)
+              .then(resolve)
+              .catch(reject);
+          }, delayMs);
+          return;
+        }
+        
+        return reject(error);
       }
 
       const totalBytes = parseInt(response.headers['content-length'] || '0', 10);
       let downloadedBytes = 0;
+      let lastProgressUpdate = Date.now();
 
       response.on('data', (chunk: Buffer) => {
         downloadedBytes += chunk.length;
-        if (onProgress && totalBytes > 0) {
+        
+        // Update progress every 1-2 seconds to avoid too many updates
+        const now = Date.now();
+        if (onProgress && totalBytes > 0 && (now - lastProgressUpdate > 1000)) {
           onProgress(downloadedBytes, totalBytes);
+          lastProgressUpdate = now;
         }
       });
 
@@ -87,12 +138,20 @@ async function downloadFile(
 
       file.on('finish', () => {
         file.close();
+        // Final progress update
+        if (onProgress && totalBytes > 0) {
+          onProgress(totalBytes, totalBytes);
+        }
         resolve();
       });
 
       file.on('error', (err) => {
         file.close();
-        fs.unlinkSync(destination);
+        try {
+          fs.unlinkSync(destination);
+        } catch (e) {
+          // Ignore
+        }
         reject(err);
       });
     });
@@ -104,10 +163,29 @@ async function downloadFile(
       } catch (e) {
         // Ignore
       }
+      
+      // Retry on network errors
+      if (retryCount < maxRetries) {
+        const delayMs = Math.min(1000 * Math.pow(2, retryCount), 10000);
+        logger.warn({ 
+          msg: 'Network error, retrying...', 
+          error: err.message, 
+          retryCount: retryCount + 1,
+          delayMs 
+        });
+        
+        setTimeout(() => {
+          downloadFile(url, destination, onProgress, retryCount + 1, maxRetries)
+            .then(resolve)
+            .catch(reject);
+        }, delayMs);
+        return;
+      }
+      
       reject(err);
     });
 
-    request.setTimeout(30000); // 30 second timeout
+    request.setTimeout(60000); // 60 second timeout for large files
   });
 }
 
@@ -163,16 +241,28 @@ async function downloadModelDirect(
     try {
       await downloadFile(url, filepath, (downloaded, total) => {
         // Calculate overall progress
-        const fileProgress = (downloaded / total) * 100;
+        const fileProgress = total > 0 ? (downloaded / total) * 100 : 0;
         const overallProgress = ((completedFiles / totalFiles) * 100) + 
                               (fileProgress / totalFiles);
         
-        job.progress = Math.round(overallProgress);
+        job.progress = Math.round(Math.min(overallProgress, 99)); // Cap at 99% until fully complete
         job.bytesDownloaded = downloaded;
         job.bytesTotal = total;
 
         // Update job
         jobs.set(jobId, job);
+        
+        // Log progress every 10%
+        if (Math.floor(fileProgress / 10) !== Math.floor((fileProgress - 1) / 10)) {
+          logger.info({ 
+            msg: 'Download progress', 
+            jobId, 
+            filename, 
+            progress: `${Math.round(fileProgress)}%`,
+            downloaded: `${(downloaded / 1024 / 1024).toFixed(2)} MB`,
+            total: `${(total / 1024 / 1024).toFixed(2)} MB`
+          });
+        }
       });
 
       job.completedFiles.push(filename);
