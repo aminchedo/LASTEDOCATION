@@ -13,14 +13,15 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { useTraining } from '@/hooks/useTraining';
-import toast from 'reacexport function Controls() {
+import toast from 'react-hot-toast';
+
+export function Controls() {
   const { 
     jobs,
     loading,
     startTraining, 
     resumeTraining, 
     stopTraining
-  } = useTraining();ing 
   } = useTraining();
 
   const [config, setConfig] = useState({
@@ -41,7 +42,11 @@ import toast from 'reacexport function Controls() {
       });
       toast.success('آموزش با موفقیت شروع شد');
     } catch (error: any) {
-      toast.error(`خ  const handlePause = async () => {
+      toast.error(`خطا: ${error.message}`);
+    }
+  };
+
+  const handlePause = async () => {
     try {
       const runningJob = jobs.find(j => j.status === 'running');
       if (runningJob) {
@@ -51,7 +56,9 @@ import toast from 'reacexport function Controls() {
     } catch (error: any) {
       toast.error(`خطا: ${error.message}`);
     }
-  };st.error(`خ  const handleResume = async () => {
+  };
+
+  const handleResume = async () => {
     try {
       const pausedJob = jobs.find(j => j.status === 'queued' || j.status === 'failed');
       if (pausedJob) {
@@ -61,7 +68,9 @@ import toast from 'reacexport function Controls() {
     } catch (error: any) {
       toast.error(`خطا: ${error.message}`);
     }
-  };st.error(`خ  const handleStop = async () => {
+  };
+
+  const handleStop = async () => {
     try {
       const runningJob = jobs.find(j => j.status === 'running');
       if (runningJob) {
@@ -71,17 +80,21 @@ import toast from 'reacexport function Controls() {
     } catch (error: any) {
       toast.error(`خطا: ${error.message}`);
     }
-  };st.error(`خ  const handleCheckpoint = async () => {
+  };
+
+  const handleCheckpoint = async () => {
     try {
       // Checkpoint creation functionality would be implemented here
       toast.success('عملیات ذخیره چک‌پوینت در حال پیاده‌سازی است');
     } catch (error: any) {
       toast.error(`خطا: ${error.message}`);
     }
-  };st.error(`خ  const runningJob = jobs.find(j => j.status === 'running');
+  };
+
+  const runningJob = jobs.find(j => j.status === 'running');
   const isRunning = !!runningJob;
   const isPaused = false; // Paused state not currently supported
-  const isIdle = !isRunning;?.currentRun || status?.status === 'idle';
+  const isIdle = !isRunning;
 
   return (
     <Card variant="elevated">
@@ -250,21 +263,22 @@ import toast from 'reacexport function Controls() {
               >
                 <option value="">شروع جدید</option>
                 {/* TODO: Load available checkpoints */}
-             {/* Status Information */}
-        {runningJob && (             <option value="checkpoint_2">بهترین چک‌پوینت</option>
+                <option value="checkpoint_1">آخرین چک‌پوینت</option>
+                <option value="checkpoint_2">بهترین چک‌پوینت</option>
               </select>
             </div>
           </div>
         )}
 
         {/* Status Information */}
-        {status?.currentRun && (
+        {runningJob && (
           <div className="p-4 rounded-lg bg-[color:var(--c-bg-secondary)]">
-            <h3 className="text-lg font-medium text-[color:var(--c                <span className="mr-2 text-[color:var(--c-text)] font-mono">
-                  {runningJob.id.slice(-12)}
-                </span> className="text-[color:var(--c-text-muted)]">شناسه جلسه:</span>
+            <h3 className="text-lg font-medium text-[color:var(--c-text)] mb-3">اطلاعات جلسه فعلی</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="text-[color:var(--c-text-muted)]">شناسه:</span>
                 <span className="mr-2 text-[color:var(--c-text)] font-mono">
-                  {status.currentRun.id.slice(-12)}
+                  {runningJob.id.slice(-12)}
                 </span>
               </div>
               <div>
@@ -273,16 +287,19 @@ import toast from 'reacexport function Controls() {
                   variant={isRunning ? 'success' : isPaused ? 'warning' : 'default'}
                   className="mr-2"
                 >
-                  <span className="mr-2 text-[color:var(--c-text)]">
-                  {runningJob.startedAt ? new Date(runningJob.startedAt).toLocaleString('fa-IR') : '—'}
-                </span>lassName="text-[color:var(--c-text-muted)]">شروع:</span>
+                  {isRunning ? 'در حال اجرا' : isPaused ? 'متوقف شده' : 'آماده'}
+                </Badge>
+              </div>
+              <div>
+                <span className="text-[color:var(--c-text-muted)]">شروع:</span>
                 <span className="mr-2 text-[color:var(--c-text)]">
-                  <span className="mr-2 text-[color:var(--c-text)]">
-                  {runningJob.progress}%
-                </span>    <div>
+                  {runningJob.startedAt ? new Date(runningJob.startedAt).toLocaleString('fa-IR') : '—'}
+                </span>
+              </div>
+              <div>
                 <span className="text-[color:var(--c-text-muted)]">پیشرفت:</span>
                 <span className="mr-2 text-[color:var(--c-text)]">
-                  {status.currentRun.progress}%
+                  {runningJob.progress}%
                 </span>
               </div>
             </div>
@@ -305,15 +322,15 @@ import toast from 'reacexport function Controls() {
               <kbd className="px-2 py-1 bg-[color:var(--c-bg)] border border-[color:var(--c-border)] rounded text-xs">S</kbd>
               <span>ذخیره چک‌پوینت</span>
             </div>
-            <div        {/* Error Display */}
-        {jobs.some(j => j.status === 'failed') && ([color:var(--c-bg)] border border-[color:var(--c-border)] rounded text-xs">R</kbd>
+            <div className="flex items-center gap-2">
+              <kbd className="px-2 py-1 bg-[color:var(--c-bg)] border border-[color:var(--c-border)] rounded text-xs">R</kbd>
               <span>شروع مجدد</span>
             </div>
           </div>
         </div>
 
         {/* Error Display */}
-        {status?.currentRun?.status === 'error' && (
+        {jobs.some(j => j.status === 'failed') && (
           <div className="p-4 rounded-lg bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-800">
             <div className="flex items-center gap-2 text-red-700 dark:text-red-300 mb-2">
               <AlertCircle className="w-5 h-5" />

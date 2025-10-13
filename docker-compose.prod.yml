@@ -1,0 +1,142 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: persian-tts-postgres-prod
+    restart: always
+    environment:
+      POSTGRES_DB: ${DB_NAME:-persian_tts}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+      - ./BACKEND/src/database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - persian-tts-network-prod
+
+  # Backend API
+  backend:
+    build:
+      context: ./BACKEND
+      dockerfile: Dockerfile
+      args:
+        NODE_ENV: production
+    container_name: persian-tts-backend-prod
+    restart: always
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-persian_tts}
+      HUGGINGFACE_API_KEY: ${HUGGINGFACE_API_KEY}
+      SENTRY_DSN: ${SENTRY_DSN}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-https://yourdomain.com}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./BACKEND/logs:/app/logs
+      - backend_cache_prod:/app/cache
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - persian-tts-network-prod
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+
+  # Frontend Client
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:3001}
+    container_name: persian-tts-client-prod
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - backend
+    volumes:
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - nginx_cache_prod:/var/cache/nginx
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - persian-tts-network-prod
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+  # Redis for caching (optional but recommended)
+  redis:
+    image: redis:7-alpine
+    container_name: persian-tts-redis-prod
+    restart: always
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data_prod:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - persian-tts-network-prod
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+networks:
+  persian-tts-network-prod:
+    driver: bridge
+    name: persian-tts-network-prod
+
+volumes:
+  postgres_data_prod:
+    driver: local
+    name: persian-tts-postgres-data-prod
+  backend_cache_prod:
+    driver: local
+    name: persian-tts-backend-cache-prod
+  nginx_cache_prod:
+    driver: local
+    name: persian-tts-nginx-cache-prod
+  redis_data_prod:
+    driver: local
+    name: persian-tts-redis-data-prod

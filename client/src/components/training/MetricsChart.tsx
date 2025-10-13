@@ -24,8 +24,11 @@ interface MetricData {
   accuracy?: number;
   valAccuracy?: number;
   throughput?: number;
-  stepTimeMs?: export function MetricsChart() {
-  const { jobs } = useTraining();nst { status } = useTraining();
+  stepTimeMs?: number;
+}
+
+export function MetricsChart() {
+  const { jobs } = useTraining();
   const [activeTab, setActiveTab] = useState<'loss' | 'accuracy' | 'throughput'>('loss');
   const [metrics, setMetrics] = useState<MetricData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -34,10 +37,12 @@ interface MetricData {
   const tabs = [
     { id: 'loss', label: 'Loss', icon: TrendingDown },
     { id: 'accuracy', label: 'دقت', icon: TrendingUp },
-    { id: 'throughput', label:  const fetchMetrics = async () => {
+    { id: 'throughput', label: 'عملکرد', icon: Activity }
+  ];
+
+  const fetchMetrics = async () => {
     const runningJob = jobs.find(j => j.status === 'running');
-    if (!runningJob) return;{
-    if (!status?.currentRun) return;
+    if (!runningJob) return;
     
     setIsLoading(true);
     try {
@@ -51,7 +56,12 @@ interface MetricData {
     } finally {
       setIsLoading(false);
     }
-     // Refresh metrics every 2 seconds when training is active
+  };
+
+  useEffect(() => {
+    fetchMetrics();
+    
+    // Refresh metrics every 2 seconds when training is active
     const interval = setInterval(() => {
       const runningJob = jobs.find(j => j.status === 'running');
       if (runningJob) {
@@ -60,8 +70,7 @@ interface MetricData {
     }, 2000);
 
     return () => clearInterval(interval);
-  }, [jobs]); return () => clearInterval(interval);
-  }, [status?.status]);
+  }, [jobs]);
 
   const getChartData = () => {
     if (!metrics.length) return [];
