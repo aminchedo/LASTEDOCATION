@@ -22,12 +22,9 @@ interface Checkpoint {
   path: string;
   tag: 'latest' | 'best' | 'manual';
   metric?: number;
-  resumeToken?: string;
-}
-
-export function CheckpointsTable() {
-  const { status } = useTraining();
-  const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([]);
+  rexport function CheckpointsTable() {
+  const { jobs } = useTraining();
+  const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([]);= useState<Checkpoint[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedCheckpoint, setSelectedCheckpoint] = useState<string>('');
 
@@ -251,11 +248,9 @@ export function CheckpointsTable() {
                   </span>
                 </div>
 
-                {/* Actions */}
-                <div className="col-span-3 flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
+                          onClick={() => handleResume(checkpoint)}
+                    disabled={jobs.some(j => j.status === 'running')}
+                    title="ادامه از این چک‌پوینت"           size="sm"
                     icon={<RotateCcw className="w-4 h-4" />}
                     onClick={() => handleResume(checkpoint)}
                     disabled={status?.status === 'running'}

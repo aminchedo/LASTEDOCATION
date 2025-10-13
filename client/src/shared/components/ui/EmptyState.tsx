@@ -14,6 +14,8 @@ interface EmptyStateProps {
     onClick: () => void;
   };
   className?: string;
+  illustration?: string;
+  size?: 'sm' | 'md' | 'lg';
 }
 
 export function EmptyState({
@@ -21,7 +23,9 @@ export function EmptyState({
   title,
   description,
   action,
-  className
+  className,
+  illustration,
+  size = 'md'
 }: EmptyStateProps) {
   const Icon = Icons[icon];
 

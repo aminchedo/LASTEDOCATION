@@ -5,12 +5,12 @@ import { Button } from '@/shared/components/ui/Button';
 import { cn } from '@/lib/utils';
 import { staggerContainer, staggerItem } from '@/shared/animations';
 
-interface QuickAction {
+export interface QuickAction {
   id: string;
   icon: IconName;
   label: string;
   onClick: () => void;
-  variant?: 'default' | 'outline' | 'secondary';
+  variant?: 'default' | 'outline' | 'secondary' | 'primary';
   disabled?: boolean;
 }
 

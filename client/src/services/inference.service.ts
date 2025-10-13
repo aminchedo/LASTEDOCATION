@@ -95,7 +95,7 @@ export class InferenceService {
       if ('predict' in model) {
         output = model.predict(processedInput) as tf.Tensor;
       } else {
-        output = model.execute(processedInput) as tf.Tensor;
+        output = (model as any).execute(processedInput) as tf.Tensor;
       }
 
       // Get results
@@ -146,7 +146,7 @@ export class InferenceService {
       if ('predict' in model) {
         output = model.predict(inputTensor) as tf.Tensor;
       } else {
-        output = model.execute(inputTensor) as tf.Tensor;
+        output = (model as any).execute(inputTensor) as tf.Tensor;
       }
 
       const predictions = await output.array() as number[][];
@@ -212,14 +212,14 @@ export class InferenceService {
     const targetLength = Math.floor(sampleRate * duration);
     
     return tf.tidy(() => {
-      let tensor = tf.tensor1d(Array.from(audioData));
+      let tensor: tf.Tensor1D = tf.tensor1d(Array.from(audioData));
 
       // Pad or trim to target length
       if (tensor.shape[0] < targetLength) {
-        const padding = tf.zeros([targetLength - tensor.shape[0]]);
-        tensor = tf.concat([tensor, padding]);
+        const padding = tf.zeros([targetLength - tensor.shape[0]]) as tf.Tensor1D;
+        tensor = tf.concat([tensor, padding]) as tf.Tensor1D;
       } else if (tensor.shape[0] > targetLength) {
-        tensor = tensor.slice(0, targetLength);
+        tensor = tensor.slice(0, targetLength) as tf.Tensor1D;
       }
 
       // Normalize

@@ -17,7 +17,8 @@ import { Button } from '@/shared/components/ui/Button';
 import { Card, CardContent, CardHeader } from '@/shared/components/ui/Card';
 import { Input } from '@/shared/components/ui/Input';
 import { Badge } from '@/shared/components/ui/Badge';
-import { useDownloads, useAvailableModels, ModelEntry } from '@/hooks/useDownloads';
+import { useDownloads, useAvailableModels } from '@/hooks/useDownloads';
+import { Model } from '@/shared/types';
 import { useDetectedModels } from '@/hooks/useDetectedModels';
 import toast from 'react-hot-toast';
 
@@ -36,21 +37,18 @@ const typeLabels = {
 export function ModelHubPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<'model' | 'tts' | 'dataset' | ''>('');
-  const [activeTab, setActiveTab] = useState<'hub' | 'local'>('hub');
-
-  const { models, loading: modelsLoading } = useAvailableModels(
-    selectedType || undefined,
+  const [activeTab, setActiveTab]  const { models, loading: modelsLoading } = useAvailableModels();efined,
     searchQuery || undefined
   );
   const { models: detectedModels, loading: detectedLoading } = useDetectedModels();
-  const { jobs, startDownload, cancelDownload } = useDownloads();
-
-  const handleDownload = async (model: ModelEntry) => {
+  const { jobs, startDown  const handleDownload = async (model: Model) => {
     try {
-      await startDownload(model.type, model.id, model.repoType, model.defaultDest);
+      await startDownload(model.url || '', `models/${model.id}`, model.type);
       toast.success(`دانلود ${model.name} شروع شد`);
     } catch (error: any) {
       toast.error(`خطا در شروع دانلود: ${error.message}`);
+    }
+  };طا در شروع دانلود: ${error.message}`);
     }
   };
 
