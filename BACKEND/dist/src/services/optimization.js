@@ -229,7 +229,7 @@ async function runSingleTrial(job, trial) {
     // Spawn training process
     const proc = (0, child_process_1.spawn)('ts-node', args, {
         cwd: process.cwd(),
-        env: { ...process.env, NODE_ENV: 'optimization' }
+        env: { ...process.env, NODE_ENV: 'development' }
     });
     // Capture stdout
     proc.stdout.on('data', (data) => {
@@ -356,7 +356,7 @@ async function pruneModel(modelPath, outputPath, config) {
         // Spawn pruning process
         const proc = (0, child_process_1.spawn)('ts-node', args, {
             cwd: process.cwd(),
-            env: { ...process.env, NODE_ENV: 'pruning' }
+            env: { ...process.env, NODE_ENV: 'development' }
         });
         return new Promise((resolve, reject) => {
             proc.on('close', (code) => {
@@ -404,7 +404,7 @@ async function quantizeModel(modelPath, outputPath, config) {
         // Spawn quantization process
         const proc = (0, child_process_1.spawn)('ts-node', args, {
             cwd: process.cwd(),
-            env: { ...process.env, NODE_ENV: 'quantization' }
+            env: { ...process.env, NODE_ENV: 'development' }
         });
         return new Promise((resolve, reject) => {
             proc.on('close', (code) => {

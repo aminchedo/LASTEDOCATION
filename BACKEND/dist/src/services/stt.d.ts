@@ -18,9 +18,9 @@ export declare const STTRequestSchema: z.ZodObject<{
 }, {
     audio?: string | undefined;
     language?: string | undefined;
-    audioFile?: string | undefined;
     format?: "wav" | "ogg" | "mp3" | undefined;
     sampleRate?: number | undefined;
+    audioFile?: string | undefined;
 }>;
 export declare const STTResponseSchema: z.ZodObject<{
     text: z.ZodString;
