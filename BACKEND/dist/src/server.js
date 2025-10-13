@@ -12,6 +12,8 @@ const bootstrap_1 = __importDefault(require("./routes/bootstrap"));
 const sources_1 = __importDefault(require("./routes/sources"));
 const monitoring_1 = __importDefault(require("./routes/monitoring"));
 const models_1 = __importDefault(require("./routes/models"));
+const datasets_1 = __importDefault(require("./routes/datasets"));
+const offlineTraining_1 = __importDefault(require("./routes/offlineTraining"));
 const auth_1 = __importDefault(require("./routes/auth"));
 const chat_1 = __importDefault(require("./routes/chat"));
 const stt_1 = __importDefault(require("./routes/stt"));
@@ -30,12 +32,15 @@ app.use(express_1.default.json({ limit: '10mb' }));
 app.use('/api/auth', auth_1.default);
 app.use('/api/chat', auth_2.authenticateToken, chat_1.default);
 app.use('/api/train', auth_2.authenticateToken, train_1.default);
+app.use('/api/training', auth_2.authenticateToken, train_1.default);
 app.use('/api/optimization', auth_2.authenticateToken, optimization_1.default);
 app.use('/api/bootstrap', auth_2.authenticateToken, bootstrap_1.default);
 app.use('/api/download', bootstrap_1.default); // برای compatibility
 app.use('/api/sources', auth_2.authenticateToken, sources_1.default);
 app.use('/api/monitoring', auth_2.authenticateToken, monitoring_1.default);
 app.use('/api/models', auth_2.authenticateToken, models_1.default);
+app.use('/api/datasets', datasets_1.default); // Dataset management
+app.use('/api/offline-training', offlineTraining_1.default); // Offline training
 app.use('/api/v1', simple_proxy_1.default); // Download proxy routes
 // Routes گم‌شده - اضافه شده
 app.use('/api/stt', stt_1.default); // Speech-to-Text (Public - بدون auth)
