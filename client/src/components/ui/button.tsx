@@ -1,5 +1,6 @@
 import React from 'react';
 import { cn } from '../../lib/utils';
+import { Icons } from '../../shared/components/icons';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     variant?: 'default' | 'primary' | 'secondary' | 'outline' | 'destructive' | 'ghost' | 'link' | 'soft' | 'danger';
@@ -15,6 +16,7 @@ export function Button({
     size = 'default',
     icon,
     loading,
+    disabled,
     children,
     ...props
 }: ButtonProps) {
@@ -47,9 +49,11 @@ export function Button({
                 sizes[size],
                 className
             )}
+            disabled={disabled || loading}
             {...props}
         >
-            {icon && <span className="mr-2">{icon}</span>}
+            {loading && <Icons.spinner className="w-4 h-4 mr-2 animate-spin" />}
+            {!loading && icon && <span className="mr-2">{icon}</span>}
             {children}
         </button>
     );

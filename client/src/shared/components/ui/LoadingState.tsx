@@ -1,71 +1,70 @@
 import React from 'react';
-import { Skeleton } from './Skeleton';
+import { motion } from 'framer-motion';
+import { Icons } from '@/shared/components/icons';
+import { cn } from '@/lib/utils';
 
 interface LoadingStateProps {
-  type?: 'grid' | 'list' | 'table' | 'card';
-  count?: number;
+  message?: string;
+  size?: 'sm' | 'md' | 'lg';
+  variant?: 'spinner' | 'skeleton' | 'pulse';
   className?: string;
 }
 
-export function LoadingState({ type = 'grid', count = 6, className = '' }: LoadingStateProps) {
-  if (type === 'grid') {
+export function LoadingState({ 
+  message = 'در حال بارگذاری...', 
+  size = 'md',
+  variant = 'spinner',
+  className 
+}: LoadingStateProps) {
+  const sizeClasses = {
+    sm: 'w-4 h-4',
+    md: 'w-6 h-6',
+    lg: 'w-8 h-8'
+  };
+
+  if (variant === 'spinner') {
     return (
-      <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ${className}`}>
-        {Array.from({ length: count }).map((_, i) => (
-          <div key={i} className="bg-white dark:bg-gray-800 rounded-lg p-4 space-y-3">
-            <Skeleton className="h-4 w-3/4" />
-            <Skeleton className="h-3 w-full" />
-            <Skeleton className="h-3 w-5/6" />
-            <div className="flex gap-2 mt-4">
-              <Skeleton className="h-6 w-16 rounded-full" />
-              <Skeleton className="h-6 w-16 rounded-full" />
-            </div>
-          </div>
-        ))}
+      <div className={cn('flex-center flex-col gap-3', className)}>
+        <Icons.spinner className={cn('animate-spin text-primary', sizeClasses[size])} />
+        {message && <p className="text-sm text-muted-foreground">{message}</p>}
       </div>
     );
   }
 
-  if (type === 'list') {
+  if (variant === 'skeleton') {
     return (
-      <div className={`space-y-3 ${className}`}>
-        {Array.from({ length: count }).map((_, i) => (
-          <div key={i} className="bg-white dark:bg-gray-800 rounded-lg p-4">
-            <div className="flex items-start gap-4">
-              <Skeleton className="h-12 w-12 rounded-lg flex-shrink-0" />
-              <div className="flex-1 space-y-2">
-                <Skeleton className="h-4 w-1/3" />
-                <Skeleton className="h-3 w-full" />
-                <Skeleton className="h-3 w-2/3" />
-              </div>
-            </div>
-          </div>
-        ))}
+      <div className={cn('space-y-3', className)}>
+        <div className="h-4 bg-muted rounded animate-pulse" />
+        <div className="h-4 bg-muted rounded animate-pulse w-3/4" />
+        <div className="h-4 bg-muted rounded animate-pulse w-1/2" />
       </div>
     );
   }
 
-  if (type === 'table') {
-    return (
-      <div className={`space-y-2 ${className}`}>
-        {Array.from({ length: count }).map((_, i) => (
-          <div key={i} className="flex items-center gap-4 p-3 bg-white dark:bg-gray-800 rounded">
-            <Skeleton className="h-4 w-1/4" />
-            <Skeleton className="h-4 w-1/4" />
-            <Skeleton className="h-4 w-1/4" />
-            <Skeleton className="h-4 w-1/4" />
-          </div>
-        ))}
-      </div>
-    );
-  }
-
+  // pulse variant
   return (
-    <div className={`bg-white dark:bg-gray-800 rounded-lg p-6 ${className}`}>
-      <Skeleton className="h-6 w-1/4 mb-4" />
-      <Skeleton className="h-4 w-full mb-2" />
-      <Skeleton className="h-4 w-5/6 mb-2" />
-      <Skeleton className="h-4 w-4/6" />
+    <motion.div
+      initial={{ opacity: 0.5 }}
+      animate={{ opacity: 1 }}
+      transition={{ repeat: Infinity, duration: 1, repeatType: 'reverse' }}
+      className={cn('flex-center flex-col gap-3', className)}
+    >
+      <Icons.loader className={cn('text-primary', sizeClasses[size])} />
+      {message && <p className="text-sm text-muted-foreground">{message}</p>}
+    </motion.div>
+  );
+}
+
+// Inline spinner for buttons
+export function ButtonSpinner({ className }: { className?: string }) {
+  return <Icons.spinner className={cn('w-4 h-4 animate-spin', className)} />;
+}
+
+// Full page loader
+export function PageLoader({ message }: { message?: string }) {
+  return (
+    <div className="fixed inset-0 flex-center bg-background/80 backdrop-blur-sm z-50">
+      <LoadingState message={message} size="lg" />
     </div>
   );
 }

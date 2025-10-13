@@ -1,14 +1,14 @@
-import React, { ReactNode } from 'react';
-import { Button } from './Button';
+import React from 'react';
+import { motion } from 'framer-motion';
+import { Icons, IconName } from '@/shared/components/icons';
+import { Button } from '@/shared/components/ui/Button';
+import { cn } from '@/lib/utils';
+import { slideUp } from '@/shared/animations';
 
 interface EmptyStateProps {
-  message?: string;
-  children?: ReactNode;
-  icon?: any;
-  title?: string;
+  icon?: IconName;
+  title: string;
   description?: string;
-  illustration?: string;
-  size?: string;
   action?: {
     label: string;
     onClick: () => void;
@@ -16,30 +16,35 @@ interface EmptyStateProps {
   className?: string;
 }
 
-export function EmptyState({ 
-  message = 'No data available', 
-  children, 
-  icon: Icon, 
-  title, 
+export function EmptyState({
+  icon = 'database',
+  title,
   description,
   action,
-  className = '',
+  className
 }: EmptyStateProps) {
+  const Icon = Icons[icon];
+
   return (
-    <div className={`flex flex-col items-center justify-center py-12 text-center text-gray-500 dark:text-gray-400 ${className}`}>
-      {Icon && (
-        <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-full mb-4">
-          <Icon className="w-12 h-12 text-gray-400" />
-        </div>
+    <motion.div
+      {...slideUp}
+      className={cn('flex-center flex-col py-12 px-4 text-center', className)}
+    >
+      <div className="w-20 h-20 rounded-full bg-muted flex-center mb-4">
+        <Icon className="w-10 h-10 text-muted-foreground" />
+      </div>
+      <h3 className="text-h4 mb-2">{title}</h3>
+      {description && (
+        <p className="text-body text-muted-foreground max-w-md mb-6">
+          {description}
+        </p>
       )}
-      {title && <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{title}</h3>}
-      {description && <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 max-w-md">{description}</p>}
-      {children || <p>{message}</p>}
       {action && (
-        <Button onClick={action.onClick} variant="primary" className="mt-4">
+        <Button onClick={action.onClick} variant="default">
+          <Icons.plus className="w-4 h-4 mr-2" />
           {action.label}
         </Button>
       )}
-    </div>
+    </motion.div>
   );
 }
