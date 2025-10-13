@@ -13,6 +13,7 @@ const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
 const crypto_1 = require("crypto");
 const auth_1 = require("../middleware/auth");
+const websocket_service_1 = require("../services/websocket.service");
 const router = express_1.default.Router();
 // Ensure artifacts directory exists
 const ARTIFACTS_DIR = path_1.default.join(process.cwd(), "artifacts", "jobs");
@@ -292,6 +293,31 @@ router.get("/:jobId/download", auth_1.authenticateToken, (req, res) => {
             }
         }
     });
+});
+/**
+ * POST /api/training/internal/status-update
+ * Internal endpoint for Python training script to push status updates
+ * This endpoint is NOT authenticated as it's called by the training script
+ */
+router.post("/internal/status-update", express_1.default.json(), (req, res) => {
+    try {
+        const { job_id, status } = req.body;
+        if (!job_id || !status) {
+            return res.status(400).json({
+                ok: false,
+                error: "job_id and status are required"
+            });
+        }
+        // Emit to WebSocket clients
+        (0, websocket_service_1.emitJobUpdate)(job_id, status);
+        return res.json({ ok: true });
+    }
+    catch (error) {
+        return res.status(500).json({
+            ok: false,
+            error: error.message
+        });
+    }
 });
 exports.default = router;
 //# sourceMappingURL=training.js.map

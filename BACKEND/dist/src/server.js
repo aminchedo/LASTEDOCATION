@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 // server.ts
 const express_1 = __importDefault(require("express"));
+const http_1 = __importDefault(require("http"));
 const cors_1 = __importDefault(require("cors"));
 const train_1 = __importDefault(require("./routes/train"));
 const training_1 = __importDefault(require("./routes/training")); // Training job management API
@@ -26,6 +27,7 @@ const auth_2 = require("./middleware/auth");
 const simple_proxy_1 = __importDefault(require("./simple-proxy"));
 const logger_1 = require("./utils/logger");
 const env_1 = require("./config/env");
+const websocket_service_1 = require("./services/websocket.service");
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)({ origin: env_1.ENV.CORS_ORIGIN, credentials: true }));
 app.use(express_1.default.json({ limit: '10mb' }));
@@ -166,12 +168,20 @@ app.use((err, req, res, _next) => {
         timestamp: new Date().toISOString()
     });
 });
+// Create HTTP server
+const server = http_1.default.createServer(app);
+// Setup WebSocket
+const io = (0, websocket_service_1.setupWebSocket)(server);
+// Make io available to routes if needed
+app.set('io', io);
+// Start server
 const port = process.env.PORT ? Number(process.env.PORT) : 3001;
-app.listen(port, () => {
+server.listen(port, () => {
     logger_1.logger.info(`🚀 Persian Chat Backend API listening on port ${port}`);
     logger_1.logger.info(`📡 Health check: http://localhost:${port}/health`);
     logger_1.logger.info(`🔐 Auth endpoint: http://localhost:${port}/api/auth/login`);
     logger_1.logger.info(`💬 Chat endpoint: http://localhost:${port}/api/chat`);
+    logger_1.logger.info(`🔌 WebSocket server ready`);
     logger_1.logger.info(`🎯 All routes registered successfully`);
 });
 //# sourceMappingURL=server.js.map

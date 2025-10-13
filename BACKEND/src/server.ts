@@ -1,5 +1,6 @@
 // server.ts
 import express from 'express';
+import http from 'http';
 import cors from 'cors';
 import trainRouter from './routes/train';
 import trainingRouter from './routes/training'; // Training job management API
@@ -21,6 +22,7 @@ import { authenticateToken } from './middleware/auth';
 import downloadProxyRouter from './simple-proxy';
 import { logger } from './utils/logger';
 import { ENV } from './config/env';
+import { setupWebSocket } from './services/websocket.service';
 
 const app = express();
 app.use(cors({ origin: ENV.CORS_ORIGIN, credentials: true }));
@@ -178,11 +180,22 @@ app.use((err: any, req: express.Request, res: express.Response, _next: express.N
   });
 });
 
+// Create HTTP server
+const server = http.createServer(app);
+
+// Setup WebSocket
+const io = setupWebSocket(server);
+
+// Make io available to routes if needed
+app.set('io', io);
+
+// Start server
 const port = process.env.PORT ? Number(process.env.PORT) : 3001;
-app.listen(port, () => {
+server.listen(port, () => {
   logger.info(`🚀 Persian Chat Backend API listening on port ${port}`);
   logger.info(`📡 Health check: http://localhost:${port}/health`);
   logger.info(`🔐 Auth endpoint: http://localhost:${port}/api/auth/login`);
   logger.info(`💬 Chat endpoint: http://localhost:${port}/api/chat`);
+  logger.info(`🔌 WebSocket server ready`);
   logger.info(`🎯 All routes registered successfully`);
 });

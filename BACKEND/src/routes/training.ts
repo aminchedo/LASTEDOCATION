@@ -8,6 +8,7 @@ import path from "path";
 import fs from "fs";
 import { randomBytes } from "crypto";
 import { authenticateToken } from "../middleware/auth";
+import { emitJobUpdate } from "../services/websocket.service";
 
 const router = express.Router();
 
@@ -322,6 +323,34 @@ router.get("/:jobId/download", authenticateToken, (req: Request, res): any => {
       }
     }
   });
+});
+
+/**
+ * POST /api/training/internal/status-update
+ * Internal endpoint for Python training script to push status updates
+ * This endpoint is NOT authenticated as it's called by the training script
+ */
+router.post("/internal/status-update", express.json(), (req: Request, res): any => {
+  try {
+    const { job_id, status } = req.body;
+    
+    if (!job_id || !status) {
+      return res.status(400).json({
+        ok: false,
+        error: "job_id and status are required"
+      });
+    }
+
+    // Emit to WebSocket clients
+    emitJobUpdate(job_id, status);
+    
+    return res.json({ ok: true });
+  } catch (error: any) {
+    return res.status(500).json({
+      ok: false,
+      error: error.message
+    });
+  }
 });
 
 export default router;
