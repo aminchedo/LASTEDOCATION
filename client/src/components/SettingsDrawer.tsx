@@ -62,7 +62,11 @@ export function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps) {
         autoPlay: false,
       },
       aiModel: 'gpt-4',
-      models: [],
+      models: {
+        customFolders: [],
+        autoScan: true,
+        scanDepth: 2,
+      },
     };
     setLocalSettings(defaultSettings);
     setHasChanges(true);

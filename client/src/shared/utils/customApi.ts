@@ -1,12 +1,15 @@
 // Custom API utilities
 export const customApiUtils = {};
 
-export function validateApiUrl(url: string): boolean {
+export function validateApiUrl(url: string): { isValid: boolean; error?: string } {
   try {
-    new URL(url);
-    return true;
+    const parsedUrl = new URL(url);
+    if (!parsedUrl.protocol.startsWith('http')) {
+      return { isValid: false, error: 'URL must start with http:// or https://' };
+    }
+    return { isValid: true };
   } catch {
-    return false;
+    return { isValid: false, error: 'Invalid URL format' };
   }
 }
 
@@ -15,8 +18,13 @@ export function maskApiKey(key: string): string {
   return key.slice(0, 4) + '****' + key.slice(-4);
 }
 
-export async function copyToClipboard(text: string): Promise<void> {
-  await navigator.clipboard.writeText(text);
+export async function copyToClipboard(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function clearClipboardAfterDelay(delay: number = 30000): Promise<void> {
@@ -24,14 +32,19 @@ export async function clearClipboardAfterDelay(delay: number = 30000): Promise<v
   await navigator.clipboard.writeText('');
 }
 
-export async function testApiConnection(baseUrl: string, apiKey: string): Promise<boolean> {
+export async function testApiConnection(settings: { baseUrl: string; apiKey?: string }): Promise<{ success: boolean; error?: string }> {
   try {
-    const response = await fetch(`${baseUrl}/health`, {
-      headers: { Authorization: `Bearer ${apiKey}` }
-    });
-    return response.ok;
-  } catch {
-    return false;
+    const headers: Record<string, string> = {};
+    if (settings.apiKey) {
+      headers.Authorization = `Bearer ${settings.apiKey}`;
+    }
+    const response = await fetch(`${settings.baseUrl}/health`, { headers });
+    if (response.ok) {
+      return { success: true };
+    }
+    return { success: false, error: `Server returned status ${response.status}` };
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Connection failed' };
   }
 }
 
@@ -44,8 +57,9 @@ export function getModelTypeLabel(type: string): string {
   return labels[type] || type;
 }
 
-export function getModelTypeOptions(): Array<{value: string; label: string}> {
+export function getModelTypeOptions(): Array<{value: string | undefined; label: string}> {
   return [
+    { value: undefined, label: 'Auto-detect' },
     { value: 'openai', label: 'OpenAI' },
     { value: 'anthropic', label: 'Anthropic' },
     { value: 'custom', label: 'Custom' }
