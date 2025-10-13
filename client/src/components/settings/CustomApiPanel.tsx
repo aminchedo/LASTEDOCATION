@@ -32,13 +32,13 @@ import { setApiOverrides } from '@/shared/utils/api';
 import toast from 'react-hot-toast';
 
 export function CustomApiPanel() {
-  const { settings, updateCustomApi, res  const [formData, setFormData] = useState<CustomApiSettings>({
+  const { settings, updateCustomApi, resetCustomApi } = useAppSettings();
+  
+  const [formData, setFormData] = useState<CustomApiSettings>({
     enabled: false,
     baseUrl: '',
     apiKey: '',
     modelName: '',
-    modelType: undefined,
-  });e: '',
     modelType: undefined,
   });
   const [showApiKey, setShowApiKey] = useState(false);
@@ -112,7 +112,12 @@ export function CustomApiPanel() {
 
     const validation = validateApiUrl(formData.baseUrl);
     if (!validation.isValid) {
-      setUrlEr    setIsSaving(true);
+      setUrlError(validation.error || 'Invalid URL');
+      toast.error('لطفا یک URL معتبر وارد کنید');
+      return;
+    }
+
+    setIsSaving(true);
     try {
       const sanitizedData: CustomApiSettings = {
         enabled: true,
@@ -122,24 +127,22 @@ export function CustomApiPanel() {
         modelType: formData.modelType,
       };
 
-      updateCustomApi(sanitizedData);modelName?.trim() || undefined,
-        modelType: formData.modelType,
-      };
-
       updateCustomApi(sanitizedData);
       toast.success('تنظیمات API سفارشی ذخیره شد');
-    } catc  const handleReset = () => {
+    } catch (error: any) {
+      toast.error(`خطا در ذخیره تنظیمات: ${error.message}`);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleReset = () => {
     setFormData({
       enabled: false,
       baseUrl: '',
       apiKey: '',
       modelName: '',
       modelType: undefined,
-    });
-    resetCustomApi();
-    setUrlError(null);
-    toast.success('تنظیمات به حالت پیش‌فرض بازگردانده شد');
-  };elType: undefined,
     });
     resetCustomApi();
     setUrlError(null);

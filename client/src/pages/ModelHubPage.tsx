@@ -37,18 +37,21 @@ const typeLabels = {
 export function ModelHubPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<'model' | 'tts' | 'dataset' | ''>('');
-  const [activeTab, setActiveTab]  const { models, loading: modelsLoading } = useAvailableModels();efined,
+  const [activeTab, setActiveTab] = useState<'hub' | 'local'>('hub');
+  
+  const { models, loading: modelsLoading } = useAvailableModels(
+    selectedType || undefined,
     searchQuery || undefined
   );
   const { models: detectedModels, loading: detectedLoading } = useDetectedModels();
-  const { jobs, startDown  const handleDownload = async (model: Model) => {
+  const { jobs, startDownload, cancelDownload } = useDownloads();
+
+  const handleDownload = async (model: Model) => {
     try {
       await startDownload(model.url || '', `models/${model.id}`, model.type);
       toast.success(`دانلود ${model.name} شروع شد`);
     } catch (error: any) {
       toast.error(`خطا در شروع دانلود: ${error.message}`);
-    }
-  };طا در شروع دانلود: ${error.message}`);
     }
   };
 
@@ -365,10 +368,11 @@ export function ModelHubPage() {
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between">
                         <div className="flex items-start gap-3 flex-1">
-                          <div className={`w-10 h-10 rounded-lg ${model.isTrainedModel ? 'bg-gradient-to-br from-green-500 to-green-600' :
-                              model.type === 'tts' ? 'bg-gradient-to-br from-purple-500 to-purple-600' :
-                                'bg-gradient-to-br from-blue-500 to-blue-600'
-                            } flex items-center justify-center flex-shrink-0`}>
+                          <div className={`w-10 h-10 rounded-lg ${
+                            model.isTrainedModel ? 'bg-gradient-to-br from-green-500 to-green-600' :
+                            model.type === 'tts' ? 'bg-gradient-to-br from-purple-500 to-purple-600' :
+                            'bg-gradient-to-br from-blue-500 to-blue-600'
+                          } flex items-center justify-center flex-shrink-0`}>
                             <Icon className="w-5 h-5 text-white" />
                           </div>
                           <div className="flex-1 min-w-0">
@@ -479,4 +483,3 @@ export function ModelHubPage() {
 }
 
 export default ModelHubPage;
-
