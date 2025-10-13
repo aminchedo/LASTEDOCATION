@@ -1,6 +1,6 @@
 /**
- * Minimal, robust training job API
- * Provides simple endpoints for starting, stopping, and querying training jobs
+ * Training job API - Unified endpoint for training management
+ * Provides endpoints for starting, stopping, querying, and downloading training jobs
  */
 import express from "express";
 import { spawn, ChildProcess } from "child_process";
@@ -12,8 +12,13 @@ const router = express.Router();
 
 // Ensure artifacts directory exists
 const ARTIFACTS_DIR = path.join(process.cwd(), "artifacts", "jobs");
+const MODELS_DIR = path.join(process.cwd(), "models");
+
 if (!fs.existsSync(ARTIFACTS_DIR)) {
   fs.mkdirSync(ARTIFACTS_DIR, { recursive: true });
+}
+if (!fs.existsSync(MODELS_DIR)) {
+  fs.mkdirSync(MODELS_DIR, { recursive: true });
 }
 
 // In-memory process tracking
@@ -44,7 +49,7 @@ function readStatus(jobId: string): any | null {
 }
 
 /**
- * POST /api/train
+ * POST /api/training
  * Start a new training job
  * 
  * Body params:
@@ -53,7 +58,7 @@ function readStatus(jobId: string): any | null {
  * - batch_size: batch size (default: 16)
  * - lr: learning rate (default: 0.01)
  */
-router.post("/train", express.json(), (req, res): any => {
+router.post("/", express.json(), (req, res): any => {
   try {
     const params = req.body || {};
     const jobId = `job_${Date.now()}_${randomBytes(4).toString("hex")}`;
@@ -135,10 +140,10 @@ router.post("/train", express.json(), (req, res): any => {
 });
 
 /**
- * GET /api/train/status?job_id=xxx
+ * GET /api/training/status?job_id=xxx
  * Get status of a training job
  */
-router.get("/train/status", (req, res): any => {
+router.get("/status", (req, res): any => {
   const jobId = String(req.query.job_id || "");
   
   if (!jobId) {
@@ -179,14 +184,11 @@ router.get("/train/status", (req, res): any => {
 });
 
 /**
- * POST /api/train/stop
+ * POST /api/training/:jobId/stop
  * Stop a running training job
- * 
- * Body params:
- * - job_id: job identifier
  */
-router.post("/train/stop", express.json(), (req, res): any => {
-  const jobId = String((req.body && req.body.job_id) || req.query.job_id || "");
+router.post("/:jobId/stop", express.json(), (req, res): any => {
+  const jobId = req.params.jobId || String((req.body && req.body.job_id) || "");
   
   if (!jobId) {
     return res.status(400).json({
@@ -236,10 +238,10 @@ router.post("/train/stop", express.json(), (req, res): any => {
 });
 
 /**
- * GET /api/train/jobs
+ * GET /api/training/jobs
  * List all training jobs
  */
-router.get("/train/jobs", (req, res): any => {
+router.get("/jobs", (req, res): any => {
   try {
     const files = fs.readdirSync(ARTIFACTS_DIR);
     const jobs = files
@@ -265,6 +267,60 @@ router.get("/train/jobs", (req, res): any => {
       error: String(err.message || err)
     });
   }
+});
+
+/**
+ * GET /api/training/:jobId/download
+ * Download trained model
+ */
+router.get("/:jobId/download", (req, res): any => {
+  const jobId = req.params.jobId;
+  
+  if (!jobId) {
+    return res.status(400).json({
+      ok: false,
+      error: "job_id parameter required"
+    });
+  }
+
+  // Check job status first
+  const status = readStatus(jobId);
+  if (!status) {
+    return res.status(404).json({
+      ok: false,
+      error: "Job not found"
+    });
+  }
+
+  if (status.status !== "COMPLETED") {
+    return res.status(400).json({
+      ok: false,
+      error: `Job is not completed yet. Current status: ${status.status}`
+    });
+  }
+
+  // Try to find the model file
+  const modelPath = path.join(MODELS_DIR, `${jobId}.pt`);
+  
+  if (!fs.existsSync(modelPath)) {
+    return res.status(404).json({
+      ok: false,
+      error: "Model file not found"
+    });
+  }
+
+  // Send the file
+  res.download(modelPath, `${jobId}.pt`, (err) => {
+    if (err) {
+      console.error("Download error:", err);
+      if (!res.headersSent) {
+        res.status(500).json({
+          ok: false,
+          error: "Failed to download model"
+        });
+      }
+    }
+  });
 });
 
 export default router;

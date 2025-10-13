@@ -2,7 +2,7 @@
 import express from 'express';
 import cors from 'cors';
 import trainRouter from './routes/train';
-import trainJobsAPI from './routes/trainJobsAPI'; // NEW: Simple job management API
+import trainingRouter from './routes/training'; // Training job management API
 import optimizationRouter from './routes/optimization';
 import bootstrapRouter from './routes/bootstrap';
 import sourcesRouter from './routes/sources';
@@ -30,12 +30,11 @@ app.use(express.json({ limit: '10mb' }));
 app.use('/api/auth', authRouter);
 app.use('/api/chat', authenticateToken, chatRouter);
 
-// NEW: Mount simple job API (can work without auth for testing)
-app.use('/api', trainJobsAPI);
+// Training API - unified endpoint
+app.use('/api/training', trainingRouter);
 
-// Original train routes
+// Legacy train routes (kept for backward compatibility, will be deprecated)
 app.use('/api/train', authenticateToken, trainRouter);
-app.use('/api/training', authenticateToken, trainRouter);
 app.use('/api/optimization', authenticateToken, optimizationRouter);
 app.use('/api/bootstrap', authenticateToken, bootstrapRouter);
 app.use('/api/download', bootstrapRouter); // برای compatibility

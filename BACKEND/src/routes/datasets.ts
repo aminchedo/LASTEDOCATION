@@ -131,7 +131,64 @@ function formatBytes(bytes: number): string {
   return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
 }
 
-// GET /api/datasets/list - List all datasets
+// GET /api/datasets - List all datasets
+router.get('/', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const dataDir = path.join(process.cwd(), 'data', 'datasets');
+    
+    try {
+      await fs.mkdir(dataDir, { recursive: true });
+    } catch (e) {
+      // Directory might already exist
+    }
+    
+    // Check for metadata file
+    const metadataPath = path.join(dataDir, 'metadata.json');
+    let datasets: any[] = [];
+    
+    try {
+      const metadataContent = await fs.readFile(metadataPath, 'utf-8');
+      datasets = JSON.parse(metadataContent);
+    } catch (e) {
+      // Metadata file doesn't exist or is invalid, scan directory
+      const files = await fs.readdir(dataDir);
+      
+      for (const file of files) {
+        if (file === 'metadata.json') continue;
+        if (file.endsWith('.jsonl') || file.endsWith('.json') || file.endsWith('.csv')) {
+          const filePath = path.join(dataDir, file);
+          const stats = await fs.stat(filePath);
+          datasets.push({
+            id: Date.now().toString() + '-' + file.replace(/\.(jsonl|json|csv)$/, ''),
+            name: file,
+            filename: file,
+            path: filePath,
+            size: stats.size,
+            type: path.extname(file).slice(1),
+            uploaded_at: stats.birthtime.toISOString()
+          });
+        }
+      }
+      
+      // Save metadata for future use
+      if (datasets.length > 0) {
+        await fs.writeFile(metadataPath, JSON.stringify(datasets, null, 2));
+      }
+    }
+    
+    res.json({
+      ok: true,
+      datasets: datasets
+    });
+    return;
+  } catch (error: any) {
+    logger.error(`Failed to list datasets: ${error.message}`);
+    res.status(500).json({ ok: false, error: error.message });
+    return;
+  }
+});
+
+// GET /api/datasets/list - Backward compatibility
 router.get('/list', async (req: Request, res: Response): Promise<void> => {
   try {
     const dataDir = path.join(process.cwd(), 'data', 'datasets');
@@ -146,6 +203,7 @@ router.get('/list', async (req: Request, res: Response): Promise<void> => {
     const datasets: any[] = [];
     
     for (const file of files) {
+      if (file === 'metadata.json') continue;
       if (file.endsWith('.jsonl') || file.endsWith('.json')) {
         const filePath = path.join(dataDir, file);
         const metadata = await generateDatasetMetadata(filePath);
@@ -171,53 +229,56 @@ router.get('/list', async (req: Request, res: Response): Promise<void> => {
 });
 
 // POST /api/datasets/upload - Upload new dataset
-router.post('/upload', upload.single('dataset'), async (req: Request, res: Response): Promise<void> => {
+router.post('/upload', upload.single('file'), async (req: Request, res: Response): Promise<void> => {
   try {
     if (!req.file) {
-      res.status(400).json({ success: false, error: 'No file uploaded' });
+      res.status(400).json({ ok: false, error: 'No file uploaded' });
       return;
     }
     
     logger.info(`Dataset upload started: ${req.file.originalname} (${req.file.size} bytes)`);
     
-    // Validate dataset
-    const validation = await validateDataset(req.file.path);
-    
-    if (!validation.valid) {
-      await fs.unlink(req.file.path); // Delete invalid file
-      res.status(400).json({
-        success: false,
-        error: 'Invalid dataset format',
-        details: validation.errors
-      });
-      return;
-    }
-    
-    // Move to permanent storage
     const dataDir = path.join(process.cwd(), 'data', 'datasets');
     await fs.mkdir(dataDir, { recursive: true });
     
-    const finalPath = path.join(dataDir, req.file.originalname);
+    // Generate unique filename
+    const timestamp = Date.now();
+    const uniqueName = `${timestamp}-${req.file.originalname}`;
+    const finalPath = path.join(dataDir, uniqueName);
+    
+    // Move file to permanent storage
     await fs.rename(req.file.path, finalPath);
     
-    // Generate metadata
-    const metadata = await generateDatasetMetadata(finalPath);
+    // Create dataset metadata
+    const dataset = {
+      id: timestamp.toString(),
+      name: req.body.name || req.file.originalname,
+      filename: uniqueName,
+      path: finalPath,
+      size: req.file.size,
+      type: path.extname(req.file.originalname).slice(1),
+      uploaded_at: new Date().toISOString()
+    };
     
-    logger.info(`Dataset uploaded successfully: ${req.file.originalname} (${validation.validLines} lines)`);
+    // Update metadata file
+    const metadataPath = path.join(dataDir, 'metadata.json');
+    let datasets: any[] = [];
+    
+    try {
+      const content = await fs.readFile(metadataPath, 'utf-8');
+      datasets = JSON.parse(content);
+    } catch (e) {
+      // Metadata file doesn't exist yet
+    }
+    
+    datasets.push(dataset);
+    await fs.writeFile(metadataPath, JSON.stringify(datasets, null, 2));
+    
+    logger.info(`Dataset uploaded successfully: ${req.file.originalname}`);
     
     res.json({
-      success: true,
-      message: 'Dataset uploaded successfully',
-      data: {
-        id: req.file.originalname.replace(/\.(jsonl|json)$/, ''),
-        path: finalPath,
-        metadata: metadata,
-        validation: {
-          totalLines: validation.totalLines,
-          validLines: validation.validLines,
-          errorCount: validation.errors.length
-        }
-      }
+      ok: true,
+      dataset: dataset
     });
     return;
   } catch (error: any) {
@@ -232,7 +293,7 @@ router.post('/upload', upload.single('dataset'), async (req: Request, res: Respo
       }
     }
     
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ ok: false, error: error.message });
     return;
   }
 });
@@ -299,8 +360,87 @@ router.get('/validate/:datasetId', async (req: Request, res: Response): Promise<
   }
 });
 
-// DELETE /api/datasets/:datasetId - Delete dataset
-router.delete('/:datasetId', async (req: Request, res: Response): Promise<void> => {
+// GET /api/datasets/:id - Get dataset by ID
+router.get('/:id', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const metadataPath = path.join(process.cwd(), 'data', 'datasets', 'metadata.json');
+    
+    if (!(await fs.stat(metadataPath).catch(() => null))) {
+      res.status(404).json({ ok: false, error: 'Dataset not found' });
+      return;
+    }
+    
+    const content = await fs.readFile(metadataPath, 'utf-8');
+    const datasets = JSON.parse(content);
+    const dataset = datasets.find((d: any) => d.id === id);
+    
+    if (!dataset) {
+      res.status(404).json({ ok: false, error: 'Dataset not found' });
+      return;
+    }
+    
+    res.json({
+      ok: true,
+      dataset: dataset
+    });
+    return;
+  } catch (error: any) {
+    logger.error(`Failed to get dataset ${req.params.id}: ${error.message}`);
+    res.status(500).json({ ok: false, error: error.message });
+    return;
+  }
+});
+
+// DELETE /api/datasets/:id - Delete dataset
+router.delete('/:id', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const dataDir = path.join(process.cwd(), 'data', 'datasets');
+    const metadataPath = path.join(dataDir, 'metadata.json');
+    
+    if (!(await fs.stat(metadataPath).catch(() => null))) {
+      res.status(404).json({ ok: false, error: 'Dataset not found' });
+      return;
+    }
+    
+    const content = await fs.readFile(metadataPath, 'utf-8');
+    let datasets = JSON.parse(content);
+    const dataset = datasets.find((d: any) => d.id === id);
+    
+    if (!dataset) {
+      res.status(404).json({ ok: false, error: 'Dataset not found' });
+      return;
+    }
+    
+    // Delete file
+    const datasetPath = path.join(dataDir, dataset.filename);
+    try {
+      await fs.unlink(datasetPath);
+    } catch (e) {
+      logger.warn(`Failed to delete file ${dataset.filename}: ${(e as any).message}`);
+    }
+    
+    // Remove from metadata
+    datasets = datasets.filter((d: any) => d.id !== id);
+    await fs.writeFile(metadataPath, JSON.stringify(datasets, null, 2));
+    
+    logger.info(`Dataset deleted: ${id}`);
+    
+    res.json({
+      ok: true,
+      message: 'Dataset deleted successfully'
+    });
+    return;
+  } catch (error: any) {
+    logger.error(`Dataset deletion failed for ${req.params.id}: ${error.message}`);
+    res.status(500).json({ ok: false, error: error.message });
+    return;
+  }
+});
+
+// DELETE /api/datasets/:datasetId - Backward compatibility
+router.delete('/legacy/:datasetId', async (req: Request, res: Response): Promise<void> => {
   try {
     const { datasetId } = req.params;
     const datasetPath = path.join(process.cwd(), 'data', 'datasets', `${datasetId}.jsonl`);
