@@ -130,14 +130,15 @@ function formatBytes(bytes: number): string {
 /**
  * Get disk usage (Linux only)
  */
-export async function getDiskUsage(req: Request, res: Response) {
+export async function getDiskUsage(req: Request, res: Response): Promise<void> {
   try {
     if (os.platform() !== 'linux') {
-      return res.json({
+      res.json({
         status: 'success',
         message: 'Disk usage only available on Linux',
         data: null,
       });
+      return;
     }
 
     const { stdout } = await execAsync('df -h /');

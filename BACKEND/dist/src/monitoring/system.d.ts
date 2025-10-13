@@ -44,7 +44,7 @@ export declare function getSystemMetrics(req: Request, res: Response): Promise<v
 /**
  * Get disk usage (Linux only)
  */
-export declare function getDiskUsage(req: Request, res: Response): Promise<Response<any, Record<string, any>> | undefined>;
+export declare function getDiskUsage(req: Request, res: Response): Promise<void>;
 declare const _default: {
     getSystemMetrics: typeof getSystemMetrics;
     getDiskUsage: typeof getDiskUsage;

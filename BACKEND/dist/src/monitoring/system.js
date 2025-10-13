@@ -94,11 +94,12 @@ function formatBytes(bytes) {
 async function getDiskUsage(req, res) {
     try {
         if (os_1.default.platform() !== 'linux') {
-            return res.json({
+            res.json({
                 status: 'success',
                 message: 'Disk usage only available on Linux',
                 data: null,
             });
+            return;
         }
         const { stdout } = await execAsync('df -h /');
         const lines = stdout.trim().split('\n');

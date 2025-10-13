@@ -5,14 +5,14 @@ import { ENV } from './env';
 
 // Mock Sentry for when it's not installed
 const Sentry = {
-  init: () => {},
-  captureException: () => {},
-  captureMessage: () => {},
-  setUser: () => {},
-  setContext: () => {},
+  init: (_options?: any) => {},
+  captureException: (_error: any) => {},
+  captureMessage: (_message: string, _level?: any) => {},
+  setUser: (_user: any) => {},
+  setContext: (_name: string, _context: any) => {},
   Integrations: {
-    Http: class { constructor() {} },
-    Express: class { constructor() {} },
+    Http: class { constructor(_options?: any) {} },
+    Express: class { constructor(_options?: any) {} },
   },
   SeverityLevel: {} as any,
 };
@@ -35,18 +35,18 @@ export function initSentry() {
     
     // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
     // We recommend adjusting this value in production
-    tracesSampleRate: env.NODE_ENV === 'production' ? 0.1 : 1.0,
+    tracesSampleRate: ENV.NODE_ENV === 'production' ? 0.1 : 1.0,
     
     // Set profilesSampleRate to 1.0 to profile every transaction.
     // Since profilesSampleRate is relative to tracesSampleRate,
     // the final profiling rate can be computed as tracesSampleRate * profilesSampleRate
-    profilesSampleRate: env.NODE_ENV === 'production' ? 0.1 : 1.0,
+    profilesSampleRate: ENV.NODE_ENV === 'production' ? 0.1 : 1.0,
     
     integrations: [
       // Automatically instrument Node.js libraries and frameworks
-      new Sentry.Integrations.Http({ tracing: true }),
-      new Sentry.Integrations.Express({ app: true }),
-      new ProfilingIntegration(),
+      // Commented out - requires @sentry/node package installed
+      // new Sentry.Integrations.Http({ tracing: true }),
+      // new Sentry.Integrations.Express({ app: true }),
     ],
     
     // Ignore common errors
