@@ -98,6 +98,7 @@ const ChatPage = lazy(() => import('@/pages/NewPersianChatPage'));
 const NotificationsPage = lazy(() => import('@/pages/NotificationsPage'));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
 const LoginPage = lazy(() => import('@/pages/LoginPage'));
+const Dashboard = lazy(() => import('@/pages/Dashboard'));
 
 // New consolidated hub pages
 const ModelsHubPage = lazy(() => import('@/pages/ModelsHubPage'));
@@ -156,6 +157,7 @@ function AppContent() {
                       <Route path="/models" element={<ModelsHubPage />} />
                       <Route path="/playground" element={<PlaygroundHubPage />} />
                       <Route path="/training" element={<TrainingHubPage />} />
+                      <Route path="/dashboard" element={<Dashboard />} />
                       <Route path="/settings" element={<SettingsPage />} />
                       <Route path="/chat" element={<ChatPage />} />
                       <Route path="/notifications" element={<NotificationsPage />} />
