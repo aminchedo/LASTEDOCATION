@@ -46,7 +46,7 @@ async function startRealTraining(runId: string, config: {
         '--run-id', runId
       ];
 
-      logger.info({ args }, 'Starting real PyTorch training');
+      logger.info(`Starting real PyTorch training with args: ${JSON.stringify(args)}`);
 
       // Start Python training process
       const pythonProcess = spawn('python3', args, {

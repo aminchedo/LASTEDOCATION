@@ -1,0 +1,19 @@
+total 272
+drwxr-xr-x  5 ubuntu ubuntu   4096 Oct 13 01:19 .
+drwxr-xr-x 15 ubuntu ubuntu   4096 Oct 13 01:39 ..
+-rw-r--r--  1 ubuntu ubuntu    620 Oct 13 01:19 Dockerfile
+-rw-r--r--  1 ubuntu ubuntu    310 Oct 13 01:13 .env.example
+-rw-r--r--  1 ubuntu ubuntu    278 Oct 11 09:58 .env.production
+-rw-r--r--  1 ubuntu ubuntu    663 Oct 11 09:58 .eslintrc.cjs
+-rw-r--r--  1 ubuntu ubuntu   1202 Oct 11 09:58 index.html
+-rw-r--r--  1 ubuntu ubuntu   1577 Oct 13 01:13 package.json
+-rw-r--r--  1 ubuntu ubuntu 205705 Oct 13 01:13 package-lock.json
+-rw-r--r--  1 ubuntu ubuntu     89 Oct 11 09:58 postcss.config.cjs
+drwxr-xr-x  2 ubuntu ubuntu   4096 Oct 13 01:13 public
+drwxr-xr-x  2 ubuntu ubuntu   4096 Oct 11 09:58 scripts
+drwxr-xr-x 16 ubuntu ubuntu   4096 Oct 13 01:13 src
+-rw-r--r--  1 ubuntu ubuntu   2374 Oct 11 09:58 tailwind.config.ts
+-rw-r--r--  1 ubuntu ubuntu    798 Oct 13 01:13 tsconfig.json
+-rw-r--r--  1 ubuntu ubuntu    233 Oct 11 09:58 tsconfig.node.json
+-rw-r--r--  1 ubuntu ubuntu    829 Oct 11 09:58 UI_UPDATE_REPORT.md
+-rw-r--r--  1 ubuntu ubuntu   1340 Oct 11 09:58 vite.config.ts

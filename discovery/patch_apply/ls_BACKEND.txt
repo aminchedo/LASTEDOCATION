@@ -1,0 +1,27 @@
+total 396
+drwxr-xr-x  8 ubuntu ubuntu   4096 Oct 13 01:19 .
+drwxr-xr-x 15 ubuntu ubuntu   4096 Oct 13 01:39 ..
+-rw-r--r--  1 ubuntu ubuntu      0 Oct 11 09:58 {
+-rw-r--r--  1 ubuntu ubuntu   7814 Oct 13 01:13 API_ENDPOINTS.md
+-rw-r--r--  1 ubuntu ubuntu  13874 Oct 13 01:13 API_TESTING_REPORT.md
+-rw-r--r--  1 ubuntu ubuntu  11219 Oct 13 01:13 BACKEND_FIX_SUMMARY.md
+drwxr-xr-x  3 ubuntu ubuntu   4096 Oct 13 01:13 data
+drwxr-xr-x  3 ubuntu ubuntu   4096 Oct 13 01:13 dist
+-rw-r--r--  1 ubuntu ubuntu   1167 Oct 13 01:19 Dockerfile
+-rw-r--r--  1 ubuntu ubuntu  10144 Oct 13 01:13 DOWNLOAD_FIX_SUMMARY.md
+-rw-r--r--  1 ubuntu ubuntu  11546 Oct 13 01:13 DOWNLOAD_IMPLEMENTATION_FA.md
+-rw-r--r--  1 ubuntu ubuntu    475 Oct 13 01:13 .env.example
+-rw-r--r--  1 ubuntu ubuntu   7611 Oct 13 01:13 FINAL_SUMMARY.md
+-rw-r--r--  1 ubuntu ubuntu    666 Oct 13 01:13 jest.config.js
+drwxr-xr-x  2 ubuntu ubuntu   4096 Oct 13 01:13 logs
+-rw-r--r--  1 ubuntu ubuntu  12030 Oct 13 01:13 MODELS_README.md
+-rw-r--r--  1 ubuntu ubuntu   1560 Oct 13 01:13 package.json
+-rw-r--r--  1 ubuntu ubuntu 249560 Oct 13 01:13 package-lock.json
+-rw-r--r--  1 ubuntu ubuntu   3433 Oct 13 01:13 QUICK_REFERENCE.md
+-rw-r--r--  1 ubuntu ubuntu   4401 Oct 13 01:13 README.md
+-rw-r--r--  1 ubuntu ubuntu   1091 Oct 13 01:13 run-backend-frontend.bat
+drwxr-xr-x  2 ubuntu ubuntu   4096 Oct 11 09:58 scripts
+drwxr-xr-x 10 ubuntu ubuntu   4096 Oct 13 01:13 src
+drwxr-xr-x  2 ubuntu ubuntu   4096 Oct 13 01:13 tests
+-rw-r--r--  1 ubuntu ubuntu     68 Oct 11 09:58 training_state.json
+-rw-r--r--  1 ubuntu ubuntu   1024 Oct 13 01:13 tsconfig.json

@@ -143,7 +143,7 @@ router.get('/list', async (req: Request, res: Response): Promise<void> => {
     }
     
     const files = await fs.readdir(dataDir);
-    const datasets = [];
+    const datasets: any[] = [];
     
     for (const file of files) {
       if (file.endsWith('.jsonl') || file.endsWith('.json')) {
@@ -164,7 +164,7 @@ router.get('/list', async (req: Request, res: Response): Promise<void> => {
     });
     return;
   } catch (error: any) {
-    logger.error({ error: error.message }, 'Failed to list datasets');
+    logger.error(`Failed to list datasets: ${error.message}`);
     res.status(500).json({ success: false, error: error.message });
     return;
   }
@@ -178,7 +178,7 @@ router.post('/upload', upload.single('dataset'), async (req: Request, res: Respo
       return;
     }
     
-    logger.info({ file: req.file.originalname, size: req.file.size }, 'Dataset upload started');
+    logger.info(`Dataset upload started: ${req.file.originalname} (${req.file.size} bytes)`);
     
     // Validate dataset
     const validation = await validateDataset(req.file.path);
@@ -203,7 +203,7 @@ router.post('/upload', upload.single('dataset'), async (req: Request, res: Respo
     // Generate metadata
     const metadata = await generateDatasetMetadata(finalPath);
     
-    logger.info({ file: req.file.originalname, lines: validation.validLines }, 'Dataset uploaded successfully');
+    logger.info(`Dataset uploaded successfully: ${req.file.originalname} (${validation.validLines} lines)`);
     
     res.json({
       success: true,
@@ -221,7 +221,7 @@ router.post('/upload', upload.single('dataset'), async (req: Request, res: Respo
     });
     return;
   } catch (error: any) {
-    logger.error({ error: error.message }, 'Dataset upload failed');
+    logger.error(`Dataset upload failed: ${error.message}`);
     
     // Clean up uploaded file on error
     if (req.file && req.file.path) {
@@ -273,7 +273,7 @@ router.get('/preview/:datasetId', async (req: Request, res: Response): Promise<v
     });
     return;
   } catch (error: any) {
-    logger.error({ error: error.message, datasetId: req.params.datasetId }, 'Dataset preview failed');
+    logger.error(`Dataset preview failed for ${req.params.datasetId}: ${error.message}`);
     res.status(500).json({ success: false, error: error.message });
     return;
   }
@@ -293,7 +293,7 @@ router.get('/validate/:datasetId', async (req: Request, res: Response): Promise<
     });
     return;
   } catch (error: any) {
-    logger.error({ error: error.message, datasetId: req.params.datasetId }, 'Dataset validation failed');
+    logger.error(`Dataset validation failed for ${req.params.datasetId}: ${error.message}`);
     res.status(500).json({ success: false, error: error.message });
     return;
   }
@@ -307,7 +307,7 @@ router.delete('/:datasetId', async (req: Request, res: Response): Promise<void> 
     
     await fs.unlink(datasetPath);
     
-    logger.info({ datasetId }, 'Dataset deleted');
+    logger.info(`Dataset deleted: ${datasetId}`);
     
     res.json({
       success: true,
@@ -315,7 +315,7 @@ router.delete('/:datasetId', async (req: Request, res: Response): Promise<void> 
     });
     return;
   } catch (error: any) {
-    logger.error({ error: error.message, datasetId: req.params.datasetId }, 'Dataset deletion failed');
+    logger.error(`Dataset deletion failed for ${req.params.datasetId}: ${error.message}`);
     res.status(500).json({ success: false, error: error.message });
     return;
   }
@@ -345,7 +345,7 @@ router.get('/stats/:datasetId', async (req: Request, res: Response): Promise<voi
     });
     return;
   } catch (error: any) {
-    logger.error({ error: error.message, datasetId: req.params.datasetId }, 'Failed to get dataset stats');
+    logger.error(`Failed to get dataset stats for ${req.params.datasetId}: ${error.message}`);
     res.status(500).json({ success: false, error: error.message });
     return;
   }
