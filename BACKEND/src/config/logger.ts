@@ -1,5 +1,5 @@
 import winston from 'winston';
-import { env } from './env';
+import { ENV } from './env';
 
 // Define log levels
 const levels = {

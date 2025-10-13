@@ -1,19 +1,37 @@
-import * as Sentry from '@sentry/node';
-import { ProfilingIntegration } from '@sentry/profiling-node';
-import { env } from './env';
+// Sentry is optional - install with: npm install @sentry/node @sentry/profiling-node
+// import * as Sentry from '@sentry/node';
+// import { ProfilingIntegration } from '@sentry/profiling-node';
+import { ENV } from './env';
+
+// Mock Sentry for when it's not installed
+const Sentry = {
+  init: () => {},
+  captureException: () => {},
+  captureMessage: () => {},
+  setUser: () => {},
+  setContext: () => {},
+  Integrations: {
+    Http: class { constructor() {} },
+    Express: class { constructor() {} },
+  },
+  SeverityLevel: {} as any,
+};
+
+type SeverityLevel = 'fatal' | 'error' | 'warning' | 'log' | 'info' | 'debug';
 
 /**
  * Initialize Sentry for error tracking and performance monitoring
  */
 export function initSentry() {
-  if (!env.SENTRY_DSN) {
+  const SENTRY_DSN = process.env.SENTRY_DSN;
+  if (!SENTRY_DSN) {
     console.log('⚠️  Sentry DSN not configured - error tracking disabled');
     return;
   }
 
   Sentry.init({
-    dsn: env.SENTRY_DSN,
-    environment: env.NODE_ENV,
+    dsn: SENTRY_DSN,
+    environment: ENV.NODE_ENV,
     
     // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
     // We recommend adjusting this value in production
@@ -56,8 +74,8 @@ export function captureException(error: Error, context?: Record<string, any>) {
 /**
  * Capture a message and send to Sentry
  */
-export function captureMessage(message: string, level: Sentry.SeverityLevel = 'info') {
-  Sentry.captureMessage(message, level);
+export function captureMessage(message: string, level: SeverityLevel = 'info') {
+  Sentry.captureMessage(message, level as any);
 }
 
 /**
