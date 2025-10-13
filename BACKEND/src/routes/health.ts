@@ -423,7 +423,7 @@ router.get('/ready', async (req: Request, res: Response): Promise<void> => {
 
 /**
  * GET /health/detailed
- * Detailed health check with simplified format for monitoring dashboard
+ * Detailed health check with comprehensive metrics for monitoring dashboard
  */
 router.get('/detailed', async (req: Request, res: Response): Promise<void> => {
   try {
@@ -434,32 +434,38 @@ router.get('/detailed', async (req: Request, res: Response): Promise<void> => {
       Promise.resolve(checkMemory())
     ]);
     
-    const checks = {
-      database: {
+    // Format checks for dashboard compatibility (array format)
+    const checks = [
+      {
+        componentName: 'database',
         status: database.status === 'healthy' ? 'pass' : 'fail',
         responseTime: database.latency || 0,
-        message: database.message
+        output: database.message
       },
-      filesystem: {
+      {
+        componentName: 'filesystem',
         status: filesystem.status === 'healthy' ? 'pass' : 'fail',
-        responseTime: 2,
-        message: filesystem.message
+        responseTime: 0,
+        output: filesystem.message
       },
-      memory: {
+      {
+        componentName: 'memory',
         status: memory.status === 'healthy' ? 'pass' : 'fail',
-        message: memory.message
+        output: memory.message
       },
-      disk: {
-        status: filesystem.status === 'healthy' ? 'pass' : 'fail'
+      {
+        componentName: 'diskSpace',
+        status: filesystem.status === 'healthy' ? 'pass' : 'fail',
+        output: filesystem.details?.diskSpace?.available 
+          ? `Available: ${filesystem.details.diskSpace.available}`
+          : 'Disk space OK'
       }
-    };
+    ];
+
+    const overallStatus = checks.every(c => c.status === 'pass') ? 'healthy' : 
+                         checks.some(c => c.status === 'fail') ? 'unhealthy' : 'degraded';
     
-    const overallStatus = database.status === 'healthy' && filesystem.status === 'healthy' && memory.status === 'healthy' 
-      ? 'healthy' 
-      : database.status === 'unhealthy' || filesystem.status === 'unhealthy' || memory.status === 'unhealthy'
-      ? 'unhealthy'
-      : 'degraded';
-    
+    // Additional metrics for enhanced monitoring
     const totalMem = os.totalmem();
     const freeMem = os.freemem();
     const usedMem = totalMem - freeMem;
@@ -467,11 +473,10 @@ router.get('/detailed', async (req: Request, res: Response): Promise<void> => {
     
     const loadAvg = os.loadavg();
     const cpuUsage = loadAvg[0] / os.cpus().length * 100;
-    
-    res.status(200).json({
-      success: true,
+
+    res.json({
+      status: overallStatus,
       data: {
-        status: overallStatus,
         checks,
         metrics: {
           system: {
@@ -491,9 +496,11 @@ router.get('/detailed', async (req: Request, res: Response): Promise<void> => {
     });
   } catch (error: any) {
     res.status(503).json({
-      success: false,
-      error: error.message,
-      timestamp: new Date().toISOString()
+      status: 'unhealthy',
+      data: {
+        checks: [],
+        error: error.message
+      }
     });
   }
 });

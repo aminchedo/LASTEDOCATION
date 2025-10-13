@@ -2,6 +2,7 @@
 import express from 'express';
 import http from 'http';
 import cors from 'cors';
+import path from 'path';
 import trainRouter from './routes/train';
 import trainingRouter from './routes/training'; // Training job management API
 import optimizationRouter from './routes/optimization';
@@ -31,8 +32,8 @@ const app = express();
 app.use(cors({ origin: ENV.CORS_ORIGIN, credentials: true }));
 app.use(express.json({ limit: '10mb' }));
 
-// Serve static files from public directory
-app.use(express.static('public'));
+// Serve static files from public directory (monitoring dashboard)
+app.use(express.static(path.join(__dirname, '../public')));
 
 // Setup Swagger API documentation
 setupSwagger(app);
