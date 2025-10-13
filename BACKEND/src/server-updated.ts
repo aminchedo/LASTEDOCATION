@@ -6,6 +6,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import { createServer } from 'http';
+import path from 'path';
 import { ENV } from './config/env';
 import { logger } from './middleware/logger';
 // Security Middlewares
@@ -54,6 +55,9 @@ app.use(morgan('combined', {
   },
   skip: (req) => req.path === '/health/live' // Skip health check spam
 }));
+
+// Serve static files from public directory (monitoring dashboard)
+app.use(express.static(path.join(__dirname, '../public')));
 
 // Rate limiting for public endpoints
 app.use('/health', publicLimiter);

@@ -7,6 +7,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const http_1 = __importDefault(require("http"));
 const cors_1 = __importDefault(require("cors"));
+const path_1 = __importDefault(require("path"));
 const train_1 = __importDefault(require("./routes/train"));
 const training_1 = __importDefault(require("./routes/training")); // Training job management API
 const optimization_1 = __importDefault(require("./routes/optimization"));
@@ -23,6 +24,8 @@ const tts_1 = __importDefault(require("./routes/tts"));
 const search_1 = __importDefault(require("./routes/search"));
 const notifications_1 = __importDefault(require("./routes/notifications"));
 const experiments_1 = __importDefault(require("./routes/experiments"));
+const settings_1 = __importDefault(require("./routes/settings"));
+const health_1 = __importDefault(require("./routes/health"));
 const auth_2 = require("./middleware/auth");
 const simple_proxy_1 = __importDefault(require("./simple-proxy"));
 const logger_1 = require("./utils/logger");
@@ -32,8 +35,12 @@ const swagger_1 = require("./swagger");
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)({ origin: env_1.ENV.CORS_ORIGIN, credentials: true }));
 app.use(express_1.default.json({ limit: '10mb' }));
+// Serve static files from public directory (monitoring dashboard)
+app.use(express_1.default.static(path_1.default.join(__dirname, '../public')));
 // Setup Swagger API documentation
 (0, swagger_1.setupSwagger)(app);
+// Health check routes (before authentication)
+app.use('/health', health_1.default);
 // Routeهای اصلی
 app.use('/api/auth', auth_1.default);
 app.use('/api/chat', auth_2.authenticateToken, chat_1.default);
@@ -56,6 +63,7 @@ app.use('/api/tts', tts_1.default); // Text-to-Speech (Public - بدون auth)
 app.use('/api/search', search_1.default); // Search Service (Public - بدون auth)
 app.use('/api/notifications', auth_2.authenticateToken, notifications_1.default); // Notifications (Protected)
 app.use('/api/experiments', auth_2.authenticateToken, experiments_1.default); // Experiments (Protected)
+app.use('/api/settings', settings_1.default); // Settings (Public - auth optional)
 // Routeهای fallback برای جلوگیری از 404
 app.get('/api/train/status', (_req, res) => {
     res.json({
