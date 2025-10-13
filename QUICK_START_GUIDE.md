@@ -1,351 +1,364 @@
-# 🚀 Quick Start Guide - Upgraded Project
+# Quick Start Guide - Persian TTS Platform
 
-## ✅ Upgrade Complete!
+Get up and running in 5 minutes with monitoring and logging enabled.
 
-Your project has been successfully upgraded with a complete design system and real API integration.
+## Prerequisites
 
-**Commit:** `63ad1eb`  
-**Rollback Tag:** `pre-upgrade-20251011_134419`  
-**Status:** ✅ Ready to use
+- Node.js 20+
+- PostgreSQL 14+
+- npm or yarn
+- Git
 
----
+## 🚀 Quick Start (Development)
 
-## 🏃 Quick Start (5 minutes)
+### 1. Clone and Install
 
-### 1. Setup Backend
 ```bash
-cd BACKEND
+# Clone repository
+git clone https://github.com/yourusername/persian-tts.git
+cd persian-tts
+
+# Setup environment
 cp .env.example .env
-# Edit .env and set JWT_SECRET=your-secret-key-here
-npm install
+
+# Install dependencies
+cd BACKEND && npm install
+cd ../client && npm install
+cd ..
+```
+
+### 2. Configure Environment
+
+Edit `.env` file:
+
+```bash
+# Minimal configuration for development
+NODE_ENV=development
+PORT=3001
+
+# Database (use your local PostgreSQL)
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/persian_tts
+
+# Secrets (use defaults for dev, generate for production)
+JWT_SECRET=dev-secret-key
+SESSION_SECRET=dev-session-secret
+
+# Optional
+HF_TOKEN=your_huggingface_token
+```
+
+### 3. Initialize Database
+
+```bash
+# Create database
+createdb persian_tts
+
+# Initialize schema
+psql -d persian_tts -f BACKEND/src/database/schema.sql
+```
+
+### 4. Start Development Servers
+
+**Option A: Using npm scripts (recommended)**
+
+```bash
 npm run dev
 ```
 
-You should see:
-```
-🚀 Persian Chat Backend API listening on port 3001
+This starts both backend and frontend concurrently.
+
+**Option B: Separate terminals**
+
+Terminal 1 (Backend):
+```bash
+cd BACKEND
+npm run dev
 ```
 
-### 2. Setup Frontend
+Terminal 2 (Frontend):
 ```bash
 cd client
-cp .env.example .env
-# .env should have: VITE_API_BASE_URL=http://localhost:3001
-npm install
 npm run dev
 ```
 
-Your browser should open at: `http://localhost:5173`
+### 5. Verify Installation
 
-### 3. Test It
-1. Visit `http://localhost:5173/login`
-2. Login with your credentials
-3. See the dashboard with real-time metrics
-4. Try the chat page
-5. Check the models page
-
----
-
-## 📁 What's New?
-
-### Design System Components
-
-**Atoms (Basic Building Blocks):**
-```typescript
-import { Button } from './components/atoms/Button';
-import { Input } from './components/atoms/Input';
-import { Card } from './components/atoms/Card';
-import { Badge } from './components/atoms/Badge';
-
-// Usage
-<Button variant="primary" loading={loading}>
-  Click Me
-</Button>
-
-<Input 
-  placeholder="Enter text" 
-  error={!!errorMsg}
-  leftIcon={<SearchIcon />}
-/>
-```
-
-**Molecules (Composed Components):**
-```typescript
-import { StatCard } from './components/molecules/StatCard';
-import { FormField } from './components/molecules/FormField';
-
-// Usage
-<StatCard
-  title="CPU Usage"
-  value="45.2%"
-  icon={<CpuIcon />}
-  color="primary"
-  trend={{ value: 5, isPositive: true }}
-/>
-
-<FormField
-  name="username"
-  label="Username"
-  value={username}
-  onChange={setUsername}
-  error={errors.username}
-/>
-```
-
-### API Services (All Real, No Mocks)
-
-```typescript
-import { api } from './services/api';
-import { authService } from './services/auth.service';
-import { trainService } from './services/train.service';
-import { monitoringService } from './services/monitoring.service';
-import { chatService } from './services/chat.service';
-import { modelsService } from './services/models.service';
-
-// Examples
-
-// Authentication
-await authService.login({ username, password });
-authService.logout();
-
-// Training with SSE
-const eventSource = trainService.connectToTrainingStream((event) => {
-  console.log('Training update:', event);
-});
-
-// Monitoring
-const metrics = await monitoringService.getMetrics();
-// Returns: { cpu, memory, disk, uptime }
-
-// Chat
-const response = await chatService.sendMessage('Hello AI');
-
-// Models
-const models = await modelsService.getDetectedModels();
-await modelsService.activateModel(modelId);
-```
-
-### New Pages
-
-1. **LoginPage** (`/login`)
-   - Full authentication flow
-   - Error handling
-   - Redirects to dashboard on success
-
-2. **DashboardPage** (`/dashboard`)
-   - Real-time system metrics
-   - Auto-refresh every 5 seconds
-   - CPU, Memory, Disk, Uptime cards
-
-3. **ChatPage** (`/chat`)
-   - Live AI chat
-   - Message history
-   - User/Assistant bubbles
-
-4. **ModelsPage** (`/models`)
-   - List all detected models
-   - Activate/deactivate models
-   - Visual active status
-
----
-
-## 🎨 Theme System
-
-```typescript
-import { theme } from './styles/theme';
-
-// Colors
-theme.colors.primary.main
-theme.colors.success.main
-theme.colors.text.primary
-
-// Spacing (8px grid)
-theme.spacing(2) // 16px
-theme.spacing(3) // 24px
-
-// Typography
-theme.typography.fontSize.lg
-theme.typography.fontWeight.bold
-
-// Shadows
-theme.shadows.md
-theme.shadows.lg
-
-// Border Radius
-theme.borderRadius.lg
-theme.borderRadius.full
-```
-
----
-
-## 🔐 Authentication Flow
-
-```
-1. User visits /login
-2. Enters credentials
-3. POST /api/auth/login
-4. Backend returns JWT token
-5. Token stored in localStorage
-6. User redirected to /dashboard
-7. All API calls include: Authorization: Bearer <token>
-8. On 401 → Auto-redirect to /login
-```
-
----
-
-## 🧪 Test Checklist
-
-After starting both servers, verify:
-
-### Backend Health
-- [ ] `curl http://localhost:3001/health` returns `{ ok: true }`
-- [ ] `curl http://localhost:3001/api/health` returns service status
-- [ ] `curl http://localhost:3001/api/monitoring/metrics` returns metrics
-
-### Frontend UI
-- [ ] Login page loads without errors
-- [ ] Can login successfully
-- [ ] Dashboard shows 4 metric cards
-- [ ] Metrics update every 5 seconds
-- [ ] Chat page allows sending messages
-- [ ] Models page lists models
-- [ ] Browser console has no errors
-
-### Integration
-- [ ] Network tab shows API calls with `Authorization` header
-- [ ] Token stored in localStorage after login
-- [ ] Logout clears token and redirects to login
-- [ ] Protected pages redirect to login when not authenticated
-
----
-
-## 🔄 Rollback (If Needed)
-
-If something goes wrong, you can rollback:
+Open another terminal and run:
 
 ```bash
-# Full rollback to pre-upgrade state
-git checkout pre-upgrade-20251011_134419
+# Use the health check script
+./scripts/health-check.sh
 
-# Or rollback specific files
-git checkout pre-upgrade-20251011_134419 -- <file-path>
-
-# Delete the feature branch
-git branch -D cursor/complete-safe-upgrade-protocol-execution-5e97
+# Or manually
+curl http://localhost:3001/health
 ```
 
----
-
-## 📚 Documentation
-
-- **Full Summary:** `UPGRADE_COMPLETE_SUMMARY.md`
-- **API Endpoints:** `BACKEND/API_ENDPOINTS.md`
-- **Backend README:** `BACKEND/README.md`
-- **Quick Reference:** `docs/QUICK_REFERENCE.md`
-
----
-
-## 🆘 Troubleshooting
-
-### Backend Issues
-
-**Port 3001 already in use:**
-```bash
-lsof -ti:3001 | xargs kill -9
+Expected response:
+```json
+{
+  "success": true,
+  "data": {
+    "status": "healthy",
+    "timestamp": "2025-10-13T...",
+    "checks": {
+      "database": { "status": "pass" },
+      "filesystem": { "status": "pass" },
+      "memory": { "status": "pass" },
+      "disk": { "status": "pass" }
+    }
+  }
+}
 ```
 
-**TypeScript errors:**
+## 🐳 Quick Start (Docker)
+
+### 1. Clone and Configure
+
 ```bash
+git clone https://github.com/yourusername/persian-tts.git
+cd persian-tts
+
+# Setup environment
+cp .env.example .env
+nano .env  # Edit as needed
+```
+
+### 2. Start with Docker Compose
+
+```bash
+# Build and start all services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+```
+
+### 3. Verify
+
+```bash
+# Health check
+curl http://localhost:3001/health
+
+# System metrics
+curl http://localhost:3001/api/monitoring/system
+```
+
+## 📊 Monitoring Endpoints
+
+Once running, you can access these monitoring endpoints:
+
+| Endpoint | Description |
+|----------|-------------|
+| `http://localhost:3001/health` | Basic health check |
+| `http://localhost:3001/health/detailed` | Detailed health with metrics |
+| `http://localhost:3001/api/monitoring/system` | System metrics (CPU, memory) |
+| `http://localhost:3001/api/monitoring/performance` | Performance stats |
+| `http://localhost:3001/api/monitoring/analytics` | API usage analytics |
+
+## 🧪 Run Tests
+
+```bash
+# Backend tests
 cd BACKEND
-npm install
+npm test
+
+# With coverage
+npm run test:coverage
+
+# Frontend tests
+cd client
+npm test
+```
+
+## 📝 View Logs
+
+### Development (Console)
+
+Logs appear in the console with colors:
+- 🔴 Red: Errors
+- 🟡 Yellow: Warnings
+- 🟢 Green: Info
+- 🟣 Magenta: HTTP requests
+- 🔵 Blue: Debug
+
+### Production (Files)
+
+Logs are written to `BACKEND/logs/`:
+- `error-YYYY-MM-DD.log` - Error logs
+- `combined-YYYY-MM-DD.log` - All logs
+- `http-YYYY-MM-DD.log` - HTTP requests
+
+View logs:
+```bash
+# Tail error logs
+tail -f BACKEND/logs/error-*.log
+
+# Tail all logs
+tail -f BACKEND/logs/combined-*.log
+```
+
+## 🔧 Common Tasks
+
+### Add a New Route
+
+1. Create route file in `BACKEND/src/routes/`
+2. Add monitoring to the route:
+
+```typescript
+import { performanceMonitor } from '../monitoring/performance';
+import { log } from '../config/logger';
+
+router.get('/my-route', async (req, res) => {
+  const result = await performanceMonitor.trackOperation(
+    'my-operation',
+    async () => {
+      log.info('Processing request', { userId: req.user?.id });
+      // Your logic here
+      return data;
+    }
+  );
+  
+  res.json({ success: true, data: result });
+});
+```
+
+### Add Custom Monitoring
+
+```typescript
+import { performanceMonitor } from '../monitoring/performance';
+import { log } from '../config/logger';
+
+// Track operation duration
+const result = await performanceMonitor.trackOperation(
+  'custom-operation',
+  async () => {
+    // Your operation
+  }
+);
+
+// Log with metadata
+log.info('Operation completed', {
+  userId: user.id,
+  duration: 123,
+  result: 'success'
+});
+```
+
+### Configure Sentry (Production)
+
+1. Create a Sentry account at https://sentry.io
+2. Create a new project
+3. Copy the DSN
+4. Add to `.env`:
+
+```bash
+SENTRY_DSN=https://your-key@sentry.io/project-id
+NODE_ENV=production
+```
+
+5. Restart the backend
+
+Errors will now be automatically sent to Sentry.
+
+## 🚨 Troubleshooting
+
+### Port Already in Use
+
+```bash
+# Kill process on port 3001
+lsof -ti:3001 | xargs kill -9
+
+# Or use a different port
+PORT=3002 npm run dev
+```
+
+### Database Connection Error
+
+```bash
+# Check PostgreSQL is running
+sudo systemctl status postgresql
+
+# Check connection
+psql -d persian_tts -c "SELECT 1"
+
+# Reset database
+dropdb persian_tts
+createdb persian_tts
+psql -d persian_tts -f BACKEND/src/database/schema.sql
+```
+
+### TypeScript Errors
+
+```bash
+# Check for errors
+cd BACKEND
+npm run lint
+
+# Rebuild
 npm run build
 ```
 
-### Frontend Issues
+### Docker Issues
 
-**Vite won't start:**
 ```bash
-cd client
-rm -rf node_modules package-lock.json
-npm install
+# Stop all containers
+docker-compose down
+
+# Remove volumes (⚠️ deletes data)
+docker-compose down -v
+
+# Rebuild images
+docker-compose build --no-cache
+
+# Start fresh
+docker-compose up -d
 ```
 
-**API connection refused:**
-- Check backend is running on port 3001
-- Verify `VITE_API_BASE_URL` in `client/.env`
-- Check CORS_ORIGIN in `BACKEND/.env` includes `http://localhost:5173`
+## 📚 Next Steps
 
-### Authentication Issues
+1. **Read the Documentation**
+   - [Deployment Guide](docs/DEPLOYMENT.md)
+   - [CI/CD Documentation](docs/CI_CD.md)
+   - [Monitoring Guide](docs/MONITORING_LOGGING_GUIDE.md)
 
-**401 Unauthorized:**
-- Clear localStorage: `localStorage.clear()` in browser console
-- Check JWT_SECRET is set in BACKEND/.env
-- Re-login
+2. **Configure for Production**
+   - Follow the [Production Deployment Checklist](PRODUCTION_DEPLOYMENT_CHECKLIST.md)
+   - Set up GitHub Actions
+   - Configure Sentry
 
-**Token not sent:**
-- Check token exists: `localStorage.getItem('token')`
-- Check Network tab → Headers → Authorization
+3. **Explore the API**
+   - API Documentation: http://localhost:3001/api-docs
+   - Test endpoints with Postman or curl
 
----
+4. **Set Up CI/CD**
+   - Configure GitHub Secrets
+   - Test workflows locally
+   - Deploy to staging
 
-## 🎯 Next Features to Build
+## 🆘 Getting Help
 
-Based on the new architecture, you can easily add:
+- **Documentation**: Check the `/docs` directory
+- **Issues**: https://github.com/yourusername/persian-tts/issues
+- **Health Check**: Run `./scripts/health-check.sh`
+- **Verification**: Run `./scripts/verify-monitoring.sh`
 
-1. **More Atoms:**
-   - Checkbox, Radio, Select, Textarea
-   - Avatar, Spinner, Progress Bar
-   - Alert, Modal, Tooltip
+## ✅ Verification Checklist
 
-2. **More Molecules:**
-   - SearchBar, Pagination, Table
-   - DatePicker, FileUpload
-   - Notification, Toast
+Use this to verify everything is working:
 
-3. **Organisms:**
-   - Header, Sidebar, Footer
-   - Navigation Menu
-   - Complex Forms
-
-4. **Pages:**
-   - Settings, Profile, Analytics
-   - Training Studio, Dataset Manager
-   - Admin Dashboard
-
----
-
-## 📞 Support
-
-**Everything working?** Great! Start building features.
-
-**Having issues?**
-1. Check troubleshooting section above
-2. Review `UPGRADE_COMPLETE_SUMMARY.md`
-3. Check browser console for errors
-4. Check backend logs for API errors
-
-**Need to rollback?**
-```bash
-git checkout pre-upgrade-20251011_134419
-```
+- [ ] Backend starts without errors
+- [ ] Frontend starts without errors
+- [ ] Database connection successful
+- [ ] Health check returns 200 OK
+- [ ] Logs appear in console (development)
+- [ ] Monitoring endpoints accessible
+- [ ] Tests pass
+- [ ] TypeScript compiles without errors
 
 ---
 
-## ✨ What Makes This Special
+**Time to complete**: ~5 minutes  
+**Difficulty**: Easy  
+**Prerequisites**: Node.js, PostgreSQL
 
-1. **Zero Mock Data:** All services use real API
-2. **Type Safe:** 100% TypeScript
-3. **Atomic Design:** Scalable architecture
-4. **Real-time Updates:** SSE for training
-5. **Production Ready:** Error handling, loading states
-6. **Rollback Safe:** Git tag for instant rollback
-7. **Well Documented:** .env.example files, comments
-8. **Accessible:** Keyboard nav, focus states
-
----
-
-**Status:** ✅ **READY TO USE**
-
-Start both servers and visit: `http://localhost:5173/login`
-
-Good luck! 🚀
+Enjoy building with the Persian TTS Platform! 🚀

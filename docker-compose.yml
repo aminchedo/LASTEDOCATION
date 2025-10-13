@@ -1,67 +1,64 @@
 version: '3.8'
 
 services:
-  # Backend Service
+  postgres:
+    image: postgres:14-alpine
+    container_name: persian-tts-db
+    environment:
+      POSTGRES_DB: ${DB_NAME:-persian_tts}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./BACKEND/src/database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
   backend:
     build:
-      context: .
+      context: ./BACKEND
       dockerfile: Dockerfile
-    container_name: model-training-backend
+    container_name: persian-tts-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-persian_tts}
+      JWT_SECRET: ${JWT_SECRET}
+      SESSION_SECRET: ${SESSION_SECRET:-}
+      HF_TOKEN: ${HF_TOKEN:-}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      LOG_LEVEL: info
+    volumes:
+      - models_data:/app/models
+      - logs_data:/app/logs
     ports:
       - "3001:3001"
-    environment:
-      - NODE_ENV=production
-      - PORT=3001
-      - JWT_SECRET=${JWT_SECRET:-change-me-in-production-use-long-random-string}
-      - JWT_EXPIRES_IN=7d
-      - CORS_ORIGIN=http://localhost:3000,http://localhost:5173
-      - LOG_LEVEL=info
-    volumes:
-      # Persist models, data, and logs
-      - ./models:/app/models
-      - ./data:/app/data
-      - ./logs:/app/logs
-      - ./uploads:/app/uploads
-    networks:
-      - model-training-network
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
 
-  # Frontend Service (Nginx)
-  frontend:
-    image: nginx:alpine
-    container_name: model-training-frontend
-    ports:
-      - "3000:80"
-    volumes:
-      - ./client/dist:/usr/share/nginx/html:ro
-      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: persian-tts-client
     depends_on:
       - backend
-    networks:
-      - model-training-network
+    ports:
+      - "80:80"
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-networks:
-  model-training-network:
-    driver: bridge
 
 volumes:
-  models:
+  postgres_data:
     driver: local
-  data:
+  models_data:
     driver: local
-  logs:
-    driver: local
-  uploads:
+  logs_data:
     driver: local
