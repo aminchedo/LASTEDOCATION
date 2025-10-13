@@ -6,7 +6,7 @@ const router = express.Router();
 const userSettings = new Map<string, any>();
 
 // Get user settings
-router.get('/', (req: Request, res: Response) => {
+router.get('/', (req: Request, res: Response): void => {
   try {
     const userId = (req as any).user?.id || 'default';
     const settings = userSettings.get(userId) || {};
@@ -18,17 +18,18 @@ router.get('/', (req: Request, res: Response) => {
 });
 
 // Save user settings
-router.post('/', (req: Request, res: Response) => {
+router.post('/', (req: Request, res: Response): void => {
   try {
     const userId = (req as any).user?.id || 'default';
     const settings = req.body;
 
     // Validate HuggingFace token format if provided
     if (settings.huggingfaceToken && !settings.huggingfaceToken.startsWith('hf_')) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: 'Invalid HuggingFace token format. Token must start with hf_'
       });
+      return;
     }
 
     userSettings.set(userId, settings);
@@ -40,18 +41,20 @@ router.post('/', (req: Request, res: Response) => {
 });
 
 // Validate HuggingFace token
-router.put('/huggingface/validate', async (req: Request, res: Response) => {
+router.put('/huggingface/validate', async (req: Request, res: Response): Promise<void> => {
   const { token } = req.body;
 
   if (!token) {
-    return res.status(400).json({ success: false, error: 'Token required' });
+    res.status(400).json({ success: false, error: 'Token required' });
+    return;
   }
 
   if (!token.startsWith('hf_')) {
-    return res.status(400).json({ 
+    res.status(400).json({ 
       success: false, 
       error: 'Invalid token format. Token must start with hf_' 
     });
+    return;
   }
 
   try {
