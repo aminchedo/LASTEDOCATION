@@ -1,0 +1,79 @@
+name: CI Status Check and Report
+
+on:
+  workflow_run:
+    workflows: ["CI Pipeline - TypeScript Enforcement", "CI/CD Pipeline - 33-Item Checklist Enforcement", "Voice E2E Tests (Persian Speech)"]
+    types:
+      - completed
+
+jobs:
+  check-and-report:
+    name: "Check CI Status and Report"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Check workflow run status
+        id: check-status
+        run: |
+          # Get the conclusion of the workflow run that triggered this
+          CONCLUSION="${{ github.event.workflow_run.conclusion }}"
+          echo "Workflow conclusion: $CONCLUSION"
+          echo "conclusion=$CONCLUSION" >> $GITHUB_OUTPUT
+      
+      - name: Evaluate CI results
+        env:
+          NODE_VERSION: 20
+        run: |
+          # Define acceptable statuses (success or skipped)
+          # In GitHub Actions, jobs can be:
+          # - success: Job completed successfully
+          # - failure: Job failed
+          # - cancelled: Job was cancelled
+          # - skipped: Job was skipped (this is OK for optional jobs)
+          
+          CONCLUSION="${{ steps.check-status.outputs.conclusion }}"
+          
+          # Treat both "success" and "skipped" as passing
+          if [ "$CONCLUSION" = "success" ] || [ "$CONCLUSION" = "skipped" ]; then
+            echo "✅ CI Passed Successfully!"
+            echo "Workflow completed with status: $CONCLUSION"
+            exit 0
+          else
+            echo "❌ CI Failed"
+            echo "Workflow completed with status: $CONCLUSION"
+            exit 1
+          fi
+      
+      - name: Generate status report
+        if: always()
+        run: |
+          CONCLUSION="${{ steps.check-status.outputs.conclusion }}"
+          WORKFLOW_NAME="${{ github.event.workflow_run.name }}"
+          RUN_URL="${{ github.event.workflow_run.html_url }}"
+          
+          echo "# CI Status Report" > ci-status-report.md
+          echo "" >> ci-status-report.md
+          echo "**Workflow**: $WORKFLOW_NAME" >> ci-status-report.md
+          echo "**Status**: $CONCLUSION" >> ci-status-report.md
+          echo "**Run URL**: $RUN_URL" >> ci-status-report.md
+          echo "**Triggered by**: ${{ github.event.workflow_run.head_branch }}" >> ci-status-report.md
+          echo "**Commit**: ${{ github.event.workflow_run.head_sha }}" >> ci-status-report.md
+          echo "" >> ci-status-report.md
+          
+          if [ "$CONCLUSION" = "success" ]; then
+            echo "## ✅ All Checks Passed" >> ci-status-report.md
+          elif [ "$CONCLUSION" = "skipped" ]; then
+            echo "## ⏭️ Workflow Skipped" >> ci-status-report.md
+          else
+            echo "## ❌ Checks Failed" >> ci-status-report.md
+          fi
+          
+          cat ci-status-report.md
+      
+      - name: Upload status report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-status-report
+          path: ci-status-report.md
