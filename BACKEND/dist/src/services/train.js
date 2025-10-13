@@ -127,7 +127,7 @@ async function startTrainingJob(name, config) {
     // Spawn training process
     const proc = (0, child_process_1.spawn)('ts-node', args, {
         cwd: process.cwd(),
-        env: { ...process.env, NODE_ENV: 'training' }
+        env: { ...process.env, NODE_ENV: 'development' }
     });
     jobProcesses.set(jobId, proc);
     job.status = 'preparing';

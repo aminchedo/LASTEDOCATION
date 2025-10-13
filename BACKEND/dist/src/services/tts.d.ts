@@ -13,20 +13,20 @@ export declare const TTSRequestSchema: z.ZodObject<{
     sampleRate: z.ZodDefault<z.ZodNumber>;
 }, "strip", z.ZodTypeAny, {
     text: string;
-    voice: string;
     language: string;
-    format: "wav" | "ogg" | "mp3";
-    sampleRate: number;
+    voice: string;
     speed: number;
     pitch: number;
+    format: "wav" | "ogg" | "mp3";
+    sampleRate: number;
 }, {
     text: string;
-    voice?: string | undefined;
     language?: string | undefined;
-    format?: "wav" | "ogg" | "mp3" | undefined;
-    sampleRate?: number | undefined;
+    voice?: string | undefined;
     speed?: number | undefined;
     pitch?: number | undefined;
+    format?: "wav" | "ogg" | "mp3" | undefined;
+    sampleRate?: number | undefined;
 }>;
 export declare const TTSResponseSchema: z.ZodObject<{
     audio: z.ZodString;
@@ -41,40 +41,40 @@ export declare const TTSResponseSchema: z.ZodObject<{
         characterCount: z.ZodNumber;
         processingTime: z.ZodNumber;
     }, "strip", z.ZodTypeAny, {
-        processingTime: number;
         wordCount: number;
         characterCount: number;
+        processingTime: number;
     }, {
-        processingTime: number;
         wordCount: number;
         characterCount: number;
+        processingTime: number;
     }>;
 }, "strip", z.ZodTypeAny, {
     text: string;
     audio: string;
-    voice: string;
     language: string;
-    metadata: {
-        processingTime: number;
-        wordCount: number;
-        characterCount: number;
-    };
+    voice: string;
     format: string;
     sampleRate: number;
     duration: number;
+    metadata: {
+        wordCount: number;
+        characterCount: number;
+        processingTime: number;
+    };
 }, {
     text: string;
     audio: string;
-    voice: string;
     language: string;
-    metadata: {
-        processingTime: number;
-        wordCount: number;
-        characterCount: number;
-    };
+    voice: string;
     format: string;
     sampleRate: number;
     duration: number;
+    metadata: {
+        wordCount: number;
+        characterCount: number;
+        processingTime: number;
+    };
 }>;
 export type TTSRequest = z.infer<typeof TTSRequestSchema>;
 export type TTSResponse = z.infer<typeof TTSResponseSchema>;
