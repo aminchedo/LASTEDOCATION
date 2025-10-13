@@ -12,6 +12,7 @@ const child_process_1 = require("child_process");
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
 const crypto_1 = require("crypto");
+const auth_1 = require("../middleware/auth");
 const router = express_1.default.Router();
 // Ensure artifacts directory exists
 const ARTIFACTS_DIR = path_1.default.join(process.cwd(), "artifacts", "jobs");
@@ -57,7 +58,7 @@ function readStatus(jobId) {
  * - batch_size: batch size (default: 16)
  * - lr: learning rate (default: 0.01)
  */
-router.post("/", express_1.default.json(), (req, res) => {
+router.post("/", auth_1.authenticateToken, express_1.default.json(), (req, res) => {
     try {
         const params = req.body || {};
         const jobId = `job_${Date.now()}_${(0, crypto_1.randomBytes)(4).toString("hex")}`;
@@ -132,7 +133,7 @@ router.post("/", express_1.default.json(), (req, res) => {
  * GET /api/training/status?job_id=xxx
  * Get status of a training job
  */
-router.get("/status", (req, res) => {
+router.get("/status", auth_1.authenticateToken, (req, res) => {
     const jobId = String(req.query.job_id || "");
     if (!jobId) {
         return res.status(400).json({
@@ -170,7 +171,7 @@ router.get("/status", (req, res) => {
  * POST /api/training/:jobId/stop
  * Stop a running training job
  */
-router.post("/:jobId/stop", express_1.default.json(), (req, res) => {
+router.post("/:jobId/stop", auth_1.authenticateToken, express_1.default.json(), (req, res) => {
     const jobId = req.params.jobId || String((req.body && req.body.job_id) || "");
     if (!jobId) {
         return res.status(400).json({
@@ -217,7 +218,7 @@ router.post("/:jobId/stop", express_1.default.json(), (req, res) => {
  * GET /api/training/jobs
  * List all training jobs
  */
-router.get("/jobs", (req, res) => {
+router.get("/jobs", auth_1.authenticateToken, (req, res) => {
     try {
         const files = fs_1.default.readdirSync(ARTIFACTS_DIR);
         const jobs = files
@@ -249,7 +250,7 @@ router.get("/jobs", (req, res) => {
  * GET /api/training/:jobId/download
  * Download trained model
  */
-router.get("/:jobId/download", (req, res) => {
+router.get("/:jobId/download", auth_1.authenticateToken, (req, res) => {
     const jobId = req.params.jobId;
     if (!jobId) {
         return res.status(400).json({

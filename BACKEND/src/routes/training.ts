@@ -2,11 +2,12 @@
  * Training job API - Unified endpoint for training management
  * Provides endpoints for starting, stopping, querying, and downloading training jobs
  */
-import express from "express";
+import express, { Request } from "express";
 import { spawn, ChildProcess } from "child_process";
 import path from "path";
 import fs from "fs";
 import { randomBytes } from "crypto";
+import { authenticateToken } from "../middleware/auth";
 
 const router = express.Router();
 
@@ -58,7 +59,7 @@ function readStatus(jobId: string): any | null {
  * - batch_size: batch size (default: 16)
  * - lr: learning rate (default: 0.01)
  */
-router.post("/", express.json(), (req, res): any => {
+router.post("/", authenticateToken, express.json(), (req: Request, res): any => {
   try {
     const params = req.body || {};
     const jobId = `job_${Date.now()}_${randomBytes(4).toString("hex")}`;
@@ -143,7 +144,7 @@ router.post("/", express.json(), (req, res): any => {
  * GET /api/training/status?job_id=xxx
  * Get status of a training job
  */
-router.get("/status", (req, res): any => {
+router.get("/status", authenticateToken, (req: Request, res): any => {
   const jobId = String(req.query.job_id || "");
   
   if (!jobId) {
@@ -187,7 +188,7 @@ router.get("/status", (req, res): any => {
  * POST /api/training/:jobId/stop
  * Stop a running training job
  */
-router.post("/:jobId/stop", express.json(), (req, res): any => {
+router.post("/:jobId/stop", authenticateToken, express.json(), (req: Request, res): any => {
   const jobId = req.params.jobId || String((req.body && req.body.job_id) || "");
   
   if (!jobId) {
@@ -241,7 +242,7 @@ router.post("/:jobId/stop", express.json(), (req, res): any => {
  * GET /api/training/jobs
  * List all training jobs
  */
-router.get("/jobs", (req, res): any => {
+router.get("/jobs", authenticateToken, (req: Request, res): any => {
   try {
     const files = fs.readdirSync(ARTIFACTS_DIR);
     const jobs = files
@@ -273,7 +274,7 @@ router.get("/jobs", (req, res): any => {
  * GET /api/training/:jobId/download
  * Download trained model
  */
-router.get("/:jobId/download", (req, res): any => {
+router.get("/:jobId/download", authenticateToken, (req: Request, res): any => {
   const jobId = req.params.jobId;
   
   if (!jobId) {

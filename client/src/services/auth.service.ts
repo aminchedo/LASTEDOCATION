@@ -1,37 +1,29 @@
 // File: client/src/services/auth.service.ts
-import { api } from './api';
+import axios from 'axios';
 
-interface LoginCredentials {
-  username: string;
-  password: string;
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
 }
 
 interface LoginResponse {
+  ok: boolean;
   token: string;
-  refreshToken?: string;
-  user: {
-    id: string;
-    username: string;
-    role: string;
-  };
+  user: User;
 }
 
-interface AuthService {
-  login: (credentials: LoginCredentials) => Promise<LoginResponse>;
-  logout: () => void;
-  isAuthenticated: () => boolean;
-  getUser: () => any;
-  getToken: () => string | null;
-  setToken: (token: string) => void;
-  getRefreshToken: () => string | null;
-  setRefreshToken: (token: string) => void;
-  clearTokens: () => void;
-  refreshAuth: () => Promise<boolean>;
+interface RegisterResponse {
+  ok: boolean;
+  token: string;
+  user: User;
 }
 
 export class AuthService {
-  private static readonly TOKEN_KEY = 'authToken';
-  private static readonly REFRESH_TOKEN_KEY = 'refreshToken';
+  private static readonly TOKEN_KEY = 'token';
   private static readonly USER_KEY = 'user';
 
   static getToken(): string | null {
@@ -42,17 +34,8 @@ export class AuthService {
     localStorage.setItem(this.TOKEN_KEY, token);
   }
 
-  static getRefreshToken(): string | null {
-    return localStorage.getItem(this.REFRESH_TOKEN_KEY);
-  }
-
-  static setRefreshToken(token: string): void {
-    localStorage.setItem(this.REFRESH_TOKEN_KEY, token);
-  }
-
   static clearTokens(): void {
     localStorage.removeItem(this.TOKEN_KEY);
-    localStorage.removeItem(this.REFRESH_TOKEN_KEY);
     localStorage.removeItem(this.USER_KEY);
   }
 
@@ -68,50 +51,93 @@ export class AuthService {
     }
   }
 
-  static getUser(): any {
+  static getUser(): User | null {
     const user = localStorage.getItem(this.USER_KEY);
     return user ? JSON.parse(user) : null;
   }
 
-  static setUser(user: any): void {
+  static setUser(user: User): void {
     localStorage.setItem(this.USER_KEY, JSON.stringify(user));
   }
 
-  static async login(credentials: LoginCredentials): Promise<LoginResponse> {
-    const response = await api.post<LoginResponse>('/api/auth/login', credentials);
-    
-    // Store token and user in localStorage
-    this.setToken(response.token);
-    if (response.refreshToken) {
-      this.setRefreshToken(response.refreshToken);
+  static async login(email: string, password: string): Promise<LoginResponse> {
+    try {
+      const response = await axios.post(`${API_BASE}/api/auth/login`, {
+        email,
+        password
+      });
+
+      if (response.data.token) {
+        this.setToken(response.data.token);
+        this.setUser(response.data.user);
+      }
+
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.error || 'Login failed');
     }
-    this.setUser(response.user);
-    
-    return response;
+  }
+
+  static async register(email: string, password: string, name: string): Promise<RegisterResponse> {
+    try {
+      const response = await axios.post(`${API_BASE}/api/auth/register`, {
+        email,
+        password,
+        name
+      });
+
+      if (response.data.token) {
+        this.setToken(response.data.token);
+        this.setUser(response.data.user);
+      }
+
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.error || 'Registration failed');
+    }
   }
 
   static logout(): void {
     this.clearTokens();
-    window.location.href = '/login';
   }
 
-  static async refreshAuth(): Promise<boolean> {
-    const refreshToken = this.getRefreshToken();
-    if (!refreshToken) return false;
-
+  static async getCurrentUser(): Promise<User> {
     try {
-      const response = await api.post<{ token: string }>('/api/auth/refresh', {
-        refreshToken,
+      const response = await axios.get(`${API_BASE}/api/auth/me`, {
+        headers: {
+          Authorization: `Bearer ${this.getToken()}`
+        }
       });
-
-      this.setToken(response.token);
-      return true;
-    } catch {
-      this.clearTokens();
-      return false;
+      return response.data.user;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.error || 'Failed to get user info');
     }
   }
 }
+
+// Axios interceptor to add token to all requests
+axios.interceptors.request.use(config => {
+  const token = AuthService.getToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Axios interceptor to handle 401 errors (token expired)
+axios.interceptors.response.use(
+  response => response,
+  error => {
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      AuthService.clearTokens();
+      // Only redirect if not already on login page
+      if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
 // Legacy export for backward compatibility
 export const authService = AuthService;
