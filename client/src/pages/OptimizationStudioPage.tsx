@@ -532,12 +532,16 @@ export function OptimizationStudioPage() {
                 onClick={handleQuantizeModel}
                 disabled={loading || !selectedModel || !outputDir}
               >
-                    <EmptyState
-              icon="chart"
-              title="مقایسه مدل‌ها"
-              description="این ویژگی به زودی اضافه خواهد شد"
-              illustration="default"
-              size="md" variant="elevated">
+                شروع کوانتیزاسیون
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Model Comparison */}
+      {activeTab === 'comparison' && (
+        <Card variant="elevated">
           <CardHeader>
             <h2 className="text-xl font-semibold text-[color:var(--c-text)]">مقایسه مدل‌ها</h2>
             <p className="text-sm text-[color:var(--c-text-muted)]">
@@ -549,11 +553,17 @@ export function OptimizationStudioPage() {
               icon={BarChart3}
               title="مقایسه مدل‌ها"
               description="این ویژگی به زودی اضافه خواهد شد"
-              illustration="default                <EmptyState
-                  icon="activity"
-                  title="هیچ بهینه‌سازی‌ای وجود ندارد"
-                  description="برای شروع، یک بهینه‌سازی جدید ایجاد کنید"
-                  illustration="default"
+              illustration="default"
+              size="md"
+            />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Optimization Jobs */}
+      {activeTab === 'jobs' && (
+        <div className="space-y-4">
+          {loading ? (
             <div className="space-y-3">
               {Array.from({ length: 3 }).map((_, i) => (
                 <Skeleton key={i} variant="card" height={200} />
