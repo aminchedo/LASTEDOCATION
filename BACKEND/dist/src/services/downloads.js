@@ -30,18 +30,23 @@ function generateJobId() {
 /**
  * Download a single file with progress tracking
  */
-async function downloadFile(url, destination, onProgress) {
+async function downloadFile(url, destination, onProgress, token) {
     return new Promise((resolve, reject) => {
         const file = fs_1.default.createWriteStream(destination);
         const client = url.startsWith('https') ? https_1.default : http_1.default;
-        const request = client.get(url, (response) => {
+        // Prepare request options with optional token
+        const options = { headers: {} };
+        if (token && url.includes('huggingface.co')) {
+            options.headers['Authorization'] = `Bearer ${token}`;
+        }
+        const request = client.get(url, options, (response) => {
             if (response.statusCode === 302 || response.statusCode === 301) {
                 // Handle redirects
                 const redirectUrl = response.headers.location;
                 if (redirectUrl) {
                     file.close();
                     fs_1.default.unlinkSync(destination);
-                    return downloadFile(redirectUrl, destination, onProgress)
+                    return downloadFile(redirectUrl, destination, onProgress, token)
                         .then(resolve)
                         .catch(reject);
                 }
@@ -86,7 +91,7 @@ async function downloadFile(url, destination, onProgress) {
 /**
  * Download model using direct URLs from catalog
  */
-async function downloadModelDirect(jobId, modelId, destination) {
+async function downloadModelDirect(jobId, modelId, destination, token) {
     const job = jobs.get(jobId);
     if (!job) {
         throw new Error('Job not found');
@@ -130,7 +135,7 @@ async function downloadModelDirect(jobId, modelId, destination) {
                 job.bytesTotal = total;
                 // Update job
                 jobs.set(jobId, job);
-            });
+            }, token);
             job.completedFiles.push(filename);
             completedFiles++;
             logger_1.logger.info({ msg: 'File downloaded', jobId, filename });
@@ -150,7 +155,7 @@ async function downloadModelDirect(jobId, modelId, destination) {
 /**
  * Download using git clone (fallback method)
  */
-async function downloadWithGit(jobId, modelId, _repoType, destination) {
+async function downloadWithGit(jobId, modelId, _repoType, destination, token) {
     return new Promise((resolve, reject) => {
         const job = jobs.get(jobId);
         if (!job) {
@@ -220,7 +225,7 @@ async function downloadWithGit(jobId, modelId, _repoType, destination) {
 /**
  * Start a new download job
  */
-async function startDownload(kind, repoId, repoType, dest) {
+async function startDownload(kind, repoId, repoType, dest, token) {
     const jobId = generateJobId();
     const job = {
         id: jobId,

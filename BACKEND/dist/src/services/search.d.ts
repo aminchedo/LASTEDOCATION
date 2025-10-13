@@ -10,15 +10,15 @@ export declare const SearchRequestSchema: z.ZodObject<{
     includeSnippets: z.ZodDefault<z.ZodBoolean>;
     timeout: z.ZodDefault<z.ZodNumber>;
 }, "strip", z.ZodTypeAny, {
-    timeout: number;
-    language: string;
     query: string;
+    language: string;
+    timeout: number;
     maxResults: number;
     includeSnippets: boolean;
 }, {
     query: string;
-    timeout?: number | undefined;
     language?: string | undefined;
+    timeout?: number | undefined;
     maxResults?: number | undefined;
     includeSnippets?: boolean | undefined;
 }>;
@@ -33,15 +33,15 @@ export declare const SearchResponseSchema: z.ZodObject<{
     }, "strip", z.ZodTypeAny, {
         url: string;
         timestamp: string;
-        title: string;
         source: string;
+        title: string;
         relevanceScore: number;
         snippet?: string | undefined;
     }, {
         url: string;
         timestamp: string;
-        title: string;
         source: string;
+        title: string;
         relevanceScore: number;
         snippet?: string | undefined;
     }>, "many">;
@@ -50,27 +50,27 @@ export declare const SearchResponseSchema: z.ZodObject<{
     language: z.ZodString;
     processingTime: z.ZodNumber;
 }, "strip", z.ZodTypeAny, {
+    query: string;
     language: string;
     processingTime: number;
-    query: string;
     results: {
         url: string;
         timestamp: string;
-        title: string;
         source: string;
+        title: string;
         relevanceScore: number;
         snippet?: string | undefined;
     }[];
     totalResults: number;
 }, {
+    query: string;
     language: string;
     processingTime: number;
-    query: string;
     results: {
         url: string;
         timestamp: string;
-        title: string;
         source: string;
+        title: string;
         relevanceScore: number;
         snippet?: string | undefined;
     }[];

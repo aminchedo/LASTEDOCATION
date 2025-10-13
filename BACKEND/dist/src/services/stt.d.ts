@@ -16,10 +16,10 @@ export declare const STTRequestSchema: z.ZodObject<{
     audio?: string | undefined;
     audioFile?: string | undefined;
 }, {
-    audio?: string | undefined;
     language?: string | undefined;
     format?: "wav" | "ogg" | "mp3" | undefined;
     sampleRate?: number | undefined;
+    audio?: string | undefined;
     audioFile?: string | undefined;
 }>;
 export declare const STTResponseSchema: z.ZodObject<{
@@ -44,8 +44,8 @@ export declare const STTResponseSchema: z.ZodObject<{
         start: number;
     }>, "many">>;
 }, "strip", z.ZodTypeAny, {
-    text: string;
     language: string;
+    text: string;
     confidence: number;
     duration?: number | undefined;
     words?: {
@@ -55,8 +55,8 @@ export declare const STTResponseSchema: z.ZodObject<{
         start: number;
     }[] | undefined;
 }, {
-    text: string;
     language: string;
+    text: string;
     confidence: number;
     duration?: number | undefined;
     words?: {

@@ -123,7 +123,7 @@ router.get('/catalog/search', async (req, res) => {
  */
 router.post('/download', async (req, res) => {
     try {
-        const { modelId, destination } = req.body;
+        const { modelId, destination, token } = req.body;
         if (!modelId) {
             res.status(400).json({
                 success: false,
@@ -146,10 +146,11 @@ router.post('/download', async (req, res) => {
         logger_1.logger.info({
             msg: 'Starting model download from catalog',
             modelId,
-            dest
+            dest,
+            hasToken: !!token
         });
-        // Start download
-        const job = await (0, downloads_1.startDownload)(model.type, model.id, model.repoType, dest);
+        // Start download with optional HuggingFace token
+        const job = await (0, downloads_1.startDownload)(model.type, model.id, model.repoType, dest, token);
         res.json({
             success: true,
             data: {

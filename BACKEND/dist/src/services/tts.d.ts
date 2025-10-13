@@ -12,8 +12,8 @@ export declare const TTSRequestSchema: z.ZodObject<{
     format: z.ZodDefault<z.ZodEnum<["wav", "ogg", "mp3"]>>;
     sampleRate: z.ZodDefault<z.ZodNumber>;
 }, "strip", z.ZodTypeAny, {
-    text: string;
     language: string;
+    text: string;
     voice: string;
     speed: number;
     pitch: number;
@@ -50,26 +50,26 @@ export declare const TTSResponseSchema: z.ZodObject<{
         processingTime: number;
     }>;
 }, "strip", z.ZodTypeAny, {
-    text: string;
-    audio: string;
+    duration: number;
     language: string;
+    text: string;
     voice: string;
     format: string;
     sampleRate: number;
-    duration: number;
+    audio: string;
     metadata: {
         wordCount: number;
         characterCount: number;
         processingTime: number;
     };
 }, {
-    text: string;
-    audio: string;
+    duration: number;
     language: string;
+    text: string;
     voice: string;
     format: string;
     sampleRate: number;
-    duration: number;
+    audio: string;
     metadata: {
         wordCount: number;
         characterCount: number;
