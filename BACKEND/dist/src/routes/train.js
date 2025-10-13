@@ -16,6 +16,8 @@ const state = new state_1.default();
 const metricsService = new metrics_1.default(state);
 // Track active training processes
 const activeProcesses = new Map();
+// Store all training jobs
+const trainingJobs = new Map();
 // ---------- Helpers ----------
 const safeError = (e) => String(e?.message ?? e);
 // Real training function
@@ -459,6 +461,238 @@ router.get('/stream', async (req, res) => {
         if (!res.headersSent) {
             res.status(500).json({ ok: false, error: msg });
         }
+        return;
+    }
+});
+// ✅ GET /api/training/jobs - Get all training jobs
+router.get('/jobs', async (_req, res) => {
+    try {
+        const runs = state.listRuns();
+        const jobs = runs.map(run => {
+            const metrics = metricsService.latest(run.runId);
+            const summary = metricsService.summary(run.runId);
+            return {
+                id: run.runId,
+                name: run.modelName || 'Untitled Training',
+                status: run.status,
+                progress: Math.floor((run.currentEpoch / run.totalEpochs) * 100) || 0,
+                startTime: run.startedAt,
+                endTime: run.finishedAt,
+                currentEpoch: run.currentEpoch,
+                totalEpochs: run.totalEpochs,
+                metrics: metrics,
+                summary: summary
+            };
+        });
+        res.json({
+            success: true,
+            data: jobs,
+            total: jobs.length
+        });
+        return;
+    }
+    catch (error) {
+        const msg = `Error getting training jobs: ${safeError(error)}`;
+        logger_1.logger.error(msg);
+        res.status(500).json({ success: false, error: msg });
+        return;
+    }
+});
+// ✅ POST /api/training/jobs - Create new training job
+router.post('/jobs', async (req, res) => {
+    try {
+        const { name, config } = req.body;
+        // Validate required fields
+        if (!name || !config) {
+            res.status(400).json({
+                success: false,
+                error: 'Missing required fields: name, config'
+            });
+            return;
+        }
+        // Validate config fields
+        const requiredConfigFields = ['baseModelPath', 'datasetPath', 'outputDir', 'epochs', 'learningRate', 'batchSize'];
+        const missingFields = requiredConfigFields.filter(field => !(field in config));
+        if (missingFields.length > 0) {
+            res.status(400).json({
+                success: false,
+                error: `Missing required config fields: ${missingFields.join(', ')}`
+            });
+            return;
+        }
+        // Generate job ID
+        const jobId = `train_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        // Create training job
+        const job = {
+            id: jobId,
+            name,
+            config,
+            status: 'pending',
+            progress: 0,
+            currentPhase: 'Initializing',
+            logs: [],
+            startedAt: new Date().toISOString(),
+        };
+        // Store job
+        trainingJobs.set(jobId, job);
+        // Initialize training run in state manager
+        state.createRun(jobId, name, config.epochs);
+        logger_1.logger.info({ msg: 'Training job created', jobId, name });
+        res.status(201).json({
+            success: true,
+            data: job,
+            message: 'Training job created successfully'
+        });
+        return;
+    }
+    catch (error) {
+        const msg = `Error creating training job: ${safeError(error)}`;
+        logger_1.logger.error(msg);
+        res.status(500).json({ success: false, error: msg });
+        return;
+    }
+});
+// ✅ GET /api/training/jobs/:id - Get single training job
+router.get('/jobs/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const runs = state.listRuns();
+        const run = runs.find(r => r.runId === id);
+        if (!run) {
+            res.status(404).json({
+                success: false,
+                error: 'Training job not found'
+            });
+            return;
+        }
+        const metrics = metricsService.latest(id);
+        const summary = metricsService.summary(id);
+        res.json({
+            success: true,
+            data: {
+                id: run.runId,
+                name: run.modelName || 'Untitled Training',
+                status: run.status,
+                progress: Math.floor((run.currentEpoch / run.totalEpochs) * 100) || 0,
+                startTime: run.startedAt,
+                endTime: run.finishedAt,
+                currentEpoch: run.currentEpoch,
+                totalEpochs: run.totalEpochs,
+                currentStep: run.currentStep,
+                totalSteps: run.totalSteps,
+                metrics: metrics,
+                summary: summary
+            }
+        });
+        return;
+    }
+    catch (error) {
+        const msg = `Error getting training job: ${safeError(error)}`;
+        logger_1.logger.error(msg);
+        res.status(500).json({ success: false, error: msg });
+        return;
+    }
+});
+// ✅ GET /api/training/jobs/:id/logs - Get training job logs
+router.get('/jobs/:id/logs', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const job = trainingJobs.get(id);
+        if (!job) {
+            res.status(404).json({
+                success: false,
+                error: 'Training job not found'
+            });
+            return;
+        }
+        res.json({
+            success: true,
+            data: {
+                logs: job.logs || [],
+                total: job.logs?.length || 0
+            }
+        });
+        return;
+    }
+    catch (error) {
+        const msg = `Error getting training logs: ${safeError(error)}`;
+        logger_1.logger.error(msg);
+        res.status(500).json({ success: false, error: msg });
+        return;
+    }
+});
+// ✅ DELETE /api/training/jobs/:id - Cancel/delete training job
+router.delete('/jobs/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const proc = activeProcesses.get(id);
+        const job = trainingJobs.get(id);
+        if (!job && !proc) {
+            res.status(404).json({
+                success: false,
+                error: 'Training job not found'
+            });
+            return;
+        }
+        // Kill the process if running
+        if (proc) {
+            proc.kill('SIGTERM');
+            activeProcesses.delete(id);
+        }
+        // Remove job
+        if (job) {
+            trainingJobs.delete(id);
+        }
+        // Update state
+        state.updateRun(id, {
+            phase: 'stopped',
+            status: 'stopped'
+        });
+        logger_1.logger.info(`Training job ${id} cancelled and removed`);
+        res.json({
+            success: true,
+            message: 'Training job cancelled successfully'
+        });
+        return;
+    }
+    catch (error) {
+        const msg = `Error cancelling training job: ${safeError(error)}`;
+        logger_1.logger.error(msg);
+        res.status(500).json({ success: false, error: msg });
+        return;
+    }
+});
+// ✅ POST /api/training/jobs/:id/cancel - Cancel training job (alias for DELETE)
+router.post('/jobs/:id/cancel', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const proc = activeProcesses.get(id);
+        if (!proc) {
+            res.status(404).json({
+                success: false,
+                error: 'Training job not found or already completed'
+            });
+            return;
+        }
+        // Kill the process
+        proc.kill('SIGTERM');
+        activeProcesses.delete(id);
+        // Update state
+        state.updateRun(id, {
+            phase: 'stopped',
+            status: 'stopped'
+        });
+        logger_1.logger.info(`Training job ${id} cancelled`);
+        res.json({
+            success: true,
+            message: 'Training job cancelled successfully'
+        });
+        return;
+    }
+    catch (error) {
+        const msg = `Error cancelling training job: ${safeError(error)}`;
+        logger_1.logger.error(msg);
+        res.status(500).json({ success: false, error: msg });
         return;
     }
 });

@@ -292,30 +292,58 @@ router.get('/datasets/available', async (_req, res) => {
 });
 /**
  * GET /api/sources/installed
- * Get installed sources (mock for now)
+ * Get installed models and datasets
  */
 router.get('/installed', async (_req, res) => {
     try {
-        // This would scan the actual filesystem in production
-        const sources = [
-            {
-                id: 'source_1',
-                name: 'Hugging Face',
-                type: 'model_repository',
-                installed: true,
-                version: '2.0.1',
-                lastUpdated: new Date().toISOString()
-            }
-        ];
+        // Get downloaded models and datasets
+        const allJobs = (0, downloads_1.getAllDownloadJobs)();
+        const completedJobs = allJobs.filter(job => job.status === 'completed');
+        const models = completedJobs
+            .filter(job => {
+            const modelInfo = (0, modelCatalog_1.getModelById)(job.repoId);
+            return modelInfo && (modelInfo.type === 'model' || modelInfo.type === 'tts');
+        })
+            .map(job => {
+            const modelInfo = (0, modelCatalog_1.getModelById)(job.repoId);
+            return {
+                id: job.repoId,
+                name: modelInfo?.name || job.repoId,
+                type: modelInfo?.type || 'model',
+                size: modelInfo?.size || 'Unknown',
+                downloadedAt: job.finishedAt,
+                path: job.dest
+            };
+        });
+        const datasets = completedJobs
+            .filter(job => {
+            const modelInfo = (0, modelCatalog_1.getModelById)(job.repoId);
+            return modelInfo && modelInfo.type === 'dataset';
+        })
+            .map(job => {
+            const modelInfo = (0, modelCatalog_1.getModelById)(job.repoId);
+            return {
+                id: job.repoId,
+                name: modelInfo?.name || job.repoId,
+                type: 'dataset',
+                size: modelInfo?.size || 'Unknown',
+                downloadedAt: job.finishedAt,
+                path: job.dest
+            };
+        });
         res.json({
-            ok: true,
-            sources
+            success: true,
+            data: {
+                models,
+                datasets,
+                all: [...models, ...datasets]
+            }
         });
     }
     catch (error) {
         logger_1.logger.error(`Error getting installed sources: ${error.message}`);
         res.status(500).json({
-            ok: false,
+            success: false,
             error: error.message
         });
     }

@@ -1,6 +1,6 @@
 import 'dotenv/config';
 export declare const ENV: {
-    NODE_ENV: string;
+    NODE_ENV: "development" | "production" | "test";
     PORT: number;
     LOG_DIR: string;
     CUSTOM_API_ENDPOINT: string;
