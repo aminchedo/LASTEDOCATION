@@ -26,54 +26,99 @@
 ### Prerequisites
 
 - Node.js 18+
-- PostgreSQL 12+
+- PostgreSQL 14+
 - npm or yarn
 
-### One-Command Setup
+### **🎯 Three-Command Setup** (Recommended)
 
 ```bash
+# 1. Automated setup (handles everything)
 ./setup.sh
+
+# 2. Start all services
+./start.sh
+
+# 3. Open browser to http://localhost:5173
 ```
 
-This automated script handles everything:
-- ✅ Database creation
-- ✅ Environment configuration
-- ✅ Dependency installation
-- ✅ Build process
-- ✅ Schema initialization
+**What happens:**
+- ✅ Database created and initialized
+- ✅ Environment configured (.env files)
+- ✅ Dependencies installed (backend + client)
+- ✅ Projects built and verified
+- ✅ Servers running (backend on :3001, client on :5173)
 
-### Manual Setup
+**To stop:**
+```bash
+./stop.sh
+```
+
+### Verification Scripts
+
+Test everything works:
 
 ```bash
-# 1. Create database
-createdb persian_tts
+# Verify database
+cd BACKEND && npm run verify:db
 
-# 2. Configure environment
-cd BACKEND
-cp .env.example .env
-# Edit .env with your database credentials
+# Test API endpoints
+npm run verify:api
+
+# Check TypeScript compilation
+npm run verify:ts
+
+# Verify builds
+npm run verify:build
+
+# Run all verifications
+npm run verify:all
+
+# Run tests
+npm test
+```
+
+### Manual Setup (Advanced)
+
+<details>
+<summary>Click to expand manual setup instructions</summary>
+
+```bash
+# 1. Setup environment
+./setup-env.sh
+# Or manually:
+# - Edit BACKEND/.env with database credentials
+# - Edit client/.env with API URL
+
+# 2. Create database
+createdb persian_tts
+psql persian_tts -f BACKEND/src/database/schema.sql
 
 # 3. Install dependencies
 cd BACKEND && npm install
-cd client && npm install
+cd ../client && npm install
 
 # 4. Build
 cd BACKEND && npm run build
-cd client && npm run build
+cd ../client && npm run build
 
-# 5. Start servers
-# Terminal 1
+# 5. Start servers (2 terminals)
+# Terminal 1:
 cd BACKEND && npm run dev
 
-# Terminal 2
+# Terminal 2:
 cd client && npm run dev
 ```
 
-### Verify Installation
+</details>
 
-```bash
-./verify.sh
-```
+---
+
+## 📚 Documentation
+
+- **[Developer Guide](DEVELOPER_GUIDE.md)** - Complete guide for developers
+- **[Troubleshooting Guide](TROUBLESHOOTING.md)** - Common issues and solutions
+- **[Production Checklist](PRODUCTION_CHECKLIST.md)** - Deployment readiness checklist
+- **[API Documentation](BACKEND/API_ENDPOINTS.md)** - Full API reference
 
 ---
 

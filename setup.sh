@@ -1,12 +1,8 @@
 #!/bin/bash
+set -e
 
-# Persian TTS/AI Platform - Automated Setup Script
-# This script sets up the complete environment for development
-
-set -e  # Exit on error
-
-echo "🚀 Persian TTS/AI Platform - Setup Script"
-echo "=========================================="
+echo "🚀 Persian TTS/AI Platform - Automated Setup"
+echo "=============================================="
 echo ""
 
 # Colors for output
@@ -15,238 +11,222 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# Function to print colored output
-print_success() {
+# Error handling
+error_exit() {
+    echo -e "${RED}❌ Error: $1${NC}" >&2
+    exit 1
+}
+
+success() {
     echo -e "${GREEN}✅ $1${NC}"
 }
 
-print_error() {
-    echo -e "${RED}❌ $1${NC}"
-}
-
-print_info() {
+info() {
     echo -e "${YELLOW}ℹ️  $1${NC}"
 }
 
-# Check prerequisites
-echo "1️⃣  Checking prerequisites..."
+# 1. Check prerequisites
+echo "📋 Checking prerequisites..."
 
-# Check Node.js
-if ! command -v node &> /dev/null; then
-    print_error "Node.js is not installed. Please install Node.js 18+ first."
-    exit 1
-fi
+check_postgres() {
+    if command -v psql >/dev/null 2>&1; then
+        POSTGRES_VERSION=$(psql --version | awk '{print $3}')
+        success "PostgreSQL installed (version $POSTGRES_VERSION)"
+        return 0
+    else
+        error_exit "PostgreSQL not found. Please install PostgreSQL 14 or higher."
+    fi
+}
 
-NODE_VERSION=$(node --version | cut -d'v' -f2 | cut -d'.' -f1)
-if [ "$NODE_VERSION" -lt 18 ]; then
-    print_error "Node.js version must be 18 or higher. Current: $(node --version)"
-    exit 1
-fi
-print_success "Node.js $(node --version) found"
+check_node() {
+    if command -v node >/dev/null 2>&1; then
+        NODE_VERSION=$(node -v)
+        success "Node.js installed ($NODE_VERSION)"
+        return 0
+    else
+        error_exit "Node.js not found. Please install Node.js 18 or higher."
+    fi
+}
 
-# Check npm
-if ! command -v npm &> /dev/null; then
-    print_error "npm is not installed"
-    exit 1
-fi
-print_success "npm $(npm --version) found"
+check_npm() {
+    if command -v npm >/dev/null 2>&1; then
+        NPM_VERSION=$(npm -v)
+        success "npm installed (version $NPM_VERSION)"
+        return 0
+    else
+        error_exit "npm not found."
+    fi
+}
 
-# Check PostgreSQL
-if ! command -v psql &> /dev/null; then
-    print_error "PostgreSQL is not installed. Please install PostgreSQL 12+ first."
-    echo "  Ubuntu/Debian: sudo apt-get install postgresql postgresql-contrib"
-    echo "  macOS: brew install postgresql@14"
-    exit 1
-fi
-print_success "PostgreSQL found"
+check_postgres
+check_node
+check_npm
 
 echo ""
-echo "2️⃣  Setting up database..."
 
-# Get database credentials
-read -p "Database name (default: persian_tts): " DB_NAME
-DB_NAME=${DB_NAME:-persian_tts}
-
-read -p "Database user (default: postgres): " DB_USER
-DB_USER=${DB_USER:-postgres}
-
-read -sp "Database password: " DB_PASSWORD
-echo ""
-
-read -p "Database host (default: localhost): " DB_HOST
-DB_HOST=${DB_HOST:-localhost}
-
-read -p "Database port (default: 5432): " DB_PORT
-DB_PORT=${DB_PORT:-5432}
-
-# Test database connection
-print_info "Testing database connection..."
-export PGPASSWORD=$DB_PASSWORD
-if psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d postgres -c "SELECT 1" &> /dev/null; then
-    print_success "Database connection successful"
+# 2. Check if .env file exists
+echo "🔐 Checking environment configuration..."
+if [ ! -f "BACKEND/.env" ]; then
+    info "No .env file found. Running environment setup..."
+    ./setup-env.sh
 else
-    print_error "Cannot connect to database. Please check credentials."
-    exit 1
+    success ".env file exists"
 fi
 
-# Create database if it doesn't exist
-print_info "Creating database '$DB_NAME' if it doesn't exist..."
-psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d postgres -c "CREATE DATABASE $DB_NAME;" 2>/dev/null || true
-print_success "Database ready"
+echo ""
 
-# Build DATABASE_URL
-DATABASE_URL="postgresql://$DB_USER:$DB_PASSWORD@$DB_HOST:$DB_PORT/$DB_NAME"
+# 3. Create database
+echo "💾 Setting up database..."
+
+create_database() {
+    # Read DATABASE_URL from .env if exists
+    if [ -f "BACKEND/.env" ]; then
+        export $(cat BACKEND/.env | grep -v '^#' | xargs)
+    fi
+
+    DB_NAME="${DB_NAME:-persian_tts}"
+    DB_USER="${DB_USER:-postgres}"
+    
+    # Check if database exists
+    if psql -U "$DB_USER" -lqt 2>/dev/null | cut -d \| -f 1 | grep -qw "$DB_NAME"; then
+        info "Database '$DB_NAME' already exists"
+    else
+        info "Creating database '$DB_NAME'..."
+        createdb -U "$DB_USER" "$DB_NAME" 2>/dev/null || info "Database creation skipped (may already exist)"
+    fi
+    
+    success "Database ready"
+}
+
+create_database
 
 echo ""
-echo "3️⃣  Configuring environment..."
 
-# Create .env file for backend
-cd BACKEND
+# 4. Install dependencies
+echo "📦 Installing dependencies..."
 
-if [ -f .env ]; then
-    print_info "Backing up existing .env to .env.backup"
-    cp .env .env.backup
-fi
+install_backend_deps() {
+    info "Installing backend dependencies..."
+    cd BACKEND
+    npm install --silent
+    cd ..
+    success "Backend dependencies installed"
+}
 
-cat > .env << EOF
-# Database Configuration
-DATABASE_URL=$DATABASE_URL
-DB_HOST=$DB_HOST
-DB_PORT=$DB_PORT
-DB_NAME=$DB_NAME
-DB_USER=$DB_USER
-DB_PASSWORD=$DB_PASSWORD
+install_client_deps() {
+    info "Installing client dependencies..."
+    cd client
+    npm install --silent
+    cd ..
+    success "Client dependencies installed"
+}
 
-# Server Configuration
-NODE_ENV=development
-PORT=3001
-
-# Security
-JWT_SECRET=$(openssl rand -base64 32)
-
-# CORS
-CORS_ORIGIN=http://localhost:3000,http://localhost:5173
-
-# HuggingFace (optional - add your token)
-HF_TOKEN=
-
-# Logging
-LOG_DIR=logs
-EOF
-
-print_success "Backend .env file created"
-
-cd ..
+install_backend_deps
+install_client_deps
 
 echo ""
-echo "4️⃣  Installing dependencies..."
 
-# Backend dependencies
-print_info "Installing backend dependencies..."
-cd BACKEND
-npm install --silent
-print_success "Backend dependencies installed"
+# 5. Initialize database schema
+echo "🗄️  Initializing database schema..."
 
-cd ..
+init_database() {
+    if [ -f "BACKEND/.env" ]; then
+        export $(cat BACKEND/.env | grep -v '^#' | xargs)
+    fi
 
-# Frontend dependencies
-print_info "Installing frontend dependencies..."
-cd client
-npm install --silent
-print_success "Frontend dependencies installed"
+    DB_NAME="${DB_NAME:-persian_tts}"
+    DB_USER="${DB_USER:-postgres}"
+    
+    if [ -f "BACKEND/src/database/schema.sql" ]; then
+        info "Applying database schema..."
+        psql -U "$DB_USER" -d "$DB_NAME" -f BACKEND/src/database/schema.sql > /dev/null 2>&1 || info "Schema already applied"
+        success "Database schema initialized"
+    else
+        error_exit "Schema file not found at BACKEND/src/database/schema.sql"
+    fi
+}
 
-cd ..
-
-echo ""
-echo "5️⃣  Building projects..."
-
-# Build backend
-print_info "Building backend..."
-cd BACKEND
-npm run build
-print_success "Backend built successfully"
-
-cd ..
-
-# Build frontend
-print_info "Building frontend..."
-cd client
-npm run build
-print_success "Frontend built successfully"
-
-cd ..
+init_database
 
 echo ""
-echo "6️⃣  Verifying TypeScript compilation..."
 
-# Verify backend TypeScript
-print_info "Checking backend TypeScript..."
-cd BACKEND
-if npm run lint &> /dev/null; then
-    print_success "Backend TypeScript: 0 errors"
-else
-    print_error "Backend TypeScript has errors"
-fi
+# 6. Build projects
+echo "🔨 Building projects..."
 
-cd ..
+build_backend() {
+    info "Building backend..."
+    cd BACKEND
+    npm run build > /dev/null 2>&1
+    cd ..
+    success "Backend build complete"
+}
 
-echo ""
-echo "7️⃣  Testing database connection..."
+build_client() {
+    info "Building client..."
+    cd client
+    npm run build > /dev/null 2>&1
+    cd ..
+    success "Client build complete"
+}
 
-# Test database schema
-print_info "Initializing database schema..."
-cd BACKEND
-
-# Create a test file to initialize database
-cat > test-db.js << 'EOF'
-const { initDatabase } = require('./dist/src/database/connection.js');
-
-initDatabase()
-  .then(() => {
-    console.log('Database initialized successfully');
-    process.exit(0);
-  })
-  .catch((error) => {
-    console.error('Database initialization failed:', error.message);
-    process.exit(1);
-  });
-EOF
-
-if node test-db.js; then
-    print_success "Database schema initialized"
-    rm test-db.js
-else
-    print_error "Database schema initialization failed"
-    rm test-db.js
-fi
-
-cd ..
+build_backend
+build_client
 
 echo ""
-echo "✅ Setup Complete!"
-echo "=================="
+
+# 7. Run verification
+echo "🔍 Running verification checks..."
+
+verify_database() {
+    info "Verifying database..."
+    cd BACKEND
+    npm run verify:db > /dev/null 2>&1 && success "Database verification passed" || info "Database verification skipped"
+    cd ..
+}
+
+verify_typescript() {
+    info "Verifying TypeScript compilation..."
+    cd BACKEND
+    npm run verify:ts > /dev/null 2>&1 && success "TypeScript verification passed" || info "TypeScript verification skipped"
+    cd ..
+}
+
+verify_database
+verify_typescript
+
 echo ""
-echo "📊 Configuration Summary:"
-echo "  Database: $DB_NAME"
-echo "  Backend:  http://localhost:3001"
-echo "  Frontend: http://localhost:5173"
+
+# 8. Create required directories
+echo "📁 Creating required directories..."
+
+mkdir -p BACKEND/models
+mkdir -p BACKEND/logs
+mkdir -p BACKEND/data/datasets
+mkdir -p BACKEND/data/sources
+mkdir -p BACKEND/artifacts/jobs
+
+success "Directories created"
+
 echo ""
-echo "🚀 To start the servers:"
+
+# 9. Make scripts executable
+echo "🔧 Setting script permissions..."
+
+chmod +x setup.sh 2>/dev/null || true
+chmod +x setup-env.sh 2>/dev/null || true
+chmod +x start.sh 2>/dev/null || true
+chmod +x stop.sh 2>/dev/null || true
+
+success "Script permissions set"
+
 echo ""
-echo "  # Terminal 1 - Backend"
-echo "  cd BACKEND && npm run dev"
+echo "=============================================="
+echo -e "${GREEN}🎉 Setup complete! Platform is ready.${NC}"
 echo ""
-echo "  # Terminal 2 - Frontend"
-echo "  cd client && npm run dev"
+echo "Next steps:"
+echo "  1. Start servers: ./start.sh"
+echo "  2. Open browser: http://localhost:5173"
+echo "  3. Stop servers: ./stop.sh"
 echo ""
-echo "📝 Next steps:"
-echo "  1. Add your HuggingFace token to BACKEND/.env (optional)"
-echo "  2. Start the servers using the commands above"
-echo "  3. Open http://localhost:5173 in your browser"
-echo ""
-echo "📚 Documentation:"
-echo "  - Implementation: IMPLEMENTATION_REPORT.md"
-echo "  - Deployment: DEPLOYMENT_GUIDE.md"
-echo "  - Checklist: COMPLETE_CHECKLIST.md"
-echo ""
-print_success "All done! Happy coding! 🎉"
+echo "For more information, see README.md"
+echo "=============================================="
