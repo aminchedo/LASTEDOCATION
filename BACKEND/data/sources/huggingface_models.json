@@ -1,0 +1,54 @@
+{
+  "persian_models": [
+    {
+      "id": "persian-bert-base",
+      "name": "Persian BERT Base",
+      "description": "Base Persian BERT model for text understanding",
+      "url": "https://huggingface.co/HooshvareLab/bert-fa-base-uncased",
+      "size": "110MB",
+      "type": "embedding",
+      "framework": "huggingface",
+      "language": "fa"
+    },
+    {
+      "id": "persian-gpt2",
+      "name": "Persian GPT-2",
+      "description": "Persian GPT-2 model for text generation",
+      "url": "https://huggingface.co/HooshvareLab/gpt2-fa",
+      "size": "500MB",
+      "type": "llm",
+      "framework": "huggingface",
+      "language": "fa"
+    },
+    {
+      "id": "persian-t5",
+      "name": "Persian T5",
+      "description": "Persian T5 model for text-to-text tasks",
+      "url": "https://huggingface.co/HooshvareLab/t5-fa-small",
+      "size": "250MB",
+      "type": "llm",
+      "framework": "huggingface",
+      "language": "fa"
+    }
+  ],
+  "datasets": [
+    {
+      "id": "persian-paracrawl",
+      "name": "Persian Paracrawl",
+      "description": "Large-scale Persian parallel corpus",
+      "url": "https://huggingface.co/datasets/persian-paracrawl",
+      "size": "2GB",
+      "type": "dataset",
+      "language": "fa"
+    },
+    {
+      "id": "persian-qa",
+      "name": "Persian Question Answering",
+      "description": "Persian question answering dataset",
+      "url": "https://huggingface.co/datasets/persian-qa",
+      "size": "50MB",
+      "type": "dataset",
+      "language": "fa"
+    }
+  ]
+}
