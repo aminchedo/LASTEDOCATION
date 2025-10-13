@@ -1,0 +1,68 @@
+/workspace/scripts/validate_api.sh:5:RED='\033[0;31m'
+/workspace/scripts/validate_api.sh:28:    echo -e "${RED}❌ $1${NC}"
+/workspace/scripts/setup.sh:14:RED='\033[0;31m'
+/workspace/scripts/setup.sh:34:    echo -e "${RED}[ERROR]${NC} $1"
+/workspace/scripts/acceptance.sh:11:RED='\033[0;31m'
+/workspace/scripts/acceptance.sh:33:        echo -e "${RED}❌ FAILED: $test_name${NC}"
+/workspace/scripts/acceptance.sh:149:echo -e "${RED}Failed: $FAILED_TESTS${NC}"
+/workspace/scripts/acceptance.sh:156:    echo -e "\n${RED}⚠️  Some acceptance tests failed.${NC}"
+/workspace/QUICK_SETUP_GUIDE.md:147:# Security (REQUIRED)
+/workspace/MODEL_TRAINING_PROJECT_ANALYSIS_REPORT.md:1224:## 🎯 SUMMARY OF REQUIRED CHANGES
+/workspace/PHASE7_SUMMARY.md:21:- ✅ Confirmed no empty TODO comments
+/workspace/reports/PR_SUMMARY.md:333:⚠️ **Production TODO:**
+/workspace/reports/mock-data-map.json:80:      "description": "TODO comment about loading checkpoints",
+/workspace/FINAL_STATUS_REPORT.md:516:**REQUIRED ACTION:**
+/workspace/tests/smoke.sh:5:RED=$(printf '\033[31m'); GRN=$(printf '\033[32m'); YEL=$(printf '\033[33m'); NC=$(printf '\033[0m')
+/workspace/tests/smoke.sh:23:  echo "  ${RED}FAIL${NC} ${BASE}/health => $health"
+/workspace/tests/smoke.sh:55:    printf "%-6s | ${RED}%-4s${NC} | %-7s | %-10s | %s\n" "$idx" "NO" "${status:-"-"}" "$size" "${fname:-"-"}  $raw"
+/workspace/tests/smoke.sh:73:  echo "${RED}RESULT:${NC} $fail_count link(s) failed resolve. Fix URLs or set HF_TOKEN for private/limited HF assets."
+/workspace/docs/UI_REDESIGN_COMPLETE.md:9:## 🚀 WHAT WAS DELIVERED
+/workspace/docs/UI_REDESIGN_COMPLETE.md:223:18. `UI_REDESIGN_PROGRESS.md`
+/workspace/docs/33_ITEMS_DELIVERED.md:4:**Status**: 🟢 **ALL ITEMS DELIVERED WITH EVIDENCE**
+/workspace/docs/33_ITEMS_DELIVERED.md:16:6. ✅ `33_ITEMS_DELIVERED.md` - This delivery manifest
+/workspace/docs/33_ITEMS_DELIVERED.md:202:| **Delivery Manifest** | This document | `33_ITEMS_DELIVERED.md` |
+/workspace/docs/33_ITEMS_DELIVERED.md:303:🎉 **ALL 33 ITEMS DELIVERED WITH FULL TRACEABILITY!**
+/workspace/docs/COMPLETE_33ITEMS_FINAL.md:148:26. ✅ `UI_REDESIGN_COMPLETE.md` - UI implementation details
+/workspace/docs/INDEX_33ITEMS.md:10:→ **[33_ITEMS_DELIVERED.md](33_ITEMS_DELIVERED.md)** - Delivery manifest with verification commands
+/workspace/docs/INDEX_33ITEMS.md:98:├── 📄 33_ITEMS_DELIVERED.md          # Delivery manifest
+/workspace/docs/INDEX_33ITEMS.md:229:1. **[33_ITEMS_DELIVERED.md](33_ITEMS_DELIVERED.md)** (THIS IS THE MAIN DELIVERABLE)
+/workspace/docs/INDEX_33ITEMS.md:268:1. Start: [33_ITEMS_DELIVERED.md](33_ITEMS_DELIVERED.md)
+/workspace/docs/INDEX_33ITEMS.md:308:- [Main Deliverable: 33_ITEMS_DELIVERED.md](33_ITEMS_DELIVERED.md)
+/workspace/docs/INDEX_33ITEMS.md:321:🎉 **ALL 33 ITEMS DELIVERED!**
+/workspace/docs/PHASE7_COMPLETION_REPORT.md:44:- **Empty TODOs**: No empty TODO comments found
+/workspace/docs/PHASE7_COMPLETION_REPORT.md:252:- [x] No empty TODO comments
+/workspace/docs/START_HERE.md:214:2. Check [UI_REDESIGN_COMPLETE.md](UI_REDESIGN_COMPLETE.md)
+/workspace/docs/EXECUTIVE_SUMMARY.md:122:26. `UI_REDESIGN_COMPLETE.md` - UI details
+/workspace/docs/EXECUTIVE_SUMMARY.md:262:5. **[UI_REDESIGN_COMPLETE.md](UI_REDESIGN_COMPLETE.md)** - UI implementation details
+/workspace/docs/UI_ENHANCEMENT_SUMMARY.md:472:1. **Drag-Drop Layout**: Not implemented (marked as pending TODO)
+/workspace/docs/INDEX.md:43:4. **[UI_REDESIGN_COMPLETE.md](UI_REDESIGN_COMPLETE.md)**
+/workspace/docs/INDEX.md:73:9. **[UI_REDESIGN_PROGRESS.md](UI_REDESIGN_PROGRESS.md)**
+/workspace/docs/INDEX.md:138:2. Check [UI_REDESIGN_COMPLETE.md](UI_REDESIGN_COMPLETE.md)
+/workspace/docs/INDEX.md:151:1. Read [UI_REDESIGN_COMPLETE.md](UI_REDESIGN_COMPLETE.md)
+/workspace/FINAL_BUILD_REPORT.md:15:🚫 Remaining TODOs: 4 (non-critical)
+/workspace/FINAL_BUILD_REPORT.md:102:#### TODO/FIXME Resolution
+/workspace/FINAL_BUILD_REPORT.md:107:**Remaining TODOs (Non-blocking):**
+/workspace/.env.example:14:# SECURITY (REQUIRED)
+/workspace/.env.example:202:# 1. REQUIRED: Set JWT_SECRET to a strong random string
+grep: /workspace/discovery/patch_apply/todo_list.txt: input file is also the output
+/workspace/MERGE_GUIDE.md:205:# (markers <<<<<<< ======= >>>>>>> را پیدا کنید)
+/workspace/DEPLOYMENT_READY_REPORT.md:100:### ⚠️ PRODUCTION CONFIGURATION REQUIRED
+/workspace/FIXLIST_RESOLUTION_LOG.md:13:| **Total TODO/FIXME Found** | 10 | - |
+/workspace/FIXLIST_RESOLUTION_LOG.md:21:## 🔍 TODO/FIXME INVENTORY
+/workspace/FIXLIST_RESOLUTION_LOG.md:25:grep -r "TODO:\|FIXME:\|XXX:\|HACK:" /workspace --exclude-dir={node_modules,dist,.git}
+/workspace/FIXLIST_RESOLUTION_LOG.md:247:### 1. Documentation TODO
+/workspace/FIXLIST_RESOLUTION_LOG.md:249:**Marker:** `# TODO: Add setup script`  
+/workspace/FIXLIST_RESOLUTION_LOG.md:258:**Marker:** `<!-- TODO: Fill in PR summary -->`  
+/workspace/FIXLIST_RESOLUTION_LOG.md:267:**Marker:** `// TODO: Add more health check details`  
+/workspace/FIXLIST_RESOLUTION_LOG.md:276:**Marker:** `// TODO: Add advanced control options`  
+/workspace/FIXLIST_RESOLUTION_LOG.md:365:| Critical TODOs | 6 | 0 | 100% |
+/workspace/FIXLIST_RESOLUTION_LOG.md:366:| Documentation TODOs | 0 | 4 | N/A |
+/workspace/FIXLIST_RESOLUTION_LOG.md:416:4. **Document Remaining TODOs**
+/workspace/FIXLIST_RESOLUTION_LOG.md:417:   - Convert inline TODOs to GitHub issues
+/workspace/FIXLIST_RESOLUTION_LOG.md:424:All critical TODO/FIXME markers and build errors have been successfully resolved. The remaining 4 markers are non-critical documentation placeholders and future enhancements that do not block deployment.
+/workspace/FINAL_STATUS.md:125:### ❌ RED LIGHT Items
+/workspace/client/src/components/training/Controls.tsx:257:                {/* TODO: Load available checkpoints */}
+/workspace/client/src/components/training/HealthNotice.tsx:148:                // TODO: Open settings modal
+/workspace/client/src/vite-env.d.ts:1:/// <reference types="vite/client" />
+/workspace/CHECKLIST_COMPLETION_SUMMARY.auto.md:215:| TODO/FIXME Critical | 10 | 4 | ✅ 60% |
+/workspace/CHECKLIST_COMPLETION_SUMMARY.auto.md:229:4. ✅ Only 4 non-critical TODO/FIXME remain

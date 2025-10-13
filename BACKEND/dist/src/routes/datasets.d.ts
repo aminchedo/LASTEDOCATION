@@ -1,6 +1,3 @@
-/**
- * Dataset Management API Routes
- */
 declare const router: import("express-serve-static-core").Router;
 export default router;
 //# sourceMappingURL=datasets.d.ts.map

@@ -21,7 +21,7 @@ const trainingJobs = new Map<string, any>();
 // ---------- Helpers ----------
 const safeError = (e: unknown): string => String((e as any)?.message ?? e);
 
-// Real training function
+// Real training function using the real PyTorch training script
 async function startRealTraining(runId: string, config: {
   datasetPath?: string;
   modelName: string;
@@ -31,84 +31,25 @@ async function startRealTraining(runId: string, config: {
 }): Promise<void> {
   return new Promise((resolve, reject) => {
     try {
-      // Create training script content
-      const scriptContent = `
-import json
-import time
-import random
-import sys
-import os
+      // Use the real PyTorch training script
+      const scriptPath = path.join(process.cwd(), 'scripts', 'train_real_pytorch.py');
+      
+      // Prepare arguments for the real training script
+      const args = [
+        scriptPath,
+        '--model-name', config.modelName || 'HooshvareLab/bert-fa-base-uncased',
+        '--dataset-path', config.datasetPath || path.join(process.cwd(), 'combined.jsonl'),
+        '--output-dir', path.join(process.cwd(), 'models', `trained_${runId}`),
+        '--epochs', config.epochs.toString(),
+        '--batch-size', config.batchSize.toString(),
+        '--learning-rate', config.learningRate.toString(),
+        '--run-id', runId
+      ];
 
-def simulate_training():
-    config = ${JSON.stringify(config)}
-    run_id = "${runId}"
-    
-    print(f"Starting training for run {run_id}")
-    print(f"Model: {config['modelName']}")
-    print(f"Epochs: {config['epochs']}")
-    print(f"Batch size: {config['batchSize']}")
-    print(f"Learning rate: {config['learningRate']}")
-    
-    total_steps = config['epochs'] * 100  # Simulate 100 steps per epoch
-    
-    for epoch in range(config['epochs']):
-        print(f"\\nEpoch {epoch + 1}/{config['epochs']}")
-        
-        for step in range(100):
-            # Simulate training step
-            loss = max(0.1, 2.0 - (epoch * 100 + step) * 0.01 + random.uniform(-0.1, 0.1))
-            accuracy = min(0.95, (epoch * 100 + step) * 0.001 + random.uniform(-0.02, 0.02))
-            
-            # Output progress every 10 steps
-            if step % 10 == 0:
-                progress = ((epoch * 100 + step) / total_steps) * 100
-                print(f"Step {step + 1}/100 - Loss: {loss:.4f} - Accuracy: {accuracy:.4f} - Progress: {progress:.1f}%")
-                
-                # Write metrics to file for backend to read
-                metrics = {
-                    "epoch": epoch + 1,
-                    "step": step + 1,
-                    "total_steps": total_steps,
-                    "loss": loss,
-                    "accuracy": accuracy,
-                    "progress": progress,
-                    "timestamp": time.time()
-                }
-                
-                with open(f"training_metrics_{run_id}.json", "w") as f:
-                    json.dump(metrics, f)
-            
-            time.sleep(0.1)  # Small delay to simulate processing time
-        
-        print(f"Epoch {epoch + 1} completed - Loss: {loss:.4f} - Accuracy: {accuracy:.4f}")
-    
-    print("\\nTraining completed successfully!")
-    
-    # Write final metrics
-    final_metrics = {
-        "status": "completed",
-        "final_loss": loss,
-        "final_accuracy": accuracy,
-        "total_epochs": config['epochs'],
-        "timestamp": time.time()
-    }
-    
-    with open(f"training_final_{run_id}.json", "w") as f:
-        json.dump(final_metrics, f)
-
-if __name__ == "__main__":
-    simulate_training()
-`;
-
-      // Write training script to file
-      const scriptsDir = path.join(process.cwd(), 'training_scripts');
-      fs.mkdirSync(scriptsDir, { recursive: true });
-
-      const scriptPath = path.join(scriptsDir, `train_${runId}.py`);
-      fs.writeFileSync(scriptPath, scriptContent);
+      logger.info(`Starting real PyTorch training with args: ${JSON.stringify(args)}`);
 
       // Start Python training process
-      const pythonProcess = spawn('python', [scriptPath], {
+      const pythonProcess = spawn('python3', args, {
         stdio: ['pipe', 'pipe', 'pipe'],
         cwd: process.cwd()
       });

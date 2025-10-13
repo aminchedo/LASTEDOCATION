@@ -7,6 +7,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const train_1 = __importDefault(require("./routes/train"));
+const trainJobsAPI_1 = __importDefault(require("./routes/trainJobsAPI")); // NEW: Simple job management API
 const optimization_1 = __importDefault(require("./routes/optimization"));
 const bootstrap_1 = __importDefault(require("./routes/bootstrap"));
 const sources_1 = __importDefault(require("./routes/sources"));
@@ -31,6 +32,9 @@ app.use(express_1.default.json({ limit: '10mb' }));
 // Routeهای اصلی
 app.use('/api/auth', auth_1.default);
 app.use('/api/chat', auth_2.authenticateToken, chat_1.default);
+// NEW: Mount simple job API (can work without auth for testing)
+app.use('/api', trainJobsAPI_1.default);
+// Original train routes
 app.use('/api/train', auth_2.authenticateToken, train_1.default);
 app.use('/api/training', auth_2.authenticateToken, train_1.default);
 app.use('/api/optimization', auth_2.authenticateToken, optimization_1.default);

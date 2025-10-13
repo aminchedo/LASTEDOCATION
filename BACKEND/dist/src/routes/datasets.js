@@ -1,347 +1,325 @@
 "use strict";
-/**
- * Dataset Management API Routes
- */
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const express_1 = __importDefault(require("express"));
+const express_1 = require("express");
 const multer_1 = __importDefault(require("multer"));
 const path_1 = __importDefault(require("path"));
-const zod_1 = require("zod");
-const datasetManager_1 = require("../services/datasetManager");
-const auth_1 = require("../middleware/auth");
-const logger_1 = require("../middleware/logger");
-const router = express_1.default.Router();
+const promises_1 = __importDefault(require("fs/promises"));
+const logger_1 = require("../utils/logger");
+const router = (0, express_1.Router)();
 // Configure multer for file uploads
+const storage = multer_1.default.diskStorage({
+    destination: async (req, file, cb) => {
+        const uploadDir = path_1.default.join(process.cwd(), 'uploads');
+        try {
+            await promises_1.default.mkdir(uploadDir, { recursive: true });
+            cb(null, uploadDir);
+        }
+        catch (error) {
+            cb(error, uploadDir);
+        }
+    },
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, file.fieldname + '-' + uniqueSuffix + path_1.default.extname(file.originalname));
+    }
+});
 const upload = (0, multer_1.default)({
-    dest: path_1.default.join(process.cwd(), 'data', 'cache'),
+    storage: storage,
     limits: {
-        fileSize: 100 * 1024 * 1024, // 100MB limit
+        fileSize: 100 * 1024 * 1024 // 100MB limit
     },
     fileFilter: (req, file, cb) => {
-        const allowedTypes = ['application/json', 'text/plain', 'text/csv'];
-        if (allowedTypes.includes(file.mimetype)) {
+        const ext = path_1.default.extname(file.originalname).toLowerCase();
+        if (['.jsonl', '.json', '.csv', '.txt'].includes(ext)) {
             cb(null, true);
         }
         else {
-            cb(new Error('Invalid file type. Only JSON, TXT, and CSV files are allowed.'));
+            cb(new Error('Invalid file type. Only .jsonl, .json, .csv, .txt allowed'));
         }
     }
 });
-// Validation schemas
-const createDatasetSchema = zod_1.z.object({
-    name: zod_1.z.string().min(1).max(100),
-    description: zod_1.z.string().min(1).max(500),
-    version: zod_1.z.string().min(1).max(20),
-    format: zod_1.z.enum(['json', 'jsonl', 'csv', 'txt', 'parquet']),
-    language: zod_1.z.string().min(2).max(10),
-    source: zod_1.z.string().min(1).max(200),
-    tags: zod_1.z.array(zod_1.z.string()).max(20)
-});
-const updateDatasetSchema = createDatasetSchema.partial();
-// Get all datasets
-router.get('/', auth_1.authenticateToken, async (req, res) => {
+async function validateDataset(filePath) {
     try {
-        const { language, tag, search } = req.query;
-        let datasets;
-        if (search && typeof search === 'string') {
-            datasets = datasetManager_1.datasetManager.searchDatasets(search);
+        const content = await promises_1.default.readFile(filePath, 'utf-8');
+        const lines = content.split('\n').filter(line => line.trim());
+        const errors = [];
+        let validLines = 0;
+        const samples = [];
+        for (let i = 0; i < Math.min(lines.length, 1000); i++) { // Validate first 1000 lines
+            try {
+                const obj = JSON.parse(lines[i]);
+                // Check required fields
+                if (!obj.question && !obj.text && !obj.input) {
+                    errors.push(`Line ${i + 1}: Missing required field (question/text/input)`);
+                }
+                else if (obj.question && !obj.answer) {
+                    errors.push(`Line ${i + 1}: Question provided but answer is missing`);
+                }
+                else {
+                    validLines++;
+                    if (samples.length < 5) {
+                        samples.push(obj);
+                    }
+                }
+            }
+            catch (err) {
+                errors.push(`Line ${i + 1}: Invalid JSON - ${String(err?.message || err)}`);
+            }
         }
-        else if (language && typeof language === 'string') {
-            datasets = datasetManager_1.datasetManager.getDatasetsByLanguage(language);
+        return {
+            valid: errors.length === 0 || (errors.length < lines.length * 0.1), // Allow up to 10% errors
+            totalLines: lines.length,
+            validLines: validLines,
+            errors: errors.slice(0, 20), // Return first 20 errors
+            samples: samples
+        };
+    }
+    catch (error) {
+        return {
+            valid: false,
+            totalLines: 0,
+            validLines: 0,
+            errors: [`File read error: ${error.message}`]
+        };
+    }
+}
+async function generateDatasetMetadata(filePath) {
+    const stats = await promises_1.default.stat(filePath);
+    const content = await promises_1.default.readFile(filePath, 'utf-8');
+    const lines = content.split('\n').filter(line => line.trim());
+    // Sample first item to determine fields
+    let fields = [];
+    let sampleData = null;
+    if (lines.length > 0) {
+        try {
+            sampleData = JSON.parse(lines[0]);
+            fields = Object.keys(sampleData);
         }
-        else if (tag && typeof tag === 'string') {
-            datasets = datasetManager_1.datasetManager.getDatasetsByTag(tag);
+        catch (e) {
+            // Ignore parse errors
         }
-        else {
-            datasets = datasetManager_1.datasetManager.getAllDatasets();
+    }
+    return {
+        fileName: path_1.default.basename(filePath),
+        filePath: filePath,
+        fileSize: stats.size,
+        fileSizeFormatted: formatBytes(stats.size),
+        lineCount: lines.length,
+        fields: fields,
+        sampleData: sampleData,
+        createdAt: stats.birthtime,
+        modifiedAt: stats.mtime
+    };
+}
+function formatBytes(bytes) {
+    if (bytes === 0)
+        return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+}
+// GET /api/datasets/list - List all datasets
+router.get('/list', async (req, res) => {
+    try {
+        const dataDir = path_1.default.join(process.cwd(), 'data', 'datasets');
+        try {
+            await promises_1.default.mkdir(dataDir, { recursive: true });
+        }
+        catch (e) {
+            // Directory might already exist
+        }
+        const files = await promises_1.default.readdir(dataDir);
+        const datasets = [];
+        for (const file of files) {
+            if (file.endsWith('.jsonl') || file.endsWith('.json')) {
+                const filePath = path_1.default.join(dataDir, file);
+                const metadata = await generateDatasetMetadata(filePath);
+                datasets.push({
+                    id: file.replace(/\.(jsonl|json)$/, ''),
+                    name: file,
+                    ...metadata
+                });
+            }
         }
         res.json({
             success: true,
             data: datasets,
-            meta: {
-                total: datasets.length,
-                timestamp: new Date().toISOString()
-            }
+            total: datasets.length
         });
+        return;
     }
     catch (error) {
-        logger_1.logger.error({ msg: 'get_datasets_failed', error: error.message });
-        res.status(500).json({
-            success: false,
-            error: 'Failed to retrieve datasets',
-            message: error.message
-        });
+        logger_1.logger.error(`Failed to list datasets: ${error.message}`);
+        res.status(500).json({ success: false, error: error.message });
+        return;
     }
 });
-// Get dataset by ID
-router.get('/:id', auth_1.authenticateToken, async (req, res) => {
-    try {
-        const { id } = req.params;
-        const dataset = datasetManager_1.datasetManager.getDataset(id);
-        if (!dataset) {
-            return res.status(404).json({
-                success: false,
-                error: 'Dataset not found',
-                message: `Dataset with ID ${id} does not exist`
-            });
-        }
-        return res.json({
-            success: true,
-            data: dataset,
-            meta: {
-                timestamp: new Date().toISOString()
-            }
-        });
-    }
-    catch (error) {
-        logger_1.logger.error({ msg: 'get_dataset_failed', error: error.message });
-        return res.status(500).json({
-            success: false,
-            error: 'Failed to retrieve dataset',
-            message: error.message
-        });
-    }
-});
-// Create new dataset
-router.post('/', auth_1.authenticateToken, upload.single('file'), async (req, res) => {
+// POST /api/datasets/upload - Upload new dataset
+router.post('/upload', upload.single('dataset'), async (req, res) => {
     try {
         if (!req.file) {
-            return res.status(400).json({
-                success: false,
-                error: 'No file uploaded',
-                message: 'Please upload a dataset file'
-            });
+            res.status(400).json({ success: false, error: 'No file uploaded' });
+            return;
         }
-        const validation = createDatasetSchema.safeParse(req.body);
-        if (!validation.success) {
-            return res.status(400).json({
+        logger_1.logger.info(`Dataset upload started: ${req.file.originalname} (${req.file.size} bytes)`);
+        // Validate dataset
+        const validation = await validateDataset(req.file.path);
+        if (!validation.valid) {
+            await promises_1.default.unlink(req.file.path); // Delete invalid file
+            res.status(400).json({
                 success: false,
-                error: 'Validation failed',
-                message: 'Invalid dataset metadata',
-                details: validation.error.flatten()
+                error: 'Invalid dataset format',
+                details: validation.errors
             });
+            return;
         }
-        const metadata = validation.data;
-        const dataset = await datasetManager_1.datasetManager.addDataset(req.file.path, {
-            ...metadata,
-            size: 0 // Will be calculated by the service
-        });
-        return res.status(201).json({
+        // Move to permanent storage
+        const dataDir = path_1.default.join(process.cwd(), 'data', 'datasets');
+        await promises_1.default.mkdir(dataDir, { recursive: true });
+        const finalPath = path_1.default.join(dataDir, req.file.originalname);
+        await promises_1.default.rename(req.file.path, finalPath);
+        // Generate metadata
+        const metadata = await generateDatasetMetadata(finalPath);
+        logger_1.logger.info(`Dataset uploaded successfully: ${req.file.originalname} (${validation.validLines} lines)`);
+        res.json({
             success: true,
-            data: dataset,
-            meta: {
-                timestamp: new Date().toISOString()
+            message: 'Dataset uploaded successfully',
+            data: {
+                id: req.file.originalname.replace(/\.(jsonl|json)$/, ''),
+                path: finalPath,
+                metadata: metadata,
+                validation: {
+                    totalLines: validation.totalLines,
+                    validLines: validation.validLines,
+                    errorCount: validation.errors.length
+                }
             }
         });
+        return;
     }
     catch (error) {
-        logger_1.logger.error({ msg: 'create_dataset_failed', error: error.message });
-        return res.status(500).json({
-            success: false,
-            error: 'Failed to create dataset',
-            message: error.message
-        });
+        logger_1.logger.error(`Dataset upload failed: ${error.message}`);
+        // Clean up uploaded file on error
+        if (req.file && req.file.path) {
+            try {
+                await promises_1.default.unlink(req.file.path);
+            }
+            catch (e) {
+                // Ignore cleanup errors
+            }
+        }
+        res.status(500).json({ success: false, error: error.message });
+        return;
     }
 });
-// Update dataset
-router.put('/:id', auth_1.authenticateToken, async (req, res) => {
+// GET /api/datasets/preview/:datasetId - Preview dataset
+router.get('/preview/:datasetId', async (req, res) => {
     try {
-        const { id } = req.params;
-        const validation = updateDatasetSchema.safeParse(req.body);
-        if (!validation.success) {
-            return res.status(400).json({
-                success: false,
-                error: 'Validation failed',
-                message: 'Invalid dataset metadata',
-                details: validation.error.flatten()
-            });
+        const { datasetId } = req.params;
+        const limit = parseInt(req.query.limit) || 10;
+        const datasetPath = path_1.default.join(process.cwd(), 'data', 'datasets', `${datasetId}.jsonl`);
+        // Try .json if .jsonl doesn't exist
+        let content;
+        try {
+            content = await promises_1.default.readFile(datasetPath, 'utf-8');
         }
-        const updates = validation.data;
-        const dataset = datasetManager_1.datasetManager.updateDataset(id, updates);
-        if (!dataset) {
-            return res.status(404).json({
-                success: false,
-                error: 'Dataset not found',
-                message: `Dataset with ID ${id} does not exist`
-            });
+        catch (e) {
+            const jsonPath = path_1.default.join(process.cwd(), 'data', 'datasets', `${datasetId}.json`);
+            content = await promises_1.default.readFile(jsonPath, 'utf-8');
         }
-        return res.json({
-            success: true,
-            data: dataset,
-            meta: {
-                timestamp: new Date().toISOString()
+        const lines = content.split('\n').filter(line => line.trim()).slice(0, limit);
+        const samples = lines.map((line, index) => {
+            try {
+                return JSON.parse(line);
+            }
+            catch (e) {
+                return { error: `Invalid JSON at line ${index + 1}` };
             }
         });
+        res.json({
+            success: true,
+            data: {
+                samples: samples,
+                total: samples.length,
+                datasetId: datasetId
+            }
+        });
+        return;
     }
     catch (error) {
-        logger_1.logger.error({ msg: 'update_dataset_failed', error: error.message });
-        return res.status(500).json({
-            success: false,
-            error: 'Failed to update dataset',
-            message: error.message
-        });
+        logger_1.logger.error(`Dataset preview failed for ${req.params.datasetId}: ${error.message}`);
+        res.status(500).json({ success: false, error: error.message });
+        return;
     }
 });
-// Delete dataset
-router.delete('/:id', auth_1.authenticateToken, async (req, res) => {
+// GET /api/datasets/validate/:datasetId - Validate dataset
+router.get('/validate/:datasetId', async (req, res) => {
     try {
-        const { id } = req.params;
-        const success = datasetManager_1.datasetManager.deleteDataset(id);
-        if (!success) {
-            return res.status(404).json({
-                success: false,
-                error: 'Dataset not found',
-                message: `Dataset with ID ${id} does not exist`
-            });
-        }
-        return res.json({
+        const { datasetId } = req.params;
+        const datasetPath = path_1.default.join(process.cwd(), 'data', 'datasets', `${datasetId}.jsonl`);
+        const validation = await validateDataset(datasetPath);
+        res.json({
             success: true,
-            message: 'Dataset deleted successfully',
-            meta: {
-                timestamp: new Date().toISOString()
-            }
+            data: validation
         });
+        return;
     }
     catch (error) {
-        logger_1.logger.error({ msg: 'delete_dataset_failed', error: error.message });
-        return res.status(500).json({
-            success: false,
-            error: 'Failed to delete dataset',
-            message: error.message
-        });
+        logger_1.logger.error(`Dataset validation failed for ${req.params.datasetId}: ${error.message}`);
+        res.status(500).json({ success: false, error: error.message });
+        return;
     }
 });
-// Create dataset version
-router.post('/:id/versions', auth_1.authenticateToken, async (req, res) => {
+// DELETE /api/datasets/:datasetId - Delete dataset
+router.delete('/:datasetId', async (req, res) => {
     try {
-        const { id } = req.params;
-        const { version, changes } = req.body;
-        if (!version || !changes) {
-            return res.status(400).json({
-                success: false,
-                error: 'Missing required fields',
-                message: 'Version and changes are required'
-            });
-        }
-        const datasetVersion = datasetManager_1.datasetManager.createVersion(id, version, changes);
-        if (!datasetVersion) {
-            return res.status(404).json({
-                success: false,
-                error: 'Dataset not found',
-                message: `Dataset with ID ${id} does not exist`
-            });
-        }
-        return res.status(201).json({
+        const { datasetId } = req.params;
+        const datasetPath = path_1.default.join(process.cwd(), 'data', 'datasets', `${datasetId}.jsonl`);
+        await promises_1.default.unlink(datasetPath);
+        logger_1.logger.info(`Dataset deleted: ${datasetId}`);
+        res.json({
             success: true,
-            data: datasetVersion,
-            meta: {
-                timestamp: new Date().toISOString()
-            }
+            message: 'Dataset deleted successfully'
         });
+        return;
     }
     catch (error) {
-        logger_1.logger.error({ msg: 'create_dataset_version_failed', error: error.message });
-        return res.status(500).json({
-            success: false,
-            error: 'Failed to create dataset version',
-            message: error.message
-        });
+        logger_1.logger.error(`Dataset deletion failed for ${req.params.datasetId}: ${error.message}`);
+        res.status(500).json({ success: false, error: error.message });
+        return;
     }
 });
-// Validate dataset
-router.post('/:id/validate', auth_1.authenticateToken, async (req, res) => {
+// GET /api/datasets/stats/:datasetId - Get dataset statistics
+router.get('/stats/:datasetId', async (req, res) => {
     try {
-        const { id } = req.params;
-        const validation = datasetManager_1.datasetManager.validateDataset(id);
-        return res.json({
+        const { datasetId } = req.params;
+        const datasetPath = path_1.default.join(process.cwd(), 'data', 'datasets', `${datasetId}.jsonl`);
+        const metadata = await generateDatasetMetadata(datasetPath);
+        const validation = await validateDataset(datasetPath);
+        res.json({
             success: true,
-            data: validation,
-            meta: {
-                timestamp: new Date().toISOString()
+            data: {
+                metadata: metadata,
+                validation: {
+                    totalLines: validation.totalLines,
+                    validLines: validation.validLines,
+                    errorCount: validation.errors.length,
+                    errorRate: validation.totalLines > 0 ? (validation.errors.length / validation.totalLines) * 100 : 0
+                },
+                samples: validation.samples
             }
         });
+        return;
     }
     catch (error) {
-        logger_1.logger.error({ msg: 'validate_dataset_failed', error: error.message });
-        return res.status(500).json({
-            success: false,
-            error: 'Failed to validate dataset',
-            message: error.message
-        });
+        logger_1.logger.error(`Failed to get dataset stats for ${req.params.datasetId}: ${error.message}`);
+        res.status(500).json({ success: false, error: error.message });
+        return;
     }
-});
-// Export dataset
-router.post('/:id/export', auth_1.authenticateToken, async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { targetPath } = req.body;
-        if (!targetPath) {
-            return res.status(400).json({
-                success: false,
-                error: 'Missing target path',
-                message: 'Target path is required for export'
-            });
-        }
-        const success = datasetManager_1.datasetManager.exportDataset(id, targetPath);
-        if (!success) {
-            return res.status(404).json({
-                success: false,
-                error: 'Dataset not found',
-                message: `Dataset with ID ${id} does not exist`
-            });
-        }
-        return res.json({
-            success: true,
-            message: 'Dataset exported successfully',
-            data: { targetPath },
-            meta: {
-                timestamp: new Date().toISOString()
-            }
-        });
-    }
-    catch (error) {
-        logger_1.logger.error({ msg: 'export_dataset_failed', error: error.message });
-        return res.status(500).json({
-            success: false,
-            error: 'Failed to export dataset',
-            message: error.message
-        });
-    }
-});
-// Get dataset statistics
-router.get('/stats/overview', auth_1.authenticateToken, async (req, res) => {
-    try {
-        const stats = datasetManager_1.datasetManager.getStats();
-        return res.json({
-            success: true,
-            data: stats,
-            meta: {
-                timestamp: new Date().toISOString()
-            }
-        });
-    }
-    catch (error) {
-        logger_1.logger.error({ msg: 'get_dataset_stats_failed', error: error.message });
-        return res.status(500).json({
-            success: false,
-            error: 'Failed to retrieve dataset statistics',
-            message: error.message
-        });
-    }
-});
-// Health check
-router.get('/health', (req, res) => {
-    res.json({
-        success: true,
-        data: {
-            status: 'healthy',
-            service: 'dataset-management',
-            timestamp: new Date().toISOString()
-        }
-    });
 });
 exports.default = router;
 //# sourceMappingURL=datasets.js.map

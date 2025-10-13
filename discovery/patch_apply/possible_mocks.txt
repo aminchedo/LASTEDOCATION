@@ -1,0 +1,27 @@
+/workspace/scripts/fetch_hf_datasets.ts:50:const SAMPLE_PARSBERT_DATA = [
+/workspace/scripts/fetch_hf_datasets.ts:63:const SAMPLE_PERSIANMIND_DATA = [
+/workspace/scripts/fetch_hf_datasets.ts:76:const SAMPLE_HAMSHAHRI_DATA = [
+/workspace/scripts/fetch_hf_datasets.ts:133:  const sentimentConversations = convertSentimentToConversation(SAMPLE_PARSBERT_DATA);
+/workspace/scripts/fetch_hf_datasets.ts:138:  const generalConversations = convertGeneralToConversation(SAMPLE_PERSIANMIND_DATA);
+/workspace/scripts/fetch_hf_datasets.ts:143:  const newsConversations = convertNewsToConversation(SAMPLE_HAMSHAHRI_DATA);
+/workspace/scripts/train_real_pytorch.py:269:    print("⚠️  WARNING: Running in SIMULATION mode (PyTorch not available)")
+/workspace/scripts/fetch_hf_datasets.cjs:35:const SAMPLE_PARSBERT_DATA = [
+/workspace/scripts/fetch_hf_datasets.cjs:53:const SAMPLE_PERSIANMIND_DATA = [
+/workspace/scripts/fetch_hf_datasets.cjs:71:const SAMPLE_HAMSHAHRI_DATA = [
+/workspace/scripts/fetch_hf_datasets.cjs:133:  const sentimentConversations = convertSentimentToConversation(SAMPLE_PARSBERT_DATA);
+/workspace/scripts/fetch_hf_datasets.cjs:138:  const generalConversations = convertGeneralToConversation(SAMPLE_PERSIANMIND_DATA);
+/workspace/scripts/fetch_hf_datasets.cjs:143:  const newsConversations = convertNewsToConversation(SAMPLE_HAMSHAHRI_DATA);
+/workspace/scripts/fetch_speech_datasets.cjs:37:const SAMPLE_FLEURS_DATA = [
+/workspace/scripts/fetch_speech_datasets.cjs:50:const SAMPLE_COMMON_VOICE_DATA = [
+/workspace/scripts/fetch_speech_datasets.cjs:63:const SAMPLE_MANATTS_DATA = [
+/workspace/scripts/fetch_speech_datasets.cjs:101:  const fleursData = convertToSpeechFormat(SAMPLE_FLEURS_DATA, 'FLEURS-fa_ir', 'asr');
+/workspace/scripts/fetch_speech_datasets.cjs:106:  const cvData = convertToSpeechFormat(SAMPLE_COMMON_VOICE_DATA, 'Common-Voice-fa', 'asr');
+/workspace/scripts/fetch_speech_datasets.cjs:111:  const manattsData = convertToSpeechFormat(SAMPLE_MANATTS_DATA, 'ManaTTS-Persian', 'tts');
+/workspace/scripts/create_sample_audio.cjs:12:const SAMPLE_PHRASES = [
+/workspace/scripts/create_sample_audio.cjs:131:  SAMPLE_PHRASES.forEach(phrase => {
+/workspace/scripts/create_sample_audio.cjs:244:module.exports = { createSampleAudioFiles, SAMPLE_PHRASES };
+/workspace/docs/IMPLEMENTATION_SUMMARY_SPEECH.md:211:STT_SAMPLE_RATE=16000
+/workspace/docs/IMPLEMENTATION_SUMMARY_SPEECH.md:217:TTS_SAMPLE_RATE=16000
+/workspace/docs/PERFORMANCE_ANALYSIS_REPORT.md:305:// ❌ FAKE STREAMING: backend/src/routes/chat.ts:56-78
+/workspace/docs/PERFORMANCE_ANALYSIS_REPORT.md:313:    await new Promise(resolve => setTimeout(resolve, 50)); // FAKE DELAY
+grep: /workspace/discovery/patch_apply/possible_mocks.txt: input file is also the output
