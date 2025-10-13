@@ -323,3 +323,5 @@ export function MonitoringPage() {
     </div>
   );
 }
+// Default export for compatibility
+export default MonitoringPage;
