@@ -24,20 +24,13 @@ export interface SidebarProps {
 }
 
 const navItems = [
-  { to: '/', icon: Home, label: 'خانه' },
+  { to: '/', icon: Home, label: 'داشبورد' },
+  { to: '/models', icon: Package, label: 'مدیریت مدل‌ها' },
+  { to: '/playground', icon: Beaker, label: 'پلتفرم تست' },
+  { to: '/training', icon: Cpu, label: 'استودیو آموزش' },
+  { to: '/settings', icon: Settings, label: 'تنظیمات' },
   { to: '/chat', icon: MessageSquare, label: 'گفتگو' },
-  { to: '/metrics', icon: BarChart, label: 'معیارها' },
-  { to: '/monitor', icon: Activity, label: 'نظارت زنده' },
-  { to: '/playground', icon: Beaker, label: 'زمین بازی' },
-  { to: '/experiments', icon: Beaker, label: 'آزمایش‌ها' },
-  { to: '/downloads', icon: Download, label: 'مرکز دانلود' },
-  { to: '/model-hub', icon: Package, label: 'هاب مدل' },
-  { to: '/training-studio', icon: Cpu, label: 'استودیو آموزش' },
-  { to: '/training', icon: Cpu, label: 'آموزش' },
-  { to: '/optimization-studio', icon: Cpu, label: 'استودیو بهینه‌سازی' },
-  { to: '/models-datasets', icon: Database, label: 'مدل‌ها و داده‌ها' },
-  { to: '/notifications', icon: Bell, label: 'اعلان‌ها' },
-  { to: '/settings', icon: Settings, label: 'تنظیمات' }
+  { to: '/notifications', icon: Bell, label: 'اعلان‌ها' }
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggle }) => {

@@ -18,6 +18,7 @@ import ttsRouter from './routes/tts';
 import searchRouter from './routes/search';
 import notificationsRouter from './routes/notifications';
 import experimentsRouter from './routes/experiments';
+import settingsRouter from './routes/settings';
 import { authenticateToken } from './middleware/auth';
 import downloadProxyRouter from './simple-proxy';
 import { logger } from './utils/logger';
@@ -57,6 +58,7 @@ app.use('/api/tts', ttsRouter); // Text-to-Speech (Public - بدون auth)
 app.use('/api/search', searchRouter); // Search Service (Public - بدون auth)
 app.use('/api/notifications', authenticateToken, notificationsRouter); // Notifications (Protected)
 app.use('/api/experiments', authenticateToken, experimentsRouter); // Experiments (Protected)
+app.use('/api/settings', settingsRouter); // Settings (Public - auth optional)
 
 // Routeهای fallback برای جلوگیری از 404
 app.get('/api/train/status', (_req, res) => {

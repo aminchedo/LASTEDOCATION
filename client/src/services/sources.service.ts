@@ -1,5 +1,19 @@
 import { api } from './api';
 
+// Helper function to get HuggingFace token from settings
+const getHfToken = (): string | null => {
+  try {
+    const settings = localStorage.getItem('app_settings');
+    if (settings) {
+      const parsed = JSON.parse(settings);
+      return parsed.huggingfaceToken || null;
+    }
+  } catch (error) {
+    console.error('Error reading HF token from settings:', error);
+  }
+  return null;
+};
+
 export interface Source {
   id: string;
   name: string;
@@ -55,9 +69,11 @@ export const sourcesService = {
   },
 
   async startDownload(modelId: string, destination?: string): Promise<DownloadJob> {
+    const token = getHfToken();
     const response = await api.post<any>('/api/sources/download', {
       modelId,
       destination,
+      token, // Include HF token in request
     });
     return response.data || response;
   },

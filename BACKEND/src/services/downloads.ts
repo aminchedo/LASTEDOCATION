@@ -48,20 +48,27 @@ function generateJobId(): string {
 async function downloadFile(
   url: string, 
   destination: string, 
-  onProgress?: (downloaded: number, total: number) => void
+  onProgress?: (downloaded: number, total: number) => void,
+  token?: string
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const file = fs.createWriteStream(destination);
     const client = url.startsWith('https') ? https : http;
 
-    const request = client.get(url, (response) => {
+    // Prepare request options with optional token
+    const options: any = { headers: {} };
+    if (token && url.includes('huggingface.co')) {
+      options.headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const request = client.get(url, options, (response) => {
       if (response.statusCode === 302 || response.statusCode === 301) {
         // Handle redirects
         const redirectUrl = response.headers.location;
         if (redirectUrl) {
           file.close();
           fs.unlinkSync(destination);
-          return downloadFile(redirectUrl, destination, onProgress)
+          return downloadFile(redirectUrl, destination, onProgress, token)
             .then(resolve)
             .catch(reject);
         }
@@ -117,7 +124,8 @@ async function downloadFile(
 async function downloadModelDirect(
   jobId: string,
   modelId: string,
-  destination: string
+  destination: string,
+  token?: string
 ): Promise<void> {
   const job = jobs.get(jobId);
   if (!job) {
@@ -173,7 +181,7 @@ async function downloadModelDirect(
 
         // Update job
         jobs.set(jobId, job);
-      });
+      }, token);
 
       job.completedFiles.push(filename);
       completedFiles++;
@@ -201,7 +209,8 @@ async function downloadWithGit(
   jobId: string,
   modelId: string,
   _repoType: 'model' | 'dataset',
-  destination: string
+  destination: string,
+  token?: string
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const job = jobs.get(jobId);
@@ -288,7 +297,8 @@ export async function startDownload(
   kind: 'model' | 'tts' | 'dataset',
   repoId: string,
   repoType: 'model' | 'dataset',
-  dest: string
+  dest: string,
+  token?: string
 ): Promise<DownloadJob> {
   const jobId = generateJobId();
   
