@@ -1,49 +1,40 @@
-# Backend-only Dockerfile for development
-FROM node:20-alpine
+# Build stage
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Install Python for ML training
-RUN apk add --no-cache \
-    python3 \
-    py3-pip \
-    python3-dev \
-    build-base \
-    ca-certificates \
-    && python3 -m ensurepip \
-    && pip3 install --no-cache --upgrade pip setuptools
-
 # Copy package files
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm ci
 
-# Copy source code
+# Copy source
 COPY . .
 
 # Build TypeScript
 RUN npm run build
 
-# Copy and install Python dependencies
-COPY ../requirements.txt /tmp/requirements.txt
-RUN pip3 install --no-cache-dir -r /tmp/requirements.txt || \
-    echo "Warning: Some Python packages failed to install. Training may use simulation mode."
+# Production stage
+FROM node:20-alpine
 
-# Copy Python scripts
-COPY ../scripts/*.py ../scripts/
+WORKDIR /app
 
-# Create necessary directories
-RUN mkdir -p logs models data/datasets uploads
+# Install production dependencies only
+COPY package*.json ./
+RUN npm ci --only=production --ignore-scripts
 
-# Environment variables
-ENV NODE_ENV=production
-ENV PORT=3001
+# Copy built files
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/src/database/schema.sql ./dist/database/ 2>/dev/null || true
+
+# Create models directory
+RUN mkdir -p /app/models /app/logs
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=40s \
+  CMD node -e "require('http').get('http://localhost:3001/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
 # Expose port
 EXPOSE 3001
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD node -e "require('http').get('http://localhost:3001/health', (r) => { process.exit(r.statusCode === 200 ? 0 : 1); })"
-
 # Start server
-CMD ["npm", "start"]
+CMD ["node", "dist/src/server.js"]

@@ -110,26 +110,38 @@ export async function query<T extends QueryResultRow = any>(
   params?: any[]
 ): Promise<QueryResult<T>> {
   const db = getDatabase();
+  const start = Date.now();
   
   try {
-    const start = Date.now();
     const result = await db.query<T>(text, params);
     const duration = Date.now() - start;
 
-    logger.debug({
-      msg: 'query_executed',
-      query: text.substring(0, 100),
-      duration,
-      rows: result.rowCount
-    });
+    // Log slow queries (> 1 second)
+    if (duration > 1000) {
+      logger.warn({
+        msg: 'slow_query_detected',
+        query: text.substring(0, 100),
+        duration,
+        rows: result.rowCount
+      });
+    } else {
+      logger.debug({
+        msg: 'query_executed',
+        query: text.substring(0, 100),
+        duration,
+        rows: result.rowCount
+      });
+    }
 
     return result;
   } catch (error: any) {
+    const duration = Date.now() - start;
     logger.error({
       msg: 'query_failed',
       query: text.substring(0, 100),
       error: error.message,
-      params
+      params,
+      duration
     });
     throw error;
   }

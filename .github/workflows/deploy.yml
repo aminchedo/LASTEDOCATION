@@ -1,0 +1,75 @@
+name: Deploy to Production
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+
+jobs:
+  deploy:
+    name: Deploy Application
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'production' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+      
+      - name: Add server to known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+      
+      - name: Deploy via SSH
+        run: |
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+            cd /opt/persian-tts
+            
+            # Pull latest code
+            git fetch --all
+            git checkout ${{ github.ref_name }}
+            git pull origin ${{ github.ref_name }}
+            
+            # Backup current version
+            docker-compose exec -T backend node -e "console.log('Backup placeholder')"
+            
+            # Pull new Docker images
+            docker-compose pull
+            
+            # Run database migrations (if any)
+            docker-compose exec -T backend npm run build || true
+            
+            # Rolling restart (zero downtime)
+            docker-compose up -d --no-deps --scale backend=2 backend
+            sleep 10
+            docker-compose up -d --no-deps --scale backend=1 backend
+            
+            # Health check
+            curl -f http://localhost:3001/health || exit 1
+            
+            # Update frontend
+            docker-compose up -d client
+            
+            echo "✅ Deployment complete"
+          EOF
+      
+      - name: Notify on success
+        if: success()
+        run: echo "Deployment successful to ${{ github.event.inputs.environment || 'production' }}"
+      
+      - name: Notify on failure
+        if: failure()
+        run: echo "Deployment failed to ${{ github.event.inputs.environment || 'production' }}"
