@@ -21,7 +21,7 @@ function generateJobId(): string {
 
 function parseTrainingLog(line: string, job: TrainingJob) {
   // Parse various training output patterns
-  
+
   // Epoch/Step progress: "Epoch 2/10 [Step 150/500]"
   const epochMatch = line.match(/Epoch\s+(\d+)\/(\d+).*?Step\s+(\d+)\/(\d+)/i);
   if (epochMatch) {
@@ -29,7 +29,7 @@ function parseTrainingLog(line: string, job: TrainingJob) {
     // const totalEpochs = parseInt(epochMatch[2]); // Unused for now
     const currentStep = parseInt(epochMatch[3]);
     const totalSteps = parseInt(epochMatch[4]);
-    
+
     job.progress = Math.round((currentStep / totalSteps) * 100);
     if (!job.metrics) job.metrics = { step: 0, totalSteps: 0, loss: 0 };
     job.metrics.epoch = currentEpoch;
@@ -80,7 +80,7 @@ function parseTrainingLog(line: string, job: TrainingJob) {
 
 export async function startTrainingJob(name: string, config: TrainingConfig): Promise<TrainingJob> {
   const jobId = generateJobId();
-  
+
   const job: TrainingJob = {
     id: jobId,
     name,
@@ -110,7 +110,7 @@ export async function startTrainingJob(name: string, config: TrainingConfig): Pr
 
   // Create training script path
   const scriptPath = path.join(__dirname, '../../scripts/train_minimal.ts');
-  
+
   // Prepare arguments
   const args = [
     scriptPath,
@@ -130,7 +130,7 @@ export async function startTrainingJob(name: string, config: TrainingConfig): Pr
   // Spawn training process
   const proc = spawn('ts-node', args, {
     cwd: process.cwd(),
-    env: { ...process.env, NODE_ENV: 'training' }
+    env: { ...process.env, NODE_ENV: 'development' }
   });
 
   jobProcesses.set(jobId, proc);
@@ -177,7 +177,7 @@ export async function startTrainingJob(name: string, config: TrainingConfig): Pr
       job.currentPhase = 'Completed';
       job.finishedAt = new Date().toISOString();
       logger.info({ msg: 'Training job completed', jobId, name });
-      
+
       // Notify training completed
       notificationService.notifyTrainingCompleted(name, jobId);
     } else {
@@ -185,7 +185,7 @@ export async function startTrainingJob(name: string, config: TrainingConfig): Pr
       job.error = `Training process exited with code ${code}`;
       job.finishedAt = new Date().toISOString();
       logger.error({ msg: 'Training job failed', jobId, name, code });
-      
+
       // Notify training error
       notificationService.notifyTrainingError(name, `Process exited with code ${code}`);
     }
@@ -198,10 +198,10 @@ export async function startTrainingJob(name: string, config: TrainingConfig): Pr
     job.error = err.message;
     job.finishedAt = new Date().toISOString();
     logger.error({ msg: 'Training process error', jobId, error: err.message });
-    
+
     // Notify training error
     notificationService.notifyTrainingError(name, err.message);
-    
+
     fs.writeFileSync(statusFile, JSON.stringify(job, null, 2));
   });
 
@@ -229,10 +229,10 @@ export function cancelTrainingJob(jobId: string): boolean {
     job.status = 'cancelled';
     job.error = 'Cancelled by user';
     job.finishedAt = new Date().toISOString();
-    
+
     const statusFile = path.join('logs', 'train', `${jobId}.json`);
     fs.writeFileSync(statusFile, JSON.stringify(job, null, 2));
-    
+
     logger.info({ msg: 'Training job cancelled', jobId });
     return true;
   }

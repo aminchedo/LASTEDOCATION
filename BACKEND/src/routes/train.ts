@@ -15,6 +15,9 @@ const metricsService = new MetricsService(state);
 // Track active training processes
 const activeProcesses = new Map<string, any>();
 
+// Store all training jobs
+const trainingJobs = new Map<string, any>();
+
 // ---------- Helpers ----------
 const safeError = (e: unknown): string => String((e as any)?.message ?? e);
 
@@ -100,24 +103,24 @@ if __name__ == "__main__":
       // Write training script to file
       const scriptsDir = path.join(process.cwd(), 'training_scripts');
       fs.mkdirSync(scriptsDir, { recursive: true });
-      
+
       const scriptPath = path.join(scriptsDir, `train_${runId}.py`);
       fs.writeFileSync(scriptPath, scriptContent);
-      
+
       // Start Python training process
       const pythonProcess = spawn('python', [scriptPath], {
         stdio: ['pipe', 'pipe', 'pipe'],
         cwd: process.cwd()
       });
-      
+
       activeProcesses.set(runId, pythonProcess);
-      
+
       let output = '';
-      
+
       pythonProcess.stdout?.on('data', (data) => {
         const outputStr = data.toString();
         output += outputStr;
-        
+
         // Parse training progress and update state
         const lines = outputStr.split('\n');
         lines.forEach((line: string) => {
@@ -126,12 +129,12 @@ if __name__ == "__main__":
             const lossMatch = line.match(/Loss: ([\d.]+)/);
             const accuracyMatch = line.match(/Accuracy: ([\d.]+)/);
             const progressMatch = line.match(/Progress: ([\d.]+)%/);
-            
+
             if (lossMatch && accuracyMatch) {
               const loss = parseFloat(lossMatch[1]);
               const accuracy = parseFloat(accuracyMatch[1]);
               const progress = progressMatch ? parseFloat(progressMatch[1]) : 0;
-              
+
               // Update metrics service
               metricsService.record(runId, {
                 loss,
@@ -142,34 +145,34 @@ if __name__ == "__main__":
               });
             }
           }
-          
+
           // Add to logs
           if (line.trim()) {
             state.addLog(runId, line.trim());
           }
         });
       });
-      
+
       pythonProcess.stderr?.on('data', (data) => {
         const errorStr = data.toString();
         logger.warn(`Training process stderr: ${errorStr}`);
         state.addLog(runId, `Error: ${errorStr}`);
       });
-      
+
       pythonProcess.on('close', (code) => {
         activeProcesses.delete(runId);
-        
+
         if (code === 0) {
           state.updateRun(runId, { phase: 'completed' });
           state.addLog(runId, 'Training completed successfully');
-          
+
           // Clean up script file
           try {
             fs.unlinkSync(scriptPath);
           } catch (err) {
             logger.warn(`Failed to clean up training script: ${String((err as any)?.message || err)}`);
           }
-          
+
           resolve();
         } else {
           state.updateRun(runId, { phase: 'error' });
@@ -177,14 +180,14 @@ if __name__ == "__main__":
           reject(new Error(`Training process failed with exit code ${code}`));
         }
       });
-      
+
       pythonProcess.on('error', (error) => {
         activeProcesses.delete(runId);
         state.updateRun(runId, { phase: 'error' });
         state.addLog(runId, `Process error: ${error.message}`);
         reject(error);
       });
-      
+
     } catch (error) {
       reject(error);
     }
@@ -197,19 +200,19 @@ if __name__ == "__main__":
 router.post('/start', async (req: Request, res: Response): Promise<void> => {
   try {
     const { datasetPath, modelName = 'default', epochs = 10, batchSize = 16, learningRate = 0.0001 } = req.body ?? {};
-    
+
     // Generate a unique run ID
     const runId = `run_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
+
     // Create the training run
     const run = state.createRun(runId, modelName, epochs);
-    
+
     // Update status to running
     state.updateRun(runId, { phase: 'running' });
-    
+
     // Log the start
     state.addLog(runId, `Training started: dataset=${datasetPath || 'N/A'} epochs=${epochs} batch_size=${batchSize} lr=${learningRate}`);
-    
+
     // Start real training process asynchronously
     startRealTraining(runId, {
       datasetPath,
@@ -222,7 +225,7 @@ router.post('/start', async (req: Request, res: Response): Promise<void> => {
       state.updateRun(runId, { phase: 'error' });
       state.addLog(runId, `Training failed: ${String((error as any)?.message || error)}`);
     });
-    
+
     res.json({ ok: true, data: run });
     return;
   } catch (e) {
@@ -241,14 +244,14 @@ router.post('/pause', async (req: Request, res: Response): Promise<void> => {
       res.status(400).json({ ok: false, error: 'runId is required' });
       return;
     }
-    
+
     // Update status to paused
     const updated = state.updateRun(runId, { phase: 'paused' });
     if (!updated) {
       res.status(404).json({ ok: false, error: 'Run not found' });
       return;
     }
-    
+
     state.addLog(runId, 'Training paused');
     res.json({ ok: true, data: updated });
     return;
@@ -268,14 +271,14 @@ router.post('/resume', async (req: Request, res: Response): Promise<void> => {
       res.status(400).json({ ok: false, error: 'runId is required' });
       return;
     }
-    
+
     // Update status to running
     const updated = state.updateRun(runId, { phase: 'running' });
     if (!updated) {
       res.status(404).json({ ok: false, error: 'Run not found' });
       return;
     }
-    
+
     state.addLog(runId, 'Training resumed');
     res.json({ ok: true, data: updated });
     return;
@@ -295,14 +298,14 @@ router.post('/stop', async (req: Request, res: Response): Promise<void> => {
       res.status(400).json({ ok: false, error: 'runId is required' });
       return;
     }
-    
+
     // Update status to stopped
     const updated = state.updateRun(runId, { phase: 'stopped' });
     if (!updated) {
       res.status(404).json({ ok: false, error: 'Run not found' });
       return;
     }
-    
+
     state.addLog(runId, 'Training stopped');
     res.json({ ok: true, data: updated });
     return;
@@ -322,13 +325,13 @@ router.post('/checkpoint', async (req: Request, res: Response): Promise<void> =>
       res.status(400).json({ ok: false, error: 'runId and filePath are required' });
       return;
     }
-    
+
     // Add checkpoint to state
     state.addCheckpoint(runId, filePath);
-    
+
     // Update run with checkpoint path
     const updated = state.updateRun(runId, { lastCheckpointPath: filePath });
-    
+
     state.addLog(runId, `Checkpoint created: ${filePath}`);
     res.json({ ok: true, data: { checkpointPath: filePath, run: updated } });
     return;
@@ -344,22 +347,22 @@ router.post('/checkpoint', async (req: Request, res: Response): Promise<void> =>
 router.get('/status', async (req: Request, res: Response): Promise<void> => {
   try {
     const { runId } = req.query as { runId?: string };
-    
+
     if (runId) {
       // Get specific run status
       const runs = state.listRuns();
       const run = runs.find(r => r.runId === runId);
-      
+
       if (!run) {
         res.status(404).json({ ok: false, error: 'Run not found' });
         return;
       }
-      
+
       const latestMetric = metricsService.latest(runId);
       const summary = metricsService.summary(runId);
-      
-      res.json({ 
-        ok: true, 
+
+      res.json({
+        ok: true,
         data: {
           run,
           latestMetric,
@@ -403,7 +406,7 @@ router.get('/checkpoints', async (req: Request, res: Response): Promise<void> =>
       res.status(400).json({ ok: false, error: 'runId is required' });
       return;
     }
-    
+
     const data = state.getCheckpoints(runId);
     res.json({ ok: true, data });
     return;
@@ -435,7 +438,7 @@ router.get('/logs', async (req: Request, res: Response): Promise<void> => {
       res.status(400).json({ ok: false, error: 'runId is required' });
       return;
     }
-    
+
     const parsedLimit = Number.isFinite(Number(limit)) ? Number(limit) : 200;
     const data = state.getLogs(runId, parsedLimit);
     res.json({ ok: true, data });
@@ -452,32 +455,32 @@ router.get('/logs', async (req: Request, res: Response): Promise<void> => {
 router.get('/stream', async (req: Request, res: Response): Promise<void> => {
   try {
     const { runId } = req.query as { runId?: string };
-    
+
     // Set SSE headers
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('X-Accel-Buffering', 'no'); // Disable nginx buffering
-    
+
     // Send initial connection event
     res.write(`data: ${JSON.stringify({ type: 'connected', timestamp: Date.now() })}\n\n`);
-    
+
     // Send periodic updates
     const interval = setInterval(() => {
       if (res.writableEnded) {
         clearInterval(interval);
         return;
       }
-      
+
       try {
         // Get current status and send as SSE
         const runs = state.listRuns();
         const targetRun = runId ? runs.find(r => r.runId === runId) : runs[0];
-        
+
         if (targetRun) {
           const latestMetric = metricsService.latest(targetRun.runId);
           const summary = metricsService.summary(targetRun.runId);
-          
+
           const update = {
             type: 'update',
             timestamp: Date.now(),
@@ -485,7 +488,7 @@ router.get('/stream', async (req: Request, res: Response): Promise<void> => {
             metrics: latestMetric,
             summary: summary
           };
-          
+
           res.write(`data: ${JSON.stringify(update)}\n\n`);
         } else {
           res.write(`data: ${JSON.stringify({ type: 'no_active_training', timestamp: Date.now() })}\n\n`);
@@ -495,19 +498,278 @@ router.get('/stream', async (req: Request, res: Response): Promise<void> => {
         res.write(`data: ${JSON.stringify({ type: 'error', message: 'Stream error', timestamp: Date.now() })}\n\n`);
       }
     }, 2000); // Send updates every 2 seconds
-    
+
     // Cleanup on client disconnect
     req.on('close', () => {
       clearInterval(interval);
       logger.info('SSE client disconnected');
     });
-    
+
   } catch (error) {
     const msg = `Error initializing SSE stream: ${String((error as any)?.message || error)}`;
     logger.error(msg);
     if (!res.headersSent) {
       res.status(500).json({ ok: false, error: msg });
     }
+    return;
+  }
+});
+
+// ✅ GET /api/training/jobs - Get all training jobs
+router.get('/jobs', async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const runs = state.listRuns();
+    const jobs = runs.map(run => {
+      const metrics = metricsService.latest(run.runId);
+      const summary = metricsService.summary(run.runId);
+
+      return {
+        id: run.runId,
+        name: run.modelName || 'Untitled Training',
+        status: run.status,
+        progress: Math.floor((run.currentEpoch / run.totalEpochs) * 100) || 0,
+        startTime: run.startedAt,
+        endTime: run.finishedAt,
+        currentEpoch: run.currentEpoch,
+        totalEpochs: run.totalEpochs,
+        metrics: metrics,
+        summary: summary
+      };
+    });
+
+    res.json({
+      success: true,
+      data: jobs,
+      total: jobs.length
+    });
+    return;
+  } catch (error) {
+    const msg = `Error getting training jobs: ${safeError(error)}`;
+    logger.error(msg);
+    res.status(500).json({ success: false, error: msg });
+    return;
+  }
+});
+
+// ✅ POST /api/training/jobs - Create new training job
+router.post('/jobs', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { name, config } = req.body;
+
+    // Validate required fields
+    if (!name || !config) {
+      res.status(400).json({
+        success: false,
+        error: 'Missing required fields: name, config'
+      });
+      return;
+    }
+
+    // Validate config fields
+    const requiredConfigFields = ['baseModelPath', 'datasetPath', 'outputDir', 'epochs', 'learningRate', 'batchSize'];
+    const missingFields = requiredConfigFields.filter(field => !(field in config));
+
+    if (missingFields.length > 0) {
+      res.status(400).json({
+        success: false,
+        error: `Missing required config fields: ${missingFields.join(', ')}`
+      });
+      return;
+    }
+
+    // Generate job ID
+    const jobId = `train_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    // Create training job
+    const job = {
+      id: jobId,
+      name,
+      config,
+      status: 'pending',
+      progress: 0,
+      currentPhase: 'Initializing',
+      logs: [],
+      startedAt: new Date().toISOString(),
+    };
+
+    // Store job
+    trainingJobs.set(jobId, job);
+
+    // Initialize training run in state manager
+    state.createRun(jobId, name, config.epochs);
+
+    logger.info({ msg: 'Training job created', jobId, name });
+
+    res.status(201).json({
+      success: true,
+      data: job,
+      message: 'Training job created successfully'
+    });
+    return;
+  } catch (error) {
+    const msg = `Error creating training job: ${safeError(error)}`;
+    logger.error(msg);
+    res.status(500).json({ success: false, error: msg });
+    return;
+  }
+});
+
+// ✅ GET /api/training/jobs/:id - Get single training job
+router.get('/jobs/:id', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const runs = state.listRuns();
+    const run = runs.find(r => r.runId === id);
+
+    if (!run) {
+      res.status(404).json({
+        success: false,
+        error: 'Training job not found'
+      });
+      return;
+    }
+
+    const metrics = metricsService.latest(id);
+    const summary = metricsService.summary(id);
+
+    res.json({
+      success: true,
+      data: {
+        id: run.runId,
+        name: run.modelName || 'Untitled Training',
+        status: run.status,
+        progress: Math.floor((run.currentEpoch / run.totalEpochs) * 100) || 0,
+        startTime: run.startedAt,
+        endTime: run.finishedAt,
+        currentEpoch: run.currentEpoch,
+        totalEpochs: run.totalEpochs,
+        currentStep: run.currentStep,
+        totalSteps: run.totalSteps,
+        metrics: metrics,
+        summary: summary
+      }
+    });
+    return;
+  } catch (error) {
+    const msg = `Error getting training job: ${safeError(error)}`;
+    logger.error(msg);
+    res.status(500).json({ success: false, error: msg });
+    return;
+  }
+});
+
+// ✅ GET /api/training/jobs/:id/logs - Get training job logs
+router.get('/jobs/:id/logs', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const job = trainingJobs.get(id);
+
+    if (!job) {
+      res.status(404).json({
+        success: false,
+        error: 'Training job not found'
+      });
+      return;
+    }
+
+    res.json({
+      success: true,
+      data: {
+        logs: job.logs || [],
+        total: job.logs?.length || 0
+      }
+    });
+    return;
+  } catch (error) {
+    const msg = `Error getting training logs: ${safeError(error)}`;
+    logger.error(msg);
+    res.status(500).json({ success: false, error: msg });
+    return;
+  }
+});
+
+// ✅ DELETE /api/training/jobs/:id - Cancel/delete training job
+router.delete('/jobs/:id', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const proc = activeProcesses.get(id);
+    const job = trainingJobs.get(id);
+
+    if (!job && !proc) {
+      res.status(404).json({
+        success: false,
+        error: 'Training job not found'
+      });
+      return;
+    }
+
+    // Kill the process if running
+    if (proc) {
+      proc.kill('SIGTERM');
+      activeProcesses.delete(id);
+    }
+
+    // Remove job
+    if (job) {
+      trainingJobs.delete(id);
+    }
+
+    // Update state
+    state.updateRun(id, {
+      phase: 'stopped',
+      status: 'stopped'
+    });
+
+    logger.info(`Training job ${id} cancelled and removed`);
+
+    res.json({
+      success: true,
+      message: 'Training job cancelled successfully'
+    });
+    return;
+  } catch (error) {
+    const msg = `Error cancelling training job: ${safeError(error)}`;
+    logger.error(msg);
+    res.status(500).json({ success: false, error: msg });
+    return;
+  }
+});
+
+// ✅ POST /api/training/jobs/:id/cancel - Cancel training job (alias for DELETE)
+router.post('/jobs/:id/cancel', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const proc = activeProcesses.get(id);
+
+    if (!proc) {
+      res.status(404).json({
+        success: false,
+        error: 'Training job not found or already completed'
+      });
+      return;
+    }
+
+    // Kill the process
+    proc.kill('SIGTERM');
+    activeProcesses.delete(id);
+
+    // Update state
+    state.updateRun(id, {
+      phase: 'stopped',
+      status: 'stopped'
+    });
+
+    logger.info(`Training job ${id} cancelled`);
+
+    res.json({
+      success: true,
+      message: 'Training job cancelled successfully'
+    });
+    return;
+  } catch (error) {
+    const msg = `Error cancelling training job: ${safeError(error)}`;
+    logger.error(msg);
+    res.status(500).json({ success: false, error: msg });
     return;
   }
 });

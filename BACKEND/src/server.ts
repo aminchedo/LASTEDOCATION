@@ -7,6 +7,8 @@ import bootstrapRouter from './routes/bootstrap';
 import sourcesRouter from './routes/sources';
 import monitoringRouter from './routes/monitoring';
 import modelsRouter from './routes/models';
+import datasetsRouter from './routes/datasets';
+import offlineTrainingRouter from './routes/offlineTraining';
 import authRouter from './routes/auth';
 import chatRouter from './routes/chat';
 import sttRouter from './routes/stt';
@@ -27,12 +29,15 @@ app.use(express.json({ limit: '10mb' }));
 app.use('/api/auth', authRouter);
 app.use('/api/chat', authenticateToken, chatRouter);
 app.use('/api/train', authenticateToken, trainRouter);
+app.use('/api/training', authenticateToken, trainRouter);
 app.use('/api/optimization', authenticateToken, optimizationRouter);
 app.use('/api/bootstrap', authenticateToken, bootstrapRouter);
 app.use('/api/download', bootstrapRouter); // برای compatibility
 app.use('/api/sources', authenticateToken, sourcesRouter);
 app.use('/api/monitoring', authenticateToken, monitoringRouter);
 app.use('/api/models', authenticateToken, modelsRouter);
+app.use('/api/datasets', datasetsRouter); // Dataset management
+app.use('/api/offline-training', offlineTrainingRouter); // Offline training
 app.use('/api/v1', downloadProxyRouter); // Download proxy routes
 
 // Routes گم‌شده - اضافه شده
@@ -91,7 +96,7 @@ app.get('/api/monitoring/metrics', (_req, res) => {
 
 // Health checks
 app.get('/health', (_req, res) => {
-  res.json({ 
+  res.json({
     ok: true,
     timestamp: new Date().toISOString(),
     service: 'persian-chat-backend'
@@ -125,7 +130,7 @@ app.use('*', (req, res) => {
     path: req.originalUrl,
     ip: req.ip
   });
-  
+
   res.status(404).json({
     success: false,
     error: 'Not Found',

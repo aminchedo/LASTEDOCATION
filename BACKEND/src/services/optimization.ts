@@ -37,7 +37,7 @@ function sampleHyperparameters(config: HyperparameterConfig, strategy: 'grid' | 
     }
   } else if (strategy === 'grid') {
     const steps = config.learningRate.step || 3;
-    const values = [];
+    const values: number[] = [];
     for (let i = 0; i < steps; i++) {
       values.push(config.learningRate.min + (i / (steps - 1)) * (config.learningRate.max - config.learningRate.min));
     }
@@ -140,7 +140,7 @@ export async function startOptimizationJob(
   maxTrials: number = 10
 ): Promise<OptimizationJob> {
   const jobId = generateJobId();
-  
+
   const job: OptimizationJob = {
     id: jobId,
     name,
@@ -188,7 +188,7 @@ async function runOptimizationTrials(jobId: string) {
   for (let trialNum = 0; trialNum < job.maxTrials; trialNum++) {
     const trialId = generateTrialId();
     const trialParams = sampleHyperparameters(job.config, job.strategy, trialNum);
-    
+
     const trial: TrialResult = {
       id: trialId,
       trialNumber: trialNum + 1,
@@ -214,12 +214,12 @@ async function runOptimizationTrials(jobId: string) {
     try {
       await runSingleTrial(job, trial);
       trial.status = 'completed';
-      
+
       // Update best trial if this one is better
       if (!job.bestTrial || trial.metrics.accuracy > job.bestTrial.metrics.accuracy) {
         job.bestTrial = trial;
       }
-      
+
     } catch (error: any) {
       trial.status = 'failed';
       logger.error({ msg: 'Trial failed', jobId, trialId, error: error.message });
@@ -232,13 +232,13 @@ async function runOptimizationTrials(jobId: string) {
 
   job.status = 'completed';
   job.finishedAt = new Date().toISOString();
-  
+
   logger.info({ msg: 'Optimization completed', jobId, bestAccuracy: job.bestTrial?.metrics.accuracy });
 }
 
 async function runSingleTrial(job: OptimizationJob, trial: TrialResult): Promise<void> {
   const startTime = Date.now();
-  
+
   // Create trial output directory
   ensureDir(trial.outputPath);
 
@@ -265,7 +265,7 @@ async function runSingleTrial(job: OptimizationJob, trial: TrialResult): Promise
   // Spawn training process
   const proc = spawn('ts-node', args, {
     cwd: process.cwd(),
-    env: { ...process.env, NODE_ENV: 'optimization' }
+    env: { ...process.env, NODE_ENV: 'development' }
   });
 
   // Capture stdout
@@ -292,7 +292,7 @@ async function runSingleTrial(job: OptimizationJob, trial: TrialResult): Promise
   return new Promise((resolve, reject) => {
     proc.on('close', (code: number) => {
       trial.trainingTime = Math.round((Date.now() - startTime) / 1000);
-      
+
       if (code === 0) {
         // Parse metrics from logs
         trial.metrics = parseOptimizationLogs(trial.logs);
@@ -329,10 +329,10 @@ export function cancelOptimizationJob(jobId: string): boolean {
     job.status = 'cancelled';
     job.error = 'Cancelled by user';
     job.finishedAt = new Date().toISOString();
-    
+
     const statusFile = path.join('logs', 'optimization', `${jobId}.json`);
     fs.writeFileSync(statusFile, JSON.stringify(job, null, 2));
-    
+
     logger.info({ msg: 'Optimization job cancelled', jobId });
     return true;
   }
@@ -348,7 +348,7 @@ export async function createModelComparison(
   comparisonMetrics: string[]
 ): Promise<ModelComparison> {
   const comparisonId = `comp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  
+
   const comparison: ModelComparison = {
     id: comparisonId,
     name,
@@ -367,22 +367,22 @@ export async function createModelComparison(
 
   // Run comparison (simplified for now)
   comparison.results = await runModelComparison(comparison);
-  
+
   return comparison;
 }
 
 async function runModelComparison(comparison: ModelComparison): Promise<ComparisonResult[]> {
   const results: ComparisonResult[] = [];
-  
+
   for (let i = 0; i < comparison.models.length; i++) {
     const model = comparison.models[i];
-    
+
     // Simulate model evaluation
     const metrics: Record<string, number> = {};
     for (const metric of comparison.comparisonMetrics) {
       metrics[metric] = Math.random() * 100; // Placeholder
     }
-    
+
     results.push({
       modelId: model.id,
       modelName: model.name,
@@ -391,15 +391,15 @@ async function runModelComparison(comparison: ModelComparison): Promise<Comparis
       performance: 'good' as const,
     });
   }
-  
+
   // Sort by primary metric (accuracy)
   results.sort((a, b) => (b.metrics.accuracy || 0) - (a.metrics.accuracy || 0));
-  
+
   // Update rankings
   results.forEach((result, index) => {
     result.ranking = index + 1;
   });
-  
+
   return results;
 }
 
@@ -412,7 +412,7 @@ export async function pruneModel(
   try {
     // Create pruning script path
     const scriptPath = path.join(__dirname, '../../scripts/prune_model.ts');
-    
+
     const args = [
       scriptPath,
       '--input', modelPath,
@@ -426,7 +426,7 @@ export async function pruneModel(
     // Spawn pruning process
     const proc = spawn('ts-node', args, {
       cwd: process.cwd(),
-      env: { ...process.env, NODE_ENV: 'pruning' }
+      env: { ...process.env, NODE_ENV: 'development' }
     });
 
     return new Promise((resolve, reject) => {
@@ -465,7 +465,7 @@ export async function quantizeModel(
   try {
     // Create quantization script path
     const scriptPath = path.join(__dirname, '../../scripts/quantize_model.ts');
-    
+
     const args = [
       scriptPath,
       '--input', modelPath,
@@ -482,7 +482,7 @@ export async function quantizeModel(
     // Spawn quantization process
     const proc = spawn('ts-node', args, {
       cwd: process.cwd(),
-      env: { ...process.env, NODE_ENV: 'quantization' }
+      env: { ...process.env, NODE_ENV: 'development' }
     });
 
     return new Promise((resolve, reject) => {
@@ -516,18 +516,18 @@ function getDirectorySize(dirPath: string): number {
   try {
     let totalSize = 0;
     const files = fs.readdirSync(dirPath);
-    
+
     for (const file of files) {
       const filePath = path.join(dirPath, file);
       const stats = fs.statSync(filePath);
-      
+
       if (stats.isDirectory()) {
         totalSize += getDirectorySize(filePath);
       } else {
         totalSize += stats.size;
       }
     }
-    
+
     return totalSize;
   } catch {
     return 0;
@@ -539,22 +539,22 @@ export function getOptimizationMetrics(): OptimizationMetrics {
   const completedJobs = jobs.filter(job => job.status === 'completed');
   const allTrials = completedJobs.flatMap(job => job.trials);
   const successfulTrials = allTrials.filter(trial => trial.status === 'completed');
-  
+
   const totalOptimizations = completedJobs.length;
-  const averageImprovement = completedJobs.length > 0 
+  const averageImprovement = completedJobs.length > 0
     ? completedJobs.reduce((sum, job) => {
-        const baseline = job.trials[0]?.metrics.accuracy || 0;
-        const best = job.bestTrial?.metrics.accuracy || 0;
-        return sum + ((best - baseline) / baseline) * 100;
-      }, 0) / completedJobs.length
+      const baseline = job.trials[0]?.metrics.accuracy || 0;
+      const best = job.bestTrial?.metrics.accuracy || 0;
+      return sum + ((best - baseline) / baseline) * 100;
+    }, 0) / completedJobs.length
     : 0;
-  
+
   const bestModelAccuracy = Math.max(...successfulTrials.map(trial => trial.metrics.accuracy), 0);
   const totalTrainingTime = successfulTrials.reduce((sum, trial) => sum + trial.trainingTime, 0) / 3600; // hours
-  const averageTrialTime = successfulTrials.length > 0 
+  const averageTrialTime = successfulTrials.length > 0
     ? successfulTrials.reduce((sum, trial) => sum + trial.trainingTime, 0) / successfulTrials.length / 60 // minutes
     : 0;
-  
+
   return {
     totalOptimizations,
     averageImprovement,
