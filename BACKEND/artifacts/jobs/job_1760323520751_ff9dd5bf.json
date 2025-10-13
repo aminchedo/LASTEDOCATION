@@ -1,0 +1,13 @@
+{
+  "job_id": "job_1760323520751_ff9dd5bf",
+  "status": "COMPLETED",
+  "progress": 100.0,
+  "epoch": 2,
+  "loss": 0.618765,
+  "message": "Training completed successfully",
+  "created_at": 1760323522.4254615,
+  "step": 26,
+  "total_steps": 26,
+  "checkpoint": "models/job_1760323520751_ff9dd5bf.pt",
+  "finished_at": 1760323523.8380358
+}

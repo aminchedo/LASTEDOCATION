@@ -1,0 +1,9 @@
+{
+  "job_id": "job_1760323503313_9ada5d2e",
+  "status": "ERROR",
+  "progress": 0.0,
+  "epoch": 0,
+  "loss": null,
+  "message": "Dataset load error: test-dataset.jsonl",
+  "created_at": 1760323505.0882056
+}
