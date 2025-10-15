@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Monitoring Dashboard - Persian TTS/AI Platform</title>
+  <style>
+    /* CSS Variables */
+    :root {
+      /* Background */
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-tertiary: #334155;
+      
+      /* Text */
+      --text-primary: #f1f5f9;
+      --text-secondary: #cbd5e1;
+      --text-tertiary: #94a3b8;
+      
+      /* Status */
+      --success: #10b981;
+      --warning: #f59e0b;
+      --error: #ef4444;
+      --info: #3b82f6;
+      
+      /* Borders */
+      --border-color: #334155;
+      
+      /* Shadows */
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.1);
+      --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+      --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Reset and Base Styles */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Header Styles */
+    .dashboard-header {
+      background: var(--bg-secondary);
+      padding: 1.5rem 2rem;
+      border-bottom: 2px solid var(--border-color);
+      box-shadow: var(--shadow-md);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      animation: slideDown 0.5s ease-out;
+    }
+
+    @keyframes slideDown {
+      from {
+        transform: translateY(-100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .header-content {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .platform-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--info), var(--success));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .clock {
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      font-family: 'Courier New', monospace;
+    }
+
+    .status-badge {
+      padding: 0.6rem 1.2rem;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      animation: pulse 2s infinite;
+      transition: transform 0.3s;
+    }
+
+    .status-badge:hover {
+      transform: scale(1.05);
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.8;
+      }
+    }
+
+    .status-healthy {
+      background: var(--success);
+      color: white;
+    }
+
+    .status-degraded {
+      background: var(--warning);
+      color: white;
+    }
+
+    .status-unhealthy {
+      background: var(--error);
+      color: white;
+    }
+
+    .refresh-info {
+      color: var(--text-tertiary);
+      font-size: 0.9rem;
+    }
+
+    .refresh-btn {
+      background: var(--info);
+      color: white;
+      border: none;
+      padding: 0.6rem 1.2rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .refresh-btn:hover {
+      background: #2563eb;
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .refresh-btn:active {
+      transform: translateY(0);
+    }
+
+    /* Main Container */
+    .dashboard-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
+      animation: fadeIn 0.6s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Section Styles */
+    section {
+      margin-bottom: 2.5rem;
+    }
+
+    section h2 {
+      font-size: 1.8rem;
+      margin-bottom: 1.5rem;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    section h2::before {
+      content: '';
+      width: 4px;
+      height: 2rem;
+      background: linear-gradient(180deg, var(--info), var(--success));
+      border-radius: 2px;
+    }
+
+    /* Cards Grid */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    /* Card Styles */
+    .card {
+      background: var(--bg-secondary);
+      padding: 1.5rem;
+      border-radius: 12px;
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--border-color);
+      transition: all 0.3s ease;
+      animation: scaleIn 0.4s ease-out;
+    }
+
+    @keyframes scaleIn {
+      from {
+        opacity: 0;
+        transform: scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+      border-color: var(--info);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+
+    .card-icon {
+      font-size: 2rem;
+    }
+
+    .card-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .card-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 0.5rem 0;
+    }
+
+    .card-subtitle {
+      font-size: 0.9rem;
+      color: var(--text-tertiary);
+      margin-top: 0.5rem;
+    }
+
+    .card-status {
+      display: inline-block;
+      padding: 0.3rem 0.8rem;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .status-pass {
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--success);
+    }
+
+    .status-fail {
+      background: rgba(239, 68, 68, 0.2);
+      color: var(--error);
+    }
+
+    /* Progress Bar */
+    .progress-bar {
+      position: relative;
+      width: 100%;
+      height: 12px;
+      background: var(--bg-tertiary);
+      border-radius: 6px;
+      overflow: hidden;
+      margin: 1rem 0;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--info), var(--success));
+      border-radius: 6px;
+      transition: width 0.6s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .progress-fill::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      right: 0;
+      background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.3),
+        transparent
+      );
+      animation: shimmer 2s infinite;
+    }
+
+    @keyframes shimmer {
+      0% {
+        transform: translateX(-100%);
+      }
+      100% {
+        transform: translateX(100%);
+      }
+    }
+
+    .progress-label {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Table Styles */
+    table {
+      width: 100%;
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-md);
+    }
+
+    thead {
+      background: var(--bg-tertiary);
+    }
+
+    th {
+      padding: 1rem;
+      text-align: left;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      font-size: 0.85rem;
+      letter-spacing: 0.5px;
+    }
+
+    td {
+      padding: 1rem;
+      border-top: 1px solid var(--border-color);
+      color: var(--text-primary);
+    }
+
+    tr {
+      transition: background 0.2s;
+    }
+
+    tbody tr:hover {
+      background: var(--bg-tertiary);
+    }
+
+    /* Analytics Stats */
+    .analytics-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-card {
+      background: var(--bg-secondary);
+      padding: 1.5rem;
+      border-radius: 12px;
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--border-color);
+      transition: all 0.3s;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .stat-label {
+      font-size: 0.9rem;
+      color: var(--text-tertiary);
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-value {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 0.5rem;
+    }
+
+    /* Error Banner */
+    .error-banner {
+      position: fixed;
+      top: 100px;
+      right: 2rem;
+      background: var(--error);
+      color: white;
+      padding: 1rem 1.5rem;
+      border-radius: 8px;
+      box-shadow: var(--shadow-lg);
+      z-index: 2000;
+      animation: slideInRight 0.3s ease-out;
+      max-width: 400px;
+    }
+
+    @keyframes slideInRight {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    /* Loading Skeleton */
+    .skeleton {
+      background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+      background-size: 200% 100%;
+      animation: loading 1.5s infinite;
+      border-radius: 8px;
+      height: 20px;
+    }
+
+    @keyframes loading {
+      0% {
+        background-position: 200% 0;
+      }
+      100% {
+        background-position: -200% 0;
+      }
+    }
+
+    /* Performance Indicator */
+    .perf-indicator {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 0.5rem;
+    }
+
+    .perf-fast {
+      background: var(--success);
+    }
+
+    .perf-medium {
+      background: var(--warning);
+    }
+
+    .perf-slow {
+      background: var(--error);
+    }
+
+    /* Top Endpoints Section */
+    .top-endpoints {
+      margin-top: 2rem;
+    }
+
+    .top-endpoints h3 {
+      font-size: 1.3rem;
+      margin-bottom: 1rem;
+      color: var(--text-primary);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .dashboard-header {
+        padding: 1rem;
+      }
+
+      .header-content {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .header-right {
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      .platform-title {
+        font-size: 1.2rem;
+      }
+
+      .dashboard-container {
+        padding: 1rem;
+      }
+
+      section h2 {
+        font-size: 1.4rem;
+      }
+
+      .cards-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .analytics-stats {
+        grid-template-columns: 1fr;
+      }
+
+      .card-value {
+        font-size: 1.5rem;
+      }
+
+      .stat-value {
+        font-size: 2rem;
+      }
+
+      table {
+        font-size: 0.85rem;
+      }
+
+      th, td {
+        padding: 0.75rem 0.5rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .platform-title {
+        font-size: 1rem;
+      }
+
+      .clock {
+        font-size: 0.9rem;
+      }
+
+      .status-badge {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.8rem;
+      }
+
+      .refresh-btn {
+        padding: 0.5rem 0.8rem;
+        font-size: 0.8rem;
+      }
+    }
+
+    /* Loading State */
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(15, 23, 42, 0.9);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 3000;
+      animation: fadeIn 0.3s;
+    }
+
+    .loading-spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid var(--bg-tertiary);
+      border-top-color: var(--info);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="dashboard-header">
+    <div class="header-content">
+      <div class="header-left">
+        <h1 class="platform-title">🎙️ Persian TTS/AI Platform</h1>
+      </div>
+      <div class="header-right">
+        <div class="clock" id="clock">--:--:--</div>
+        <div class="status-badge status-healthy" id="statusBadge">
+          <span>🟢</span>
+          <span id="statusText">Healthy</span>
+        </div>
+        <span class="refresh-info" id="lastRefresh">Last refresh: --:--:--</span>
+        <button class="refresh-btn" id="refreshBtn" onclick="toggleAutoRefresh()">
+          <span id="refreshIcon">⏸️</span>
+          <span id="refreshText">Pause</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Dashboard -->
+  <main class="dashboard-container">
+    <!-- Health Checks Section -->
+    <section class="health-checks">
+      <h2>Health Checks</h2>
+      <div class="cards-grid" id="healthCards">
+        <!-- Health check cards will be inserted here -->
+      </div>
+    </section>
+
+    <!-- System Metrics Section -->
+    <section class="system-metrics">
+      <h2>System Metrics</h2>
+      <div class="cards-grid" id="systemCards">
+        <!-- System metric cards will be inserted here -->
+      </div>
+    </section>
+
+    <!-- API Analytics Section -->
+    <section class="api-analytics">
+      <h2>API Analytics</h2>
+      <div class="analytics-stats" id="analyticsStats">
+        <!-- Analytics cards will be inserted here -->
+      </div>
+      <div class="top-endpoints">
+        <h3>📋 Top 5 Endpoints (Last 5 Minutes)</h3>
+        <table id="endpointsTable">
+          <thead>
+            <tr>
+              <th>Endpoint</th>
+              <th>Count</th>
+              <th>Success Rate</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Endpoint rows will be inserted here -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Performance Metrics Section -->
+    <section class="performance-metrics">
+      <h2>Performance Metrics</h2>
+      <table id="performanceTable">
+        <thead>
+          <tr>
+            <th>Operation</th>
+            <th>Count</th>
+            <th>Avg Duration</th>
+            <th>Min</th>
+            <th>Max</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Performance rows will be inserted here -->
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <script>
+    // Configuration
+    const API_BASE = 'http://localhost:3001';
+    const ENDPOINTS = {
+      health: `${API_BASE}/health/detailed`,
+      system: `${API_BASE}/api/monitoring/system`,
+      analytics: `${API_BASE}/api/monitoring/analytics`,
+      performance: `${API_BASE}/api/monitoring/performance`
+    };
+
+    // Global state
+    let refreshInterval;
+    let autoRefreshEnabled = true;
+    let lastFetchTime = null;
+
+    // Fetch monitoring data from all endpoints
+    async function fetchMonitoringData() {
+      try {
+        const [health, system, analytics, performance] = await Promise.all([
+          fetch(ENDPOINTS.health).then(r => r.json()),
+          fetch(ENDPOINTS.system).then(r => r.json()),
+          fetch(ENDPOINTS.analytics).then(r => r.json()),
+          fetch(ENDPOINTS.performance).then(r => r.json())
+        ]);
+
+        lastFetchTime = new Date();
+        updateLastRefreshTime();
+        updateDashboard(health, system, analytics, performance);
+      } catch (error) {
+        console.error('Failed to fetch monitoring data:', error);
+        showError('Failed to fetch monitoring data. Please check if the backend is running.');
+      }
+    }
+
+    // Update the entire dashboard
+    function updateDashboard(health, system, analytics, performance) {
+      // Update overall health status
+      updateOverallStatus(health);
+      
+      // Update health checks
+      if (health.success && health.data && health.data.checks) {
+        updateHealthChecks(health.data.checks);
+      }
+      
+      // Update system metrics
+      if (system.success && system.data) {
+        updateSystemMetrics(system.data);
+      }
+      
+      // Update analytics
+      if (analytics.success && analytics.data) {
+        updateAnalytics(analytics.data);
+      }
+      
+      // Update performance metrics
+      if (performance.success && performance.data) {
+        updatePerformance(performance.data);
+      }
+    }
+
+    // Update overall health status badge
+    function updateOverallStatus(health) {
+      const statusBadge = document.getElementById('statusBadge');
+      const statusText = document.getElementById('statusText');
+      
+      if (health.success && health.data) {
+        const status = health.data.status || 'unknown';
+        
+        // Remove existing classes
+        statusBadge.className = 'status-badge';
+        
+        if (status === 'healthy') {
+          statusBadge.classList.add('status-healthy');
+          statusBadge.innerHTML = '<span>🟢</span><span>Healthy</span>';
+        } else if (status === 'degraded') {
+          statusBadge.classList.add('status-degraded');
+          statusBadge.innerHTML = '<span>🟡</span><span>Degraded</span>';
+        } else {
+          statusBadge.classList.add('status-unhealthy');
+          statusBadge.innerHTML = '<span>🔴</span><span>Unhealthy</span>';
+        }
+      }
+    }
+
+    // Update health check cards
+    function updateHealthChecks(checks) {
+      const container = document.getElementById('healthCards');
+      container.innerHTML = '';
+
+      const healthIcons = {
+        database: '🗄️',
+        filesystem: '📁',
+        memory: '💾',
+        disk: '💿'
+      };
+
+      const healthNames = {
+        database: 'Database',
+        filesystem: 'Filesystem',
+        memory: 'Memory',
+        disk: 'Disk'
+      };
+
+      Object.entries(checks).forEach(([key, check]) => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        
+        const statusClass = check.status === 'pass' ? 'status-pass' : 'status-fail';
+        const statusText = check.status === 'pass' ? 'Pass' : 'Fail';
+        
+        card.innerHTML = `
+          <div class="card-header">
+            <div>
+              <div class="card-icon">${healthIcons[key] || '📊'}</div>
+              <div class="card-title">${healthNames[key] || key}</div>
+            </div>
+            <span class="card-status ${statusClass}">${statusText}</span>
+          </div>
+          <div class="card-value">
+            ${check.responseTime !== undefined ? check.responseTime + 'ms' : '—'}
+          </div>
+          <div class="card-subtitle">
+            ${check.message || 'All systems operational'}
+          </div>
+        `;
+        
+        container.appendChild(card);
+      });
+    }
+
+    // Update system metrics cards
+    function updateSystemMetrics(metrics) {
+      const container = document.getElementById('systemCards');
+      container.innerHTML = '';
+
+      // CPU Card
+      if (metrics.cpu) {
+        const cpuCard = createMetricCard(
+          '🖥️',
+          'CPU Usage',
+          `${metrics.cpu.usage?.toFixed(1)}%`,
+          `${metrics.cpu.cores || 'N/A'} cores`,
+          metrics.cpu.usage || 0
+        );
+        container.appendChild(cpuCard);
+      }
+
+      // Memory Card
+      if (metrics.memory) {
+        const usedGB = (metrics.memory.used / (1024 * 1024 * 1024)).toFixed(2);
+        const totalGB = (metrics.memory.total / (1024 * 1024 * 1024)).toFixed(2);
+        const memoryCard = createMetricCard(
+          '💾',
+          'Memory Usage',
+          `${usedGB} GB / ${totalGB} GB`,
+          `${metrics.memory.usagePercent?.toFixed(1)}% used`,
+          metrics.memory.usagePercent || 0
+        );
+        container.appendChild(memoryCard);
+      }
+
+      // Uptime Card
+      if (metrics.uptime !== undefined) {
+        const uptimeText = formatUptime(metrics.uptime);
+        const uptimeCard = document.createElement('div');
+        uptimeCard.className = 'card';
+        uptimeCard.innerHTML = `
+          <div class="card-header">
+            <div>
+              <div class="card-icon">⏱️</div>
+              <div class="card-title">System Uptime</div>
+            </div>
+          </div>
+          <div class="card-value">${uptimeText}</div>
+          <div class="card-subtitle">
+            Since ${new Date(Date.now() - metrics.uptime * 1000).toLocaleString()}
+          </div>
+        `;
+        container.appendChild(uptimeCard);
+      }
+    }
+
+    // Create a metric card with progress bar
+    function createMetricCard(icon, title, value, subtitle, percentage) {
+      const card = document.createElement('div');
+      card.className = 'card';
+      
+      card.innerHTML = `
+        <div class="card-header">
+          <div>
+            <div class="card-icon">${icon}</div>
+            <div class="card-title">${title}</div>
+          </div>
+        </div>
+        <div class="card-value">${value}</div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: ${Math.min(percentage, 100)}%"></div>
+          <span class="progress-label">${percentage.toFixed(1)}%</span>
+        </div>
+        <div class="card-subtitle">${subtitle}</div>
+      `;
+      
+      return card;
+    }
+
+    // Update analytics section
+    function updateAnalytics(analytics) {
+      const container = document.getElementById('analyticsStats');
+      container.innerHTML = '';
+
+      // Total Requests
+      const requestsCard = document.createElement('div');
+      requestsCard.className = 'stat-card';
+      requestsCard.innerHTML = `
+        <div class="stat-label">📊 Total Requests (5 min)</div>
+        <div class="stat-value">${analytics.totalRequests || 0}</div>
+      `;
+      container.appendChild(requestsCard);
+
+      // Success Rate
+      const successRate = analytics.successRate || 0;
+      const successCard = document.createElement('div');
+      successCard.className = 'stat-card';
+      successCard.innerHTML = `
+        <div class="stat-label">✅ Success Rate</div>
+        <div class="stat-value">${successRate.toFixed(1)}%</div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: ${successRate}%"></div>
+        </div>
+      `;
+      container.appendChild(successCard);
+
+      // Error Rate
+      const errorRate = analytics.errorRate || 0;
+      const errorCard = document.createElement('div');
+      errorCard.className = 'stat-card';
+      errorCard.innerHTML = `
+        <div class="stat-label">❌ Error Rate</div>
+        <div class="stat-value">${errorRate.toFixed(1)}%</div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: ${errorRate}%; background: linear-gradient(90deg, var(--error), var(--warning))"></div>
+        </div>
+      `;
+      container.appendChild(errorCard);
+
+      // Average Response Time
+      const avgResponseCard = document.createElement('div');
+      avgResponseCard.className = 'stat-card';
+      avgResponseCard.innerHTML = `
+        <div class="stat-label">📈 Avg Response Time</div>
+        <div class="stat-value">${analytics.avgResponseTime?.toFixed(2) || 0} ms</div>
+      `;
+      container.appendChild(avgResponseCard);
+
+      // Update top endpoints table
+      updateTopEndpoints(analytics.topEndpoints || []);
+    }
+
+    // Update top endpoints table
+    function updateTopEndpoints(endpoints) {
+      const tbody = document.querySelector('#endpointsTable tbody');
+      tbody.innerHTML = '';
+
+      endpoints.slice(0, 5).forEach(endpoint => {
+        const row = document.createElement('tr');
+        const successRate = endpoint.successRate || 0;
+        row.innerHTML = `
+          <td>${endpoint.endpoint}</td>
+          <td>${endpoint.count}</td>
+          <td>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span>${successRate.toFixed(1)}%</span>
+              <div class="progress-bar" style="flex: 1; max-width: 100px;">
+                <div class="progress-fill" style="width: ${successRate}%"></div>
+              </div>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+
+      if (endpoints.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--text-tertiary);">No data available</td></tr>';
+      }
+    }
+
+    // Update performance metrics table
+    function updatePerformance(performance) {
+      const tbody = document.querySelector('#performanceTable tbody');
+      tbody.innerHTML = '';
+
+      const operations = performance.operations || [];
+      
+      operations.forEach(op => {
+        const row = document.createElement('tr');
+        const avgDuration = op.avgDuration || 0;
+        
+        // Determine performance status
+        let perfClass = 'perf-fast';
+        let perfText = 'Fast';
+        if (avgDuration > 1000) {
+          perfClass = 'perf-slow';
+          perfText = 'Slow';
+        } else if (avgDuration > 500) {
+          perfClass = 'perf-medium';
+          perfText = 'Medium';
+        }
+        
+        row.innerHTML = `
+          <td>${op.operation || 'Unknown'}</td>
+          <td>${op.count || 0}</td>
+          <td>${formatDuration(avgDuration)}</td>
+          <td>${formatDuration(op.minDuration || 0)}</td>
+          <td>${formatDuration(op.maxDuration || 0)}</td>
+          <td>
+            <span class="perf-indicator ${perfClass}"></span>
+            ${perfText}
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+
+      if (operations.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-tertiary);">No performance data available</td></tr>';
+      }
+    }
+
+    // Utility: Format bytes to human-readable
+    function formatBytes(bytes) {
+      if (bytes === 0) return '0 B';
+      const k = 1024;
+      const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    // Utility: Format uptime
+    function formatUptime(seconds) {
+      const days = Math.floor(seconds / 86400);
+      const hours = Math.floor((seconds % 86400) / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      
+      if (days > 0) {
+        return `${days}d ${hours}h ${minutes}m`;
+      } else if (hours > 0) {
+        return `${hours}h ${minutes}m`;
+      } else {
+        return `${minutes}m`;
+      }
+    }
+
+    // Utility: Format duration in ms
+    function formatDuration(ms) {
+      if (ms < 1) return '< 1 ms';
+      if (ms < 1000) return `${ms.toFixed(2)} ms`;
+      return `${(ms / 1000).toFixed(2)} s`;
+    }
+
+    // Utility: Get status color
+    function getStatusColor(status) {
+      const colors = {
+        healthy: 'var(--success)',
+        degraded: 'var(--warning)',
+        unhealthy: 'var(--error)',
+        pass: 'var(--success)',
+        fail: 'var(--error)'
+      };
+      return colors[status] || 'var(--text-tertiary)';
+    }
+
+    // Show error banner
+    function showError(message) {
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'error-banner';
+      errorDiv.textContent = `⚠️ ${message}`;
+      document.body.appendChild(errorDiv);
+      setTimeout(() => errorDiv.remove(), 5000);
+    }
+
+    // Update clock
+    function updateClock() {
+      const clockElement = document.getElementById('clock');
+      const now = new Date();
+      clockElement.textContent = now.toLocaleTimeString('en-US', { 
+        hour12: false,
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+      setTimeout(updateClock, 1000);
+    }
+
+    // Update last refresh time
+    function updateLastRefreshTime() {
+      const element = document.getElementById('lastRefresh');
+      if (lastFetchTime) {
+        element.textContent = `Last refresh: ${lastFetchTime.toLocaleTimeString()}`;
+      }
+    }
+
+    // Auto-refresh functions
+    function startAutoRefresh() {
+      if (refreshInterval) {
+        clearInterval(refreshInterval);
+      }
+      refreshInterval = setInterval(fetchMonitoringData, 10000); // 10 seconds
+    }
+
+    function toggleAutoRefresh() {
+      autoRefreshEnabled = !autoRefreshEnabled;
+      const refreshBtn = document.getElementById('refreshBtn');
+      const refreshIcon = document.getElementById('refreshIcon');
+      const refreshText = document.getElementById('refreshText');
+      
+      if (autoRefreshEnabled) {
+        startAutoRefresh();
+        refreshIcon.textContent = '⏸️';
+        refreshText.textContent = 'Pause';
+      } else {
+        clearInterval(refreshInterval);
+        refreshIcon.textContent = '▶️';
+        refreshText.textContent = 'Resume';
+      }
+    }
+
+    // Manual refresh
+    function manualRefresh() {
+      fetchMonitoringData();
+    }
+
+    // Initialize dashboard
+    document.addEventListener('DOMContentLoaded', () => {
+      updateClock();
+      fetchMonitoringData();
+      startAutoRefresh();
+    });
+  </script>
+</body>
+</html>
