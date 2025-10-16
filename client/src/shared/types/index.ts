@@ -67,6 +67,13 @@ export interface TrainingJob {
   eta?: number;
 }
 
+export interface ExperimentMetrics {
+  loss?: number;
+  accuracy?: number;
+  perplexity?: number;
+  [key: string]: unknown;
+}
+
 export interface Experiment {
   id: string;
   name: string;
@@ -78,7 +85,7 @@ export interface Experiment {
   results?: Record<string, unknown>;
   dataset?: string;
   model?: string;
-  metrics?: Record<string, unknown>;
+  metrics: ExperimentMetrics;
   notes?: string;
 }
 
@@ -95,6 +102,7 @@ export interface Model {
   tags?: string[];
   license?: string;
   url?: string;
+  provider?: string;
 }
 
 export interface DataSource {
@@ -138,6 +146,7 @@ export interface DownloadJob extends Download {
   speed?: number;
   eta?: number;
   bytesDownloaded?: number;
+  bytesTotal?: number;
   currentFile?: string;
 }
 

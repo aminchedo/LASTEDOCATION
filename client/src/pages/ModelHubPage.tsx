@@ -39,10 +39,7 @@ export function ModelHubPage() {
   const [selectedType, setSelectedType] = useState<'model' | 'tts' | 'dataset' | ''>('');
   const [activeTab, setActiveTab] = useState<'hub' | 'local'>('hub');
   
-  const { models, loading: modelsLoading } = useAvailableModels(
-    selectedType || undefined,
-    searchQuery || undefined
-  );
+  const { models, loading: modelsLoading } = useAvailableModels();
   const { models: detectedModels, loading: detectedLoading } = useDetectedModels();
   const { jobs, startDownload, cancelDownload } = useDownloads();
 
@@ -219,12 +216,12 @@ export function ModelHubPage() {
                   <CardContent className="space-y-4">
                     {/* Description */}
                     <p className="text-sm text-[color:var(--c-text-muted)] line-clamp-2">
-                      {model.description}
+                      {model.description || 'بدون توضیحات'}
                     </p>
 
                     {/* Tags */}
                     <div className="flex flex-wrap gap-2">
-                      {model.tags.slice(0, 4).map(tag => (
+                      {model.tags?.slice(0, 4).map(tag => (
                         <Badge key={tag} variant="secondary" className="text-xs">
                           {tag}
                         </Badge>
@@ -239,7 +236,7 @@ export function ModelHubPage() {
                       </div>
                       <div>
                         <span className="text-[color:var(--c-text-muted)]">مجوز:</span>
-                        <span className="mr-2 text-[color:var(--c-text)]">{model.license}</span>
+                        <span className="mr-2 text-[color:var(--c-text)]">{model.license || 'نامشخص'}</span>
                       </div>
                     </div>
 

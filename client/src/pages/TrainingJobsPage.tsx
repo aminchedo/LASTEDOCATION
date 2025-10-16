@@ -56,7 +56,7 @@ export function TrainingJobsPage() {
         return <Badge variant="danger" icon={<AlertCircle className="w-3 h-3" />}>ناموفق</Badge>;
       case 'queued':
         return <Badge variant="secondary" icon={<Clock className="w-3 h-3" />}>در صف</Badge>;
-      case 'canceled':
+      case 'cancelled':
         return <Badge variant="secondary" icon={<Square className="w-3 h-3" />}>لغو شده</Badge>;
       default:
         return <Badge variant="secondary">نامشخص</Badge>;
@@ -84,7 +84,7 @@ export function TrainingJobsPage() {
   const handleCancel = (id: string) => {
     setTrainingJobs(prev => prev.map(job => 
       job.id === id 
-        ? { ...job, status: 'canceled', finishedAt: new Date().toISOString() }
+        ? { ...job, status: 'cancelled', finishedAt: new Date().toISOString() }
         : job
     ));
     toast.success('آموزش لغو شد');
@@ -115,7 +115,7 @@ export function TrainingJobsPage() {
   };
 
   const runningJobs = trainingJobs.filter(job => job.status === 'running');
-  const completedJobs = trainingJobs.filter(job => job.status === 'succeeded');
+  const completedJobs = trainingJobs.filter(job => job.status === 'completed');
   const failedJobs = trainingJobs.filter(job => job.status === 'failed');
 
   return (
