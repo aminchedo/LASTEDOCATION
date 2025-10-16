@@ -27,25 +27,52 @@ function setupWebSocket(httpServer) {
     io.use((socket, next) => {
         const token = socket.handshake.auth.token;
         if (!token) {
+            console.error('[WebSocket] Connection rejected: No token provided', {
+                socketId: socket.id,
+                ip: socket.handshake.address
+            });
             return next(new Error('Authentication error: No token provided'));
         }
         try {
             const user = jsonwebtoken_1.default.verify(token, JWT_SECRET);
+            // Validate required user fields
+            if (!user.userId || !user.username) {
+                console.error('[WebSocket] Invalid token payload', {
+                    socketId: socket.id,
+                    hasUserId: !!user.userId,
+                    hasUsername: !!user.username
+                });
+                return next(new Error('Authentication error: Invalid token payload'));
+            }
             socket.user = {
                 userId: user.userId,
-                role: user.role,
+                role: user.role || 'user',
                 username: user.username
             };
+            console.log('[WebSocket] Authentication successful', {
+                socketId: socket.id,
+                userId: user.userId,
+                username: user.username
+            });
             next();
         }
         catch (err) {
+            console.error('[WebSocket] Token verification failed', {
+                socketId: socket.id,
+                error: err instanceof Error ? err.message : 'Unknown error'
+            });
             next(new Error('Authentication error: Invalid token'));
         }
     });
     io.on('connection', (socket) => {
         const authSocket = socket;
         const user = authSocket.user;
-        console.log(`[WebSocket] User connected: ${user?.username} (${socket.id})`);
+        console.log('[WebSocket] Client connected', {
+            socketId: socket.id,
+            userId: user?.userId,
+            username: user?.username,
+            ip: socket.handshake.address
+        });
         // Subscribe to job updates
         socket.on('subscribe_job', (jobId) => {
             socket.join(`job:${jobId}`);

@@ -512,19 +512,7 @@ export function OptimizationStudioPage() {
 
               <div>
                 <label className="block text-sm font-medium text-[color:var(--c-text)] mb-2">
-                  مسیر خروجی *
-                </label>
-                <input
-                  type="text"
-                  value={outputDir}
-                  onChange={(e) => setOutputDir(e.target.value)}
-                  placeholder="models/quantized/my-model"
-                  className="w-full px-4 py-2 rounded-lg border border-[color:var(--c-border)] bg-[color:var(--c-bg)] text-[color:var(--c-text)] focus:outline-none focus:ring-2 focus:ring-[color:var(--c-primary)]"
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end">
+                  مسیر خروجی            <div className="flex justify-end">
               <Button
                 variant="primary"
                 size="lg"
@@ -532,12 +520,16 @@ export function OptimizationStudioPage() {
                 onClick={handleQuantizeModel}
                 disabled={loading || !selectedModel || !outputDir}
               >
-                    <EmptyState
-              icon="chart"
-              title="مقایسه مدل‌ها"
-              description="این ویژگی به زودی اضافه خواهد شد"
-              illustration="default"
-              size="md" variant="elevated">
+                شروع کوانتیزاسیون
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Model Comparison */}
+      {activeTab === 'comparison' && (
+        <Card variant="elevated">
           <CardHeader>
             <h2 className="text-xl font-semibold text-[color:var(--c-text)]">مقایسه مدل‌ها</h2>
             <p className="text-sm text-[color:var(--c-text-muted)]">
@@ -549,14 +541,36 @@ export function OptimizationStudioPage() {
               icon={BarChart3}
               title="مقایسه مدل‌ها"
               description="این ویژگی به زودی اضافه خواهد شد"
-              illustration="default                <EmptyState
-                  icon="activity"
-                  title="هیچ بهینه‌سازی‌ای وجود ندارد"
-                  description="برای شروع، یک بهینه‌سازی جدید ایجاد کنید"
-                  illustration="default"
+              illustration="default"
+              size="lg"
+            />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Optimization Jobs */}
+      {activeTab === 'jobs' && (
+        <div className="space-y-4">
+          {loading ? (
             <div className="space-y-3">
               {Array.from({ length: 3 }).map((_, i) => (
                 <Skeleton key={i} variant="card" height={200} />
+              ))}
+            </div>
+          ) : jobs.length === 0 ? (
+            <Card variant="outline" className="text-center py-12">
+              <CardContent>
+                <EmptyState
+                  icon={Zap}
+                  title="هیچ بهینه‌سازی‌ای وجود ندارد"
+                  description="برای شروع، یک بهینه‌سازی جدید ایجاد کنید"
+                  illustration="default"
+                  size="lg"
+                />
+              </CardContent>
+            </Card>
+          ) : (
+            jobs.map((job) => {ht={200} />
               ))}
             </div>
           ) : jobs.length === 0 ? (

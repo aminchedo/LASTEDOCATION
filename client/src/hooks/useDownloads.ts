@@ -1,16 +1,7 @@
 // hooks/useDownloads.ts - نسخه به‌روزرسانی شده
 import { useState, useEffect, useCallback } from 'react';
 import { getApi } from '@/shared/utils/api';
-
-// New interfaces for useAvailableModels
-interface Model {
-  id: string;
-  name: string;
-  type: string;
-  size: string;
-  provider?: string;
-  downloadUrl?: string;
-}
+import { DownloadJob as SharedDownloadJob, Model } from '@/shared/types';
 
 interface UseAvailableModelsReturn {
   models: Model[];
@@ -19,19 +10,7 @@ interface UseAvailableModelsReturn {
   refetch: () => Promise<void>;
 }
 
-export interface DownloadJob {
-  id: string;
-  url: string;
-  dest: string;
-  status: 'pending' | 'running' | 'completed' | 'error';
-  bytesReceived: number;
-  bytesTotal?: number;
-  progress?: number;
-  error?: string;
-  createdAt: number;
-  startedAt?: number;
-  completedAt?: number;
-}
+export type DownloadJob = SharedDownloadJob;
 
 export function useDownloads() {
   const [jobs, setJobs] = useState<DownloadJob[]>([]);

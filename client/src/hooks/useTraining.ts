@@ -1,22 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { apiService } from '@/shared/utils/api';
+import { TrainingJob as TrainingJobType, TrainingConfig as TrainingConfigType } from '@/shared/types';
 
-interface TrainingJob {
-  id: string;
-  name: string;
-  status: 'queued' | 'running' | 'completed' | 'failed';
-  progress: number;
-  startedAt?: string;
-  completedAt?: string;
-  metrics?: {
-    loss: number;
-    accuracy: number;
-    epoch: number;
-  };
-}
+export type TrainingJob = TrainingJobType;
+export type TrainingConfig = TrainingConfigType;
 
 export function useTraining() {
-  const [jobs, setJobs] = useState<TrainingJob[]>([]);
+  const [jobs, setJobs] = useState<TrainingJob[]>([]);;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

@@ -1,237 +1,133 @@
-# 🚀 QUICK START GUIDE
+# 🚀 Quick Start Guide - Persian AI Training Platform
 
-## Get Running in 5 Minutes
+## Prerequisites
+- Node.js >= 16
+- PostgreSQL >= 13
+- npm or yarn
 
-### Prerequisites
-
-- **Node.js 18+** ([download](https://nodejs.org/))
-- **PostgreSQL 12+** ([download](https://www.postgresql.org/download/))
-- **Git** (optional)
-
-### One-Line Setup (Automated)
-
-```bash
-./setup.sh
-```
-
-This script will:
-1. ✅ Check prerequisites
-2. ✅ Set up PostgreSQL database
-3. ✅ Create environment files
-4. ✅ Install all dependencies
-5. ✅ Build both backend and frontend
-6. ✅ Initialize database schema
-
-### Manual Setup (Step by Step)
-
-#### 1. Create Database
-
-```bash
-# Create database
-createdb persian_tts
-
-# Or with custom user
-createuser -P persian_user
-createdb -O persian_user persian_tts
-```
-
-#### 2. Configure Backend
-
-```bash
-cd BACKEND
-cp .env.example .env
-```
-
-Edit `.env`:
-```bash
-DATABASE_URL=postgresql://postgres:password@localhost:5432/persian_tts
-JWT_SECRET=your-secret-key-min-32-chars
-HF_TOKEN=hf_your_token_optional
-```
-
-#### 3. Install & Build
+## 1. Install Dependencies
 
 ```bash
 # Backend
 cd BACKEND
 npm install
-npm run build
 
 # Frontend
 cd ../client
 npm install
-npm run build
 ```
 
-#### 4. Start Servers
+## 2. Configure Environment
 
-**Terminal 1 - Backend:**
+### Backend (.env already created at `BACKEND/.env`):
+```env
+NODE_ENV=development
+PORT=3001
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/persian_tts
+JWT_SECRET=your-super-secret-jwt-key-change-in-production
+CORS_ORIGIN=http://localhost:3000,http://localhost:5173
+```
+
+### Frontend (.env already created at `client/.env`):
+```env
+VITE_API_BASE_URL=http://localhost:3001
+```
+
+## 3. Database Setup
+
+```bash
+# Create database
+createdb persian_tts
+
+# Run migrations (if schema exists)
+psql persian_tts < BACKEND/src/database/schema.sql
+```
+
+## 4. Start Development Servers
+
+### Terminal 1 - Backend:
 ```bash
 cd BACKEND
 npm run dev
+# Server runs on http://localhost:3001
 ```
 
-**Terminal 2 - Frontend:**
+### Terminal 2 - Frontend:
 ```bash
 cd client
 npm run dev
+# App runs on http://localhost:5173
 ```
 
-### Verify Installation
+## 5. Access the Application
+
+Open your browser to: **http://localhost:5173**
+
+Default credentials (if seeded):
+- Username: `admin`
+- Password: `admin123`
+
+## Build for Production
 
 ```bash
-# Run verification script
-./verify.sh
+# Backend
+cd BACKEND
+npm run build
+npm start
 
-# Or manually check:
-curl http://localhost:3001/health
-# Expected: {"success":true,"data":{"status":"healthy"}}
+# Frontend
+cd client
+npm run build
+# Serve the dist/ folder with your preferred static server
 ```
 
-### Test API
+## Verify Installation
 
 ```bash
-# Run API tests
-./test-api.sh
+# Check backend build
+cd BACKEND && npm run build
 
-# Or manually test:
-curl "http://localhost:3001/api/sources/search?q=persian"
+# Check frontend build
+cd ../client && npm run build
+
+# Both should complete with ✅ SUCCESS
 ```
 
-### Open Application
-
-```
-Frontend: http://localhost:5173
-Backend:  http://localhost:3001
-Health:   http://localhost:3001/health
-```
-
----
-
-## 🎯 Quick Feature Tests
-
-### 1. Search HuggingFace Models
-
-```bash
-curl "http://localhost:3001/api/sources/search?q=persian+tts"
-```
-
-### 2. Validate HuggingFace Token
-
-```bash
-curl -X POST http://localhost:3001/api/sources/validate-token \
-  -H "Content-Type: application/json" \
-  -d '{"token":"hf_YOUR_TOKEN"}'
-```
-
-### 3. Check Database
-
-```bash
-psql $DATABASE_URL -c "\dt"
-# Should show 7 tables
-```
-
-### 4. WebSocket Test
-
-Open browser console at `http://localhost:5173`:
-```javascript
-const socket = io('http://localhost:3001');
-socket.on('connect', () => console.log('✅ Connected'));
-```
-
----
-
-## 🐛 Troubleshooting
-
-### Database Connection Error
-
-```bash
-# Check PostgreSQL is running
-sudo systemctl status postgresql
-
-# Start if needed
-sudo systemctl start postgresql
-
-# Test connection
-psql postgresql://postgres:password@localhost:5432/persian_tts
-```
+## Troubleshooting
 
 ### Port Already in Use
-
 ```bash
-# Find process on port 3001
-lsof -i :3001
+# Kill process on port 3001
+lsof -ti:3001 | xargs kill -9
 
-# Kill it
-kill -9 <PID>
-
-# Or use different port in .env
-PORT=3002
+# Kill process on port 5173
+lsof -ti:5173 | xargs kill -9
 ```
 
-### TypeScript Errors
+### Database Connection Error
+1. Ensure PostgreSQL is running: `pg_isready`
+2. Check DATABASE_URL in `.env`
+3. Verify database exists: `psql -l | grep persian_tts`
 
-```bash
-# Check backend
-cd BACKEND && npm run lint
+### Build Errors
+1. Clear node_modules: `rm -rf node_modules package-lock.json && npm install`
+2. Clear cache: `npm cache clean --force`
+3. Check Node version: `node -v` (should be >= 16)
 
-# Check frontend
-cd client && npm run lint
-```
+## Features Available
 
-### Dependencies Missing
+✅ **Authentication**: Login/logout with JWT
+✅ **Persian Chat**: AI-powered Persian conversation
+✅ **Model Hub**: Download and manage AI models
+✅ **Training**: Start and monitor training jobs
+✅ **Dashboard**: System metrics and monitoring
+✅ **Settings**: Customize app preferences
 
-```bash
-# Reinstall backend
-cd BACKEND
-rm -rf node_modules package-lock.json
-npm install
+## Next Steps
 
-# Reinstall frontend
-cd client
-rm -rf node_modules package-lock.json
-npm install
-```
+1. Explore the dashboard at `/dashboard`
+2. Download a model from `/models`
+3. Start a training job at `/training`
+4. Chat in Persian at `/chat`
 
----
-
-## 📚 Next Steps
-
-1. **Add HuggingFace Token** (optional but recommended)
-   - Get token: https://huggingface.co/settings/tokens
-   - Add to `BACKEND/.env`: `HF_TOKEN=hf_xxx`
-
-2. **Explore Features**
-   - Search Persian models
-   - Download models
-   - Start training jobs
-   - Monitor progress in real-time
-
-3. **Read Documentation**
-   - `IMPLEMENTATION_REPORT.md` - Technical details
-   - `DEPLOYMENT_GUIDE.md` - Production deployment
-   - `COMPLETE_CHECKLIST.md` - Verification checklist
-
----
-
-## 🎉 Success Indicators
-
-✅ Backend starts without errors
-✅ Frontend loads at http://localhost:5173
-✅ Health check returns `{"status":"healthy"}`
-✅ Database has 7 tables
-✅ HuggingFace search returns results
-✅ TypeScript compiles with 0 errors
-
----
-
-## 📞 Support
-
-- **Implementation Details:** See `IMPLEMENTATION_REPORT.md`
-- **Deployment Guide:** See `DEPLOYMENT_GUIDE.md`
-- **API Reference:** See `BACKEND/API_ENDPOINTS.md`
-- **Troubleshooting:** See `DEPLOYMENT_GUIDE.md` (Troubleshooting section)
-
----
-
-**Ready to go! 🚀**
+**Happy Coding! 🎉**

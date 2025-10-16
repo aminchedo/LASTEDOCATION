@@ -17,6 +17,13 @@ export interface AppSettings {
   aiModel: string;
   models?: string[];
   customApi?: CustomApiSettings;
+  training?: {
+    autoSave?: boolean;
+    checkpointInterval?: number;
+    maxCheckpoints?: number;
+    useGpu?: boolean;
+    gpuMemoryFraction?: number;
+  };
 }
 
 export interface CustomApiSettings {
