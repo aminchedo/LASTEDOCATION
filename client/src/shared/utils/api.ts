@@ -40,15 +40,15 @@ class APIService {
     const { skipAuth = false, ...fetchOptions } = options;
 
     // Add authentication header if not skipped
-    const headers: HeadersInit = {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...fetchOptions.headers,
+      ...(fetchOptions.headers as Record<string, string>),
     };
 
     if (!skipAuth) {
       const token = AuthService.getToken();
       if (token) {
-        headers.Authorization = `Bearer ${token}`;
+        headers['Authorization'] = `Bearer ${token}`;
       }
     }
 
@@ -62,7 +62,7 @@ class APIService {
       if (this.isRefreshing) {
         return new Promise((resolve) => {
           this.refreshQueue.push((token: string) => {
-            headers.Authorization = `Bearer ${token}`;
+            headers['Authorization'] = `Bearer ${token}`;
             resolve(this.makeRequest(endpoint, { ...options, skipAuth: true }));
           });
         });
@@ -78,7 +78,7 @@ class APIService {
           this.refreshQueue = [];
 
           // Retry original request
-          headers.Authorization = `Bearer ${AuthService.getToken()}`;
+          headers['Authorization'] = `Bearer ${AuthService.getToken()}`;
           return this.makeRequest(endpoint, { ...options, skipAuth: true });
         } else {
           AuthService.logout();

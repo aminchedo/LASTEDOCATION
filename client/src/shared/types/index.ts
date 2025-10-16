@@ -1,4 +1,4 @@
-export type JobStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled' | 'queued' | 'succeeded' | 'canceled' | 'training' | 'preparing' | 'evaluating' | 'error';
+export type JobStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled' | 'queued' | 'succeeded' | 'canceled' | 'training' | 'preparing' | 'evaluating' | 'error' | 'paused';
 
 export interface Dataset {
   id: string;
@@ -16,24 +16,55 @@ export interface Dataset {
   language?: string;
 }
 
+export interface TrainingMetrics {
+  loss: number;
+  accuracy: number;
+  epoch: number;
+  step?: number;
+  totalSteps?: number;
+  perplexity?: number;
+}
+
+export interface TrainingConfig {
+  baseModelPath?: string;
+  datasetPath?: string;
+  outputDir?: string;
+  epochs?: number;
+  learningRate?: number;
+  batchSize?: number;
+  maxSteps?: number;
+  warmupSteps?: number;
+  saveSteps?: number;
+  evalSteps?: number;
+  seed?: number;
+  useGpu?: boolean;
+}
+
 export interface TrainingJob {
   id: string;
   name: string;
-  status: JobStatus;
+  status: 'queued' | 'running' | 'completed' | 'failed' | 'preparing' | 'training' | 'evaluating' | 'error' | 'cancelled' | 'paused';
   progress: number;
   startTime?: string;
   endTime?: string;
   startedAt?: string;
   completedAt?: string;
   finishedAt?: string;
-  config: Record<string, unknown>;
-  metrics?: Record<string, unknown>;
+  config?: TrainingConfig;
+  metrics?: TrainingMetrics;
   model?: string;
   epochs?: number;
   lastLog?: string;
   error?: string;
   currentPhase?: string;
   logs?: string[];
+  step?: number;
+  totalSteps?: number;
+  currentStep?: number;
+  currentEpoch?: number;
+  totalEpochs?: number;
+  bestMetric?: number;
+  eta?: number;
 }
 
 export interface Experiment {
@@ -99,6 +130,8 @@ export interface Download {
   startTime?: string;
   endTime?: string;
 }
+
+export type DownloadStatus = 'pending' | 'downloading' | 'completed' | 'failed' | 'paused' | 'running' | 'error';
 
 export interface DownloadJob extends Download {
   repoId?: string;
