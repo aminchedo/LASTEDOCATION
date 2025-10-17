@@ -50,9 +50,8 @@ export const validate = (schema: ZodSchema) => {
  * Email validation with sanitization
  */
 export const emailSchema = z.string()
-  .email('Invalid email format')
-  .toLowerCase()
-  .transform(val => val.trim());
+  .transform(val => val.trim().toLowerCase())
+  .refine(val => z.string().email().safeParse(val).success, 'Invalid email format');
 
 /**
  * URL validation
@@ -77,10 +76,10 @@ export const uuidSchema = z.string()
 export const registerSchema = z.object({
   email: emailSchema,
   username: z.string()
-    .min(3, 'Username must be at least 3 characters')
-    .max(50, 'Username must be at most 50 characters')
-    .regex(/^[a-zA-Z0-9_-]+$/, 'Username can only contain letters, numbers, underscores, and hyphens')
-    .transform(val => val.trim()),
+    .transform(val => val.trim())
+    .refine(val => val.length >= 3, 'Username must be at least 3 characters')
+    .refine(val => val.length <= 50, 'Username must be at most 50 characters')
+    .refine(val => /^[a-zA-Z0-9_-]+$/.test(val), 'Username can only contain letters, numbers, underscores, and hyphens'),
   password: z.string()
     .min(8, 'Password must be at least 8 characters')
     .max(100, 'Password must be at most 100 characters')

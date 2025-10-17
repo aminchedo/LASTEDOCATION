@@ -1,6 +1,7 @@
 export const APP_CONFIG = {
   name: 'AI Chat & Monitoring',
   version: '1.0.0',
+  API_BASE_URL: 'http://localhost:3001',
   api: {
     defaultBaseUrl: 'http://localhost:3001',
     timeout: 30000,

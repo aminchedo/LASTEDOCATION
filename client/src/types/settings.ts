@@ -23,6 +23,11 @@ export interface AppSettings {
     maxCheckpoints?: number;
     useGpu?: boolean;
     gpuMemoryFraction?: number;
+    defaultEpochs?: number;
+    defaultSteps?: number;
+    defaultLearningRate?: number;
+    defaultBatchSize?: number;
+    defaultSaveEverySteps?: number;
   };
 }
 

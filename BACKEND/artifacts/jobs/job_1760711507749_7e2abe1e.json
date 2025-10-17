@@ -1,0 +1,13 @@
+{
+  "job_id": "job_1760711507749_7e2abe1e",
+  "status": "QUEUED",
+  "progress": 0,
+  "pid": 3009,
+  "params": {
+    "dataset": null,
+    "epochs": 5,
+    "batch_size": 32,
+    "lr": 0.001
+  },
+  "created_at": "2025-10-17T14:31:47.752Z"
+}

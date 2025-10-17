@@ -11,7 +11,7 @@ export declare const validate: (schema: ZodSchema) => (req: Request, res: Respon
 /**
  * Email validation with sanitization
  */
-export declare const emailSchema: z.ZodEffects<z.ZodString, string, string>;
+export declare const emailSchema: z.ZodEffects<z.ZodEffects<z.ZodString, string, string>, string, string>;
 /**
  * URL validation
  */
@@ -24,8 +24,8 @@ export declare const uuidSchema: z.ZodString;
  * User registration schema
  */
 export declare const registerSchema: z.ZodObject<{
-    email: z.ZodEffects<z.ZodString, string, string>;
-    username: z.ZodEffects<z.ZodString, string, string>;
+    email: z.ZodEffects<z.ZodEffects<z.ZodString, string, string>, string, string>;
+    username: z.ZodEffects<z.ZodEffects<z.ZodEffects<z.ZodEffects<z.ZodString, string, string>, string, string>, string, string>, string, string>;
     password: z.ZodString;
 }, "strip", z.ZodTypeAny, {
     password: string;
@@ -40,7 +40,7 @@ export declare const registerSchema: z.ZodObject<{
  * User login schema
  */
 export declare const loginSchema: z.ZodObject<{
-    email: z.ZodEffects<z.ZodString, string, string>;
+    email: z.ZodEffects<z.ZodEffects<z.ZodString, string, string>, string, string>;
     password: z.ZodString;
 }, "strip", z.ZodTypeAny, {
     password: string;

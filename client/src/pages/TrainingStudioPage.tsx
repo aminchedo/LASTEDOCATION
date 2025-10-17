@@ -66,7 +66,7 @@ export function TrainingStudioPage() {
   const [currentStep, setCurrentStep] = useState<'model' | 'datasets' | 'type' | 'config'>('model');
 
   const { jobs, loading, startTraining, cancelTraining, getJobLogs } = useTraining();
-  const { models: availableModels } = useAvailableModels('model');
+  const { models: availableModels } = useAvailableModels();
   const [installedSources, setInstalledSources] = useState<any[]>([]);
 
   useEffect(() => {
@@ -162,7 +162,7 @@ export function TrainingStudioPage() {
     };
 
     try {
-      await startTraining(jobName, config);
+      await startTraining(config);
       toast.success('آموزش با موفقیت شروع شد');
       setActiveTab('jobs');
       // Reset form

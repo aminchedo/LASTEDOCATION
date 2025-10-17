@@ -81,6 +81,39 @@ export function useTraining() {
     }
   }, [fetchJobs]);
 
+  const cancelTraining = useCallback(async (jobId: string) => {
+    try {
+      const response = await apiService.post(`/api/training/${jobId}/cancel`);
+      
+      if (response.success) {
+        await fetchJobs(); // Refresh the list
+        return true;
+      } else {
+        throw new Error(response.error || 'Failed to cancel training');
+      }
+    } catch (err: any) {
+      const errorMessage = err.message || 'Failed to cancel training';
+      console.error('Training cancel error:', errorMessage);
+      throw new Error(errorMessage);
+    }
+  }, [fetchJobs]);
+
+  const getJobLogs = useCallback(async (jobId: string) => {
+    try {
+      const response = await apiService.get(`/api/training/${jobId}/logs`);
+      
+      if (response.success) {
+        return response.data;
+      } else {
+        throw new Error(response.error || 'Failed to get job logs');
+      }
+    } catch (err: any) {
+      const errorMessage = err.message || 'Failed to get job logs';
+      console.error('Training logs error:', errorMessage);
+      throw new Error(errorMessage);
+    }
+  }, []);
+
   useEffect(() => {
     fetchJobs();
     
@@ -105,5 +138,7 @@ export function useTraining() {
     startTraining,
     stopTraining,
     resumeTraining,
+    cancelTraining,
+    getJobLogs,
   };
 }
