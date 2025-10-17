@@ -12,7 +12,7 @@ export interface TrainingConfig {
   batchSize: number;
   learningRate: number;
   validationSplit: number;
-  optimizer?: 'adam' | 'sgd' | 'rmsprop';
+  optimizer?: 'adam' | 'sgd' | 'rmsprop' | 'adagrad';
   lossFunction?: string;
 }
 

@@ -105,6 +105,11 @@ const ModelsHubPage = lazy(() => import('@/pages/ModelsHubPage'));
 const PlaygroundHubPage = lazy(() => import('@/pages/PlaygroundHubPage'));
 const TrainingHubPage = lazy(() => import('@/pages/TrainingHubPage'));
 
+// AI Lab pages
+const ModelBuilderPage = lazy(() => import('@/pages/AILab/ModelBuilderPage').then(module => ({ default: module.ModelBuilderPage })));
+const DatasetManagerPage = lazy(() => import('@/pages/AILab/DatasetManagerPage').then(module => ({ default: module.DatasetManagerPage })));
+const ModelExporterPage = lazy(() => import('@/pages/AILab/ModelExporterPage').then(module => ({ default: module.ModelExporterPage })));
+
 // Loading component
 function PageLoader() {
   return (
@@ -157,6 +162,11 @@ function AppContent() {
                       <Route path="/models" element={<ModelsHubPage />} />
                       <Route path="/playground" element={<PlaygroundHubPage />} />
                       <Route path="/training" element={<TrainingHubPage />} />
+                      <Route path="/training/jobs" element={<TrainingHubPage />} />
+                      <Route path="/training/datasets" element={<TrainingHubPage />} />
+                      <Route path="/ai-lab/model-builder" element={<ModelBuilderPage />} />
+                      <Route path="/ai-lab/dataset-manager" element={<DatasetManagerPage />} />
+                      <Route path="/ai-lab/model-exporter" element={<ModelExporterPage />} />
                       <Route path="/dashboard" element={<Dashboard />} />
                       <Route path="/settings" element={<SettingsPage />} />
                       <Route path="/chat" element={<ChatPage />} />

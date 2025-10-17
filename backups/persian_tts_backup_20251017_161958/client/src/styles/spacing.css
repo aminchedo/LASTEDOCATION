@@ -1,0 +1,46 @@
+/* Consistent Spacing Scale */
+.container-padding {
+  @apply px-4 py-6 md:px-6 md:py-8 lg:px-8 lg:py-10;
+}
+
+.card-padding {
+  @apply p-4 md:p-6;
+}
+
+.section-spacing {
+  @apply space-y-6 md:space-y-8;
+}
+
+.item-spacing {
+  @apply space-y-4;
+}
+
+.tight-spacing {
+  @apply space-y-2;
+}
+
+/* Grid Layouts */
+.grid-cards {
+  @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6;
+}
+
+.grid-list {
+  @apply grid grid-cols-1 gap-3;
+}
+
+/* Flex Layouts */
+.flex-center {
+  @apply flex items-center justify-center;
+}
+
+.flex-between {
+  @apply flex items-center justify-between;
+}
+
+.flex-start {
+  @apply flex items-center justify-start;
+}
+
+.flex-end {
+  @apply flex items-center justify-end;
+}

@@ -1,0 +1,2 @@
+Backup Location: /workspace/backups/persian_tts_backup_20251017_161958/
+Backup SHA256: 18dcd1b8d27bcd8ae1de96384c2ed78bb3ff894f34d01d0ecf13c8fcf308ea8e

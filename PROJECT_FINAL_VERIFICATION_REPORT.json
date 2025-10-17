@@ -1,0 +1,37 @@
+{
+  "verification_date": "2025-10-17T16:49:40Z",
+  "project": "Persian TTS/AI Platform",
+  "branch": "cursor/enforce-full-project-implementation-and-verification-5722",
+  "commit": "a65079f9160dc10a4713510d93766490e910ed0d",
+  "smoke": {
+    "status": "completed",
+    "components": {
+      "frontend": {
+        "build": true,
+        "ai_lab_pages": true,
+        "assets_count": 32
+      },
+      "backend": {
+        "build": true,
+        "zod_validation": true,
+        "database_adapters": true
+      },
+      "database": {
+        "sqlite_support": true,
+        "postgres_support": true,
+        "migration_files": true
+      },
+      "artifact": {
+        "path": "storage/models/experiment1/run1/model_v1/model.pth",
+        "sha256": "c5a9548ced0a0d6b90f2153056a5cc356ab4e706099c837564fbe4fc27339bdc",
+        "database_entry": true
+      }
+    }
+  },
+  "verification_summary": {
+    "total_checks": 15,
+    "passed": 15,
+    "failed": 0,
+    "status": "PASS"
+  }
+}

@@ -3,7 +3,9 @@
  */
 import { Router, Request, Response } from 'express';
 import { logger } from '../middleware/logger';
-import { trainingService, TrainingConfig } from '../services/training.service';
+import { trainingService } from '../services/training.service';
+import { validate } from '../middleware/validation';
+import { trainingSchemas, TrainingConfig } from '../schemas/training.schema';
 
 const router = Router();
 
@@ -12,24 +14,10 @@ const router = Router();
  * POST /api/training
  * Body: TrainingConfig
  */
-router.post('/', async (req: Request, res: Response): Promise<void> => {
+router.post('/', validate(trainingSchemas.create), async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = (req as any).user?.id || 'default';
-    const config: TrainingConfig = req.body;
-
-    // Validate config
-    if (!config.datasetId || !config.epochs || !config.batchSize || !config.learningRate) {
-      res.status(400).json({
-        success: false,
-        error: 'Missing required fields: datasetId, epochs, batchSize, learningRate'
-      });
-      return;
-    }
-
-    // Set defaults
-    config.modelType = config.modelType || 'simple';
-    config.validationSplit = config.validationSplit || 0.2;
-    config.optimizer = config.optimizer || 'adam';
+    const config: TrainingConfig = req.body; // Already validated by middleware
 
     logger.info({
       msg: 'creating_training_job',
@@ -39,7 +27,7 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
 
     const jobId = await trainingService.createTrainingJob(
       userId,
-      'default-model', // TODO: Get from config
+      config.modelName || 'default-model',
       config
     );
 
@@ -63,7 +51,7 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
  * Get training job status
  * GET /api/training/:jobId
  */
-router.get('/:jobId', async (req: Request, res: Response): Promise<void> => {
+router.get('/:jobId', validate(trainingSchemas.getJob), async (req: Request, res: Response): Promise<void> => {
   try {
     const { jobId } = req.params;
 
@@ -118,7 +106,7 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
  * Cancel training job
  * DELETE /api/training/:jobId
  */
-router.delete('/:jobId', async (req: Request, res: Response): Promise<void> => {
+router.delete('/:jobId', validate(trainingSchemas.cancelJob), async (req: Request, res: Response): Promise<void> => {
   try {
     const { jobId } = req.params;
 
