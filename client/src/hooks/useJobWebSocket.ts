@@ -47,7 +47,7 @@ export function useJobWebSocket(jobId: string | null): UseJobWebSocketReturn {
     }
 
     // Create socket connection
-    const socket = io(import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001', {
+    const socket = io(import.meta.env.VITE_API_BASE_URL || window.location.origin, {
       auth: { token },
       reconnection: true,
       reconnectionAttempts: 5,

@@ -1,9 +1,9 @@
 export const APP_CONFIG = {
   name: 'AI Chat & Monitoring',
   version: '1.0.0',
-  API_BASE_URL: 'http://localhost:3001',
+  API_BASE_URL: import.meta.env.VITE_API_BASE_URL || '/api',
   api: {
-    defaultBaseUrl: 'http://localhost:3001',
+    defaultBaseUrl: import.meta.env.VITE_API_BASE_URL || '/api',
     timeout: 30000,
     retryAttempts: 3,
   },

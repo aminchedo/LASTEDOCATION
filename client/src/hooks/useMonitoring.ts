@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { MonitoringData, HealthData, SystemMetrics, ApiAnalytics, PerformanceMetrics } from '../types/monitoring.types';
 
-const API_BASE = 'http://localhost:3001';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
 const ENDPOINTS = {
   health: `${API_BASE}/health/detailed`,

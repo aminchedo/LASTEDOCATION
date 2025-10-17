@@ -2,12 +2,27 @@
  * Sources API Routes - HuggingFace integration with real database
  */
 import { Router, Request, Response } from 'express';
+import { z } from 'zod';
 import { logger } from '../middleware/logger';
 import { hfService } from '../services/huggingface.service';
 import { downloadManager } from '../services/download-manager.service';
 import { query } from '../database/connection';
 
 const router = Router();
+
+// Validation schemas
+const downloadSchema = z.object({
+  repoId: z.string().min(1, 'Repository ID is required'),
+  token: z.string().optional()
+});
+
+const searchSchema = z.object({
+  q: z.string().min(1, 'Search query is required'),
+  task: z.string().optional(),
+  library: z.string().optional(),
+  language: z.string().optional(),
+  sort: z.enum(['downloads', 'likes', 'trending']).optional()
+});
 
 /**
  * Search models on HuggingFace
@@ -111,16 +126,21 @@ router.get('/model/:repoId(*)', async (req: Request, res: Response): Promise<voi
  */
 router.post('/download', async (req: Request, res: Response): Promise<void> => {
   try {
-    const { repoId, token } = req.body;
     const userId = (req as any).user?.id || 'default';
-
-    if (!repoId) {
+    
+    // Validate input
+    const validationResult = downloadSchema.safeParse(req.body);
+    
+    if (!validationResult.success) {
       res.status(400).json({
         success: false,
-        error: 'repoId is required'
+        error: 'Validation failed',
+        details: validationResult.error.format()
       });
       return;
     }
+    
+    const { repoId, token } = validationResult.data;
 
     logger.info({
       msg: 'starting_download',

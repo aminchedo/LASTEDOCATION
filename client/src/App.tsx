@@ -119,25 +119,8 @@ function PageLoader() {
   );
 }
 
-// 404 Page
-function NotFoundPage() {
-  return (
-    <div className="flex items-center justify-center h-64">
-      <Card variant="elevated" className="p-8 text-center">
-        <CardContent>
-          <h1 className="text-4xl font-bold text-[color:var(--c-text)] mb-4">404</h1>
-          <p className="text-[color:var(--c-text-muted)] mb-6">صفحه مورد نظر یافت نشد</p>
-          <button
-            className="px-4 py-2 bg-[color:var(--c-primary)] text-white rounded-lg hover:bg-[color:var(--c-primary-600)] transition-colors"
-            onClick={() => window.location.href = '/'}
-          >
-            بازگشت به خانه
-          </button>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
+// Lazy load NotFoundPage
+const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
 
 function AppContent() {
   useKeyboardShortcuts();
@@ -145,30 +128,24 @@ function AppContent() {
   return (
     <>
       <div className="min-h-screen bg-[color:var(--c-bg)] text-[color:var(--c-text)]">
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="*" element={
-            <AuthGuard>
-              <RootLayout>
-                <LazyLoadErrorBoundary>
-                  <Suspense fallback={<PageLoader />}>
-                    <Routes>
-                      <Route path="/" element={<HomePage />} />
-                      <Route path="/models" element={<ModelsHubPage />} />
-                      <Route path="/playground" element={<PlaygroundHubPage />} />
-                      <Route path="/training" element={<TrainingHubPage />} />
-                      <Route path="/dashboard" element={<Dashboard />} />
-                      <Route path="/settings" element={<SettingsPage />} />
-                      <Route path="/chat" element={<ChatPage />} />
-                      <Route path="/notifications" element={<NotificationsPage />} />
-                      <Route path="*" element={<NotFoundPage />} />
-                    </Routes>
-                  </Suspense>
-                </LazyLoadErrorBoundary>
-              </RootLayout>
-            </AuthGuard>
-          } />
-        </Routes>
+        <LazyLoadErrorBoundary>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
+              <Route element={<AuthGuard><RootLayout /></AuthGuard>}>
+                <Route path="/" element={<HomePage />} />
+                <Route path="models" element={<ModelsHubPage />} />
+                <Route path="playground" element={<PlaygroundHubPage />} />
+                <Route path="training" element={<TrainingHubPage />} />
+                <Route path="dashboard" element={<Dashboard />} />
+                <Route path="settings" element={<SettingsPage />} />
+                <Route path="chat" element={<ChatPage />} />
+                <Route path="notifications" element={<NotificationsPage />} />
+                <Route path="*" element={<NotFoundPage />} />
+              </Route>
+            </Routes>
+          </Suspense>
+        </LazyLoadErrorBoundary>
         <ToastProvider />
       </div>
       <KeyboardShortcutsHelp />

@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 
 // Proxy utility functions
-const PROXY_BASE_URL = process.env.REACT_APP_PROXY_URL || 'http://localhost:3001';
+const PROXY_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 const buildProxyUrl = (url: string): string => {
   // For direct downloads, use the URL as-is if it's from trusted sources

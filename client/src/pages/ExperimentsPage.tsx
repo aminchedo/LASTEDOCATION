@@ -24,7 +24,7 @@ import { Badge } from '@/shared/components/ui/Badge';
 import { Experiment, JobStatus } from '@/shared/types';
 import toast from 'react-hot-toast';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 function ExperimentsPage() {
   const [experiments, setExperiments] = useState<Experiment[]>([]);

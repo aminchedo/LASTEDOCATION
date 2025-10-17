@@ -1,5 +1,5 @@
 // File: client/src/services/api.ts
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 interface ApiResponse<T> {
   success: boolean;

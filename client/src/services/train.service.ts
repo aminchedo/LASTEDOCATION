@@ -1,7 +1,7 @@
 // File: client/src/services/train.service.ts
 import { api } from './api';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 interface TrainingConfig {
   datasetId: string;

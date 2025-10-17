@@ -19,7 +19,7 @@ const defaultSettings: AppSettings = {
   fontSize: 16,
   accentColor: '#3B82F6',
   api: {
-    baseUrl: 'http://localhost:3001',
+    baseUrl: import.meta.env.VITE_API_BASE_URL || '/api',
     key: '',
   },
   voice: {

@@ -1,0 +1,2 @@
+Backup filename: /tmp/backups/backup-20251017-155153.tar.gz
+SHA256: c4099f7c7789027569738941781c86feee8d335844c9736278cadfa27eb06356

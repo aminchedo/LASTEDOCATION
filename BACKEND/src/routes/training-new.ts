@@ -2,10 +2,22 @@
  * Training API Routes - Real TensorFlow.js training with database
  */
 import { Router, Request, Response } from 'express';
+import { z } from 'zod';
 import { logger } from '../middleware/logger';
 import { trainingService, TrainingConfig } from '../services/training.service';
 
 const router = Router();
+
+// Validation schema for training config
+const trainingConfigSchema = z.object({
+  datasetId: z.string().min(1, 'Dataset ID is required'),
+  epochs: z.number().int().min(1).max(1000),
+  batchSize: z.number().int().min(1).max(1024),
+  learningRate: z.number().min(0.00001).max(1),
+  modelType: z.enum(['simple', 'complex', 'custom']).optional().default('simple'),
+  validationSplit: z.number().min(0).max(0.5).optional().default(0.2),
+  optimizer: z.enum(['adam', 'sgd', 'rmsprop']).optional().default('adam')
+});
 
 /**
  * Create new training job
@@ -15,21 +27,20 @@ const router = Router();
 router.post('/', async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = (req as any).user?.id || 'default';
-    const config: TrainingConfig = req.body;
-
-    // Validate config
-    if (!config.datasetId || !config.epochs || !config.batchSize || !config.learningRate) {
+    
+    // Validate config with zod
+    const validationResult = trainingConfigSchema.safeParse(req.body);
+    
+    if (!validationResult.success) {
       res.status(400).json({
         success: false,
-        error: 'Missing required fields: datasetId, epochs, batchSize, learningRate'
+        error: 'Validation failed',
+        details: validationResult.error.format()
       });
       return;
     }
-
-    // Set defaults
-    config.modelType = config.modelType || 'simple';
-    config.validationSplit = config.validationSplit || 0.2;
-    config.optimizer = config.optimizer || 'adam';
+    
+    const config: TrainingConfig = validationResult.data;
 
     logger.info({
       msg: 'creating_training_job',
@@ -46,7 +57,7 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
     res.json({
       success: true,
       data: {
-        jobId,
+        trainingId: jobId,
         message: 'Training job created successfully'
       }
     });

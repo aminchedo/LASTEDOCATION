@@ -4,9 +4,20 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * Training API Routes - Real TensorFlow.js training with database
  */
 const express_1 = require("express");
+const zod_1 = require("zod");
 const logger_1 = require("../middleware/logger");
 const training_service_1 = require("../services/training.service");
 const router = (0, express_1.Router)();
+// Validation schema for training config
+const trainingConfigSchema = zod_1.z.object({
+    datasetId: zod_1.z.string().min(1, 'Dataset ID is required'),
+    epochs: zod_1.z.number().int().min(1).max(1000),
+    batchSize: zod_1.z.number().int().min(1).max(1024),
+    learningRate: zod_1.z.number().min(0.00001).max(1),
+    modelType: zod_1.z.enum(['simple', 'complex', 'custom']).optional().default('simple'),
+    validationSplit: zod_1.z.number().min(0).max(0.5).optional().default(0.2),
+    optimizer: zod_1.z.enum(['adam', 'sgd', 'rmsprop']).optional().default('adam')
+});
 /**
  * Create new training job
  * POST /api/training
@@ -15,19 +26,17 @@ const router = (0, express_1.Router)();
 router.post('/', async (req, res) => {
     try {
         const userId = req.user?.id || 'default';
-        const config = req.body;
-        // Validate config
-        if (!config.datasetId || !config.epochs || !config.batchSize || !config.learningRate) {
+        // Validate config with zod
+        const validationResult = trainingConfigSchema.safeParse(req.body);
+        if (!validationResult.success) {
             res.status(400).json({
                 success: false,
-                error: 'Missing required fields: datasetId, epochs, batchSize, learningRate'
+                error: 'Validation failed',
+                details: validationResult.error.format()
             });
             return;
         }
-        // Set defaults
-        config.modelType = config.modelType || 'simple';
-        config.validationSplit = config.validationSplit || 0.2;
-        config.optimizer = config.optimizer || 'adam';
+        const config = validationResult.data;
         logger_1.logger.info({
             msg: 'creating_training_job',
             userId,
@@ -38,7 +47,7 @@ router.post('/', async (req, res) => {
         res.json({
             success: true,
             data: {
-                jobId,
+                trainingId: jobId,
                 message: 'Training job created successfully'
             }
         });

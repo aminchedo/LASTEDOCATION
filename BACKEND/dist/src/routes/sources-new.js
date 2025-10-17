@@ -4,11 +4,24 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * Sources API Routes - HuggingFace integration with real database
  */
 const express_1 = require("express");
+const zod_1 = require("zod");
 const logger_1 = require("../middleware/logger");
 const huggingface_service_1 = require("../services/huggingface.service");
 const download_manager_service_1 = require("../services/download-manager.service");
 const connection_1 = require("../database/connection");
 const router = (0, express_1.Router)();
+// Validation schemas
+const downloadSchema = zod_1.z.object({
+    repoId: zod_1.z.string().min(1, 'Repository ID is required'),
+    token: zod_1.z.string().optional()
+});
+const searchSchema = zod_1.z.object({
+    q: zod_1.z.string().min(1, 'Search query is required'),
+    task: zod_1.z.string().optional(),
+    library: zod_1.z.string().optional(),
+    language: zod_1.z.string().optional(),
+    sort: zod_1.z.enum(['downloads', 'likes', 'trending']).optional()
+});
 /**
  * Search models on HuggingFace
  * GET /api/sources/search?q=persian+tts&task=text-to-speech
@@ -91,15 +104,18 @@ router.get('/model/:repoId(*)', async (req, res) => {
  */
 router.post('/download', async (req, res) => {
     try {
-        const { repoId, token } = req.body;
         const userId = req.user?.id || 'default';
-        if (!repoId) {
+        // Validate input
+        const validationResult = downloadSchema.safeParse(req.body);
+        if (!validationResult.success) {
             res.status(400).json({
                 success: false,
-                error: 'repoId is required'
+                error: 'Validation failed',
+                details: validationResult.error.format()
             });
             return;
         }
+        const { repoId, token } = validationResult.data;
         logger_1.logger.info({
             msg: 'starting_download',
             repoId,
