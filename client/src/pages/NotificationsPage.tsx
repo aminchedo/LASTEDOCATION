@@ -205,7 +205,7 @@ export function NotificationsPage() {
         <Card variant="elevated">
           <CardContent>
             <EmptyState
-              icon={Bell}
+              icon="bell"
               title={filter === 'unread' ? 'اعلان خوانده نشده‌ای وجود ندارد' : 'هیچ اعلانی وجود ندارد'}
               description={filter === 'unread' 
                 ? 'همه اعلان‌های شما خوانده شده است'

@@ -23,6 +23,13 @@ export interface AppSettings {
     autoScan: boolean;
     scanDepth: number;
   };
+  training?: {
+    autoSave?: boolean;
+    checkpointInterval?: number;
+    maxCheckpoints?: number;
+    useGpu?: boolean;
+    gpuMemoryFraction?: number;
+  };
 }
 
 interface ThemeContextValue {
@@ -32,143 +39,144 @@ interface ThemeContextValue {
 }
 
 const defaultSettings: AppSettings = {
-  theme: APP_CONFIG.theme.defaultTheme,
-  direction: APP_CONFIG.theme.defaultDirection,
+  theme: 'auto',
+  direction: 'rtl',
   fontSize: 16,
-  accentColor: APP_CONFIG.theme.availableAccents[0].value,
+  accentColor: '#6366f1',
   api: {
-    baseUrl: APP_CONFIG.api.defaultBaseUrl,
+    baseUrl: APP_CONFIG.API_BASE_URL,
     key: '',
   },
   voice: {
-    enabled: false,
+    enabled: true,
     autoPlay: false,
   },
   aiModel: 'gpt-4',
   models: {
     customFolders: [],
     autoScan: true,
-    scanDepth: 2,
+    scanDepth: 3,
   },
 };
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
+export function useTheme() {
+  const context = useContext(ThemeContext);
+  if (!context) {
+    throw new Error('useTheme must be used within a ThemeProvider');
+  }
+  return context;
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<AppSettings>(() => {
-    try {
-      const stored = localStorage.getItem(APP_CONFIG.storage.settingsKey);
-      if (stored) {
-        return { ...defaultSettings, ...JSON.parse(stored) };
+    const savedSettings = localStorage.getItem('app-settings');
+    if (savedSettings) {
+      try {
+        return { ...defaultSettings, ...JSON.parse(savedSettings) };
+      } catch {
+        return defaultSettings;
       }
-    } catch (error) {
-      console.error('Failed to load settings:', error);
     }
     return defaultSettings;
   });
 
-  const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light');
+  const [systemTheme, setSystemTheme] = useState<'light' | 'dark'>('light');
 
-  // Resolve theme based on settings and system preference
-  const resolveTheme = useCallback((theme: Theme): 'light' | 'dark' => {
-    if (theme === 'auto') {
-      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    }
-    return theme;
+  // Detect system theme preference
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    
+    const updateSystemTheme = (e: MediaQueryListEvent | MediaQueryList) => {
+      setSystemTheme(e.matches ? 'dark' : 'light');
+    };
+
+    // Initial check
+    updateSystemTheme(mediaQuery);
+
+    // Listen for changes
+    mediaQuery.addEventListener('change', updateSystemTheme);
+    
+    return () => {
+      mediaQuery.removeEventListener('change', updateSystemTheme);
+    };
   }, []);
 
-  // Apply theme and direction to DOM
+  // Resolve the actual theme to use
+  const resolvedTheme = settings.theme === 'auto' ? systemTheme : settings.theme;
+
+  // Apply theme to document
   useEffect(() => {
-    const html = document.documentElement;
-    const resolved = resolveTheme(settings.theme);
-    setResolvedTheme(resolved);
-
-    // Apply dark class
-    html.classList.toggle('dark', resolved === 'dark');
-
+    const root = document.documentElement;
+    
+    // Apply theme
+    root.classList.toggle('dark', resolvedTheme === 'dark');
+    root.setAttribute('data-theme', resolvedTheme);
+    
     // Apply direction
-    html.dir = settings.direction;
-
-    // Apply accent color
-    html.style.setProperty('--c-primary', settings.accentColor);
-
-    // Calculate hover color (slightly darker/lighter)
-    const adjustBrightness = (color: string, amount: number) => {
-      const hex = color.replace('#', '');
-      const r = Math.max(0, Math.min(255, parseInt(hex.slice(0, 2), 16) + amount));
-      const g = Math.max(0, Math.min(255, parseInt(hex.slice(2, 4), 16) + amount));
-      const b = Math.max(0, Math.min(255, parseInt(hex.slice(4, 6), 16) + amount));
-      return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-    };
-
-    html.style.setProperty(
-      '--c-primary-hover',
-      adjustBrightness(settings.accentColor, resolved === 'dark' ? -20 : -30)
-    );
-
+    root.setAttribute('dir', settings.direction);
+    
     // Apply font size
-    html.style.fontSize = `${settings.fontSize}px`;
-
-    // Save to localStorage
-    try {
-      localStorage.setItem(APP_CONFIG.storage.settingsKey, JSON.stringify(settings));
-    } catch (error) {
-      console.error('Failed to save settings:', error);
-    }
-  }, [settings, resolveTheme]);
-
-  // Listen for system theme changes
-  useEffect(() => {
-    if (settings.theme !== 'auto') return;
-
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handler = () => {
-      const resolved = resolveTheme('auto');
-      setResolvedTheme(resolved);
-      document.documentElement.classList.toggle('dark', resolved === 'dark');
-    };
-
-    mediaQuery.addEventListener('change', handler);
-    return () => mediaQuery.removeEventListener('change', handler);
-  }, [settings.theme, resolveTheme]);
+    root.style.fontSize = `${settings.fontSize}px`;
+    
+    // Apply accent color
+    root.style.setProperty('--accent-color', settings.accentColor);
+  }, [resolvedTheme, settings.direction, settings.fontSize, settings.accentColor]);
 
   const updateSettings = useCallback((partial: Partial<AppSettings>) => {
-    setSettings((prev) => {
-      const updated: AppSettings = { ...prev };
-
-      // Handle nested objects properly
-      if (partial.api) {
-        updated.api = { ...prev.api, ...partial.api };
-      }
-      if (partial.voice) {
-        updated.voice = { ...prev.voice, ...partial.voice };
-      }
-      if (partial.models) {
-        updated.models = { ...prev.models, ...partial.models };
-      }
-
-      // Handle other properties
-      if (partial.theme !== undefined) updated.theme = partial.theme;
-      if (partial.direction !== undefined) updated.direction = partial.direction;
-      if (partial.fontSize !== undefined) updated.fontSize = partial.fontSize;
-      if (partial.accentColor !== undefined) updated.accentColor = partial.accentColor;
-      if (partial.aiModel !== undefined) updated.aiModel = partial.aiModel;
-
+    setSettings(prev => {
+      const updated = { ...prev, ...partial };
+      localStorage.setItem('app-settings', JSON.stringify(updated));
       return updated;
     });
   }, []);
 
+  const value: ThemeContextValue = {
+    settings,
+    updateSettings,
+    resolvedTheme,
+  };
+
   return (
-    <ThemeContext.Provider value={{ settings, updateSettings, resolvedTheme }}>
+    <ThemeContext.Provider value={value}>
       {children}
     </ThemeContext.Provider>
   );
 }
 
-export function useTheme() {
-  const context = useContext(ThemeContext);
-  if (!context) {
-    throw new Error('useTheme must be used within ThemeProvider');
-  }
-  return context;
+// Export a custom hook for common theme operations
+export function useThemeActions() {
+  const { settings, updateSettings, resolvedTheme } = useTheme();
+
+  const toggleTheme = () => {
+    const themes: Theme[] = ['light', 'dark', 'auto'];
+    const currentIndex = themes.indexOf(settings.theme);
+    const nextIndex = (currentIndex + 1) % themes.length;
+    updateSettings({ theme: themes[nextIndex] });
+  };
+
+  const toggleDirection = () => {
+    updateSettings({ 
+      direction: settings.direction === 'rtl' ? 'ltr' : 'rtl' 
+    });
+  };
+
+  const setFontSize = (size: number) => {
+    updateSettings({ fontSize: Math.max(12, Math.min(24, size)) });
+  };
+
+  const setAccentColor = (color: string) => {
+    updateSettings({ accentColor: color });
+  };
+
+  return {
+    settings,
+    resolvedTheme,
+    toggleTheme,
+    toggleDirection,
+    setFontSize,
+    setAccentColor,
+    updateSettings,
+  };
 }
