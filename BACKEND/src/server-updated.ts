@@ -17,7 +17,7 @@ import {
   handleUncaughtException 
 } from './middleware/error-handler';
 import { generalLimiter, publicLimiter } from './middleware/rate-limiter';
-import { initDatabase, closeDatabase, healthCheck } from './database/connection';
+import { initDatabase, closeDatabase, healthCheck, getDatabaseEngine } from './database/connection-new';
 import { initWebSocket } from './services/websocket-real.service';
 import apiRouter from './routes/api';
 import healthRouter from './routes/health';
@@ -115,10 +115,11 @@ async function initServer() {
         pid: process.pid
       });
 
+      const dbEngine = getDatabaseEngine();
       console.log('\n✅ Server started successfully');
       console.log(`📡 HTTP Server: http://localhost:${ENV.PORT}`);
       console.log(`🔌 WebSocket: ws://localhost:${ENV.PORT}`);
-      console.log(`💾 Database: PostgreSQL connected`);
+      console.log(`💾 Database: ${dbEngine === 'sqlite' ? 'SQLite' : 'PostgreSQL'} connected`);
       console.log(`🌍 Environment: ${ENV.NODE_ENV}`);
       console.log('\n');
     });

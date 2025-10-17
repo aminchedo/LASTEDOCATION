@@ -18,7 +18,7 @@ const logger_1 = require("./middleware/logger");
 // Security Middlewares
 const error_handler_1 = require("./middleware/error-handler");
 const rate_limiter_1 = require("./middleware/rate-limiter");
-const connection_1 = require("./database/connection");
+const connection_new_1 = require("./database/connection-new");
 const websocket_real_service_1 = require("./services/websocket-real.service");
 const api_1 = __importDefault(require("./routes/api"));
 const health_1 = __importDefault(require("./routes/health"));
@@ -83,7 +83,7 @@ async function initServer() {
     try {
         // Initialize database
         logger_1.logger.info({ msg: 'initializing_database' });
-        await (0, connection_1.initDatabase)();
+        await (0, connection_new_1.initDatabase)();
         logger_1.logger.info({ msg: 'database_initialized' });
         // Initialize WebSocket
         logger_1.logger.info({ msg: 'initializing_websocket' });
@@ -100,10 +100,11 @@ async function initServer() {
                 env: env_1.ENV.NODE_ENV,
                 pid: process.pid
             });
+            const dbEngine = (0, connection_new_1.getDatabaseEngine)();
             console.log('\n✅ Server started successfully');
             console.log(`📡 HTTP Server: http://localhost:${env_1.ENV.PORT}`);
             console.log(`🔌 WebSocket: ws://localhost:${env_1.ENV.PORT}`);
-            console.log(`💾 Database: PostgreSQL connected`);
+            console.log(`💾 Database: ${dbEngine === 'sqlite' ? 'SQLite' : 'PostgreSQL'} connected`);
             console.log(`🌍 Environment: ${env_1.ENV.NODE_ENV}`);
             console.log('\n');
         });
@@ -113,7 +114,7 @@ async function initServer() {
             httpServer.close(async () => {
                 logger_1.logger.info({ msg: 'http_server_closed' });
                 try {
-                    await (0, connection_1.closeDatabase)();
+                    await (0, connection_new_1.closeDatabase)();
                     logger_1.logger.info({ msg: 'database_closed' });
                     process.exit(0);
                 }

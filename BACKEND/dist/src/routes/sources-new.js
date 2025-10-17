@@ -8,21 +8,16 @@ const logger_1 = require("../middleware/logger");
 const huggingface_service_1 = require("../services/huggingface.service");
 const download_manager_service_1 = require("../services/download-manager.service");
 const connection_1 = require("../database/connection");
+const validation_1 = require("../middleware/validation");
+const sources_schema_1 = require("../schemas/sources.schema");
 const router = (0, express_1.Router)();
 /**
  * Search models on HuggingFace
  * GET /api/sources/search?q=persian+tts&task=text-to-speech
  */
-router.get('/search', async (req, res) => {
+router.get('/search', (0, validation_1.validate)(sources_schema_1.sourcesSchemas.search), async (req, res) => {
     try {
-        const { q, task, library, language, sort } = req.query;
-        if (!q || typeof q !== 'string') {
-            res.status(400).json({
-                success: false,
-                error: 'Search query (q) is required'
-            });
-            return;
-        }
+        const searchQuery = req.query;
         // Get HF token from user settings if available
         const userId = req.user?.id;
         let token;
@@ -30,11 +25,11 @@ router.get('/search', async (req, res) => {
             const settings = await (0, connection_1.query)('SELECT huggingface_token FROM user_settings WHERE user_id = $1', [userId]);
             token = settings.rows[0]?.huggingface_token;
         }
-        const models = await huggingface_service_1.hfService.searchModels(q, {
-            task: task,
-            library: library,
-            language: language,
-            sort: sort
+        const models = await huggingface_service_1.hfService.searchModels(searchQuery.q, {
+            task: searchQuery.task,
+            library: searchQuery.library,
+            language: searchQuery.language,
+            sort: searchQuery.sort
         }, token);
         res.json({
             success: true,
@@ -54,7 +49,7 @@ router.get('/search', async (req, res) => {
  * Get model info from HuggingFace
  * GET /api/sources/model/:repoId
  */
-router.get('/model/:repoId(*)', async (req, res) => {
+router.get('/model/:repoId(*)', (0, validation_1.validate)(sources_schema_1.sourcesSchemas.getModel), async (req, res) => {
     try {
         const repoId = req.params.repoId;
         const userId = req.user?.id;
@@ -89,29 +84,22 @@ router.get('/model/:repoId(*)', async (req, res) => {
  * POST /api/sources/download
  * Body: { repoId: string, token?: string }
  */
-router.post('/download', async (req, res) => {
+router.post('/download', (0, validation_1.validate)(sources_schema_1.sourcesSchemas.startDownload), async (req, res) => {
     try {
-        const { repoId, token } = req.body;
+        const downloadRequest = req.body;
         const userId = req.user?.id || 'default';
-        if (!repoId) {
-            res.status(400).json({
-                success: false,
-                error: 'repoId is required'
-            });
-            return;
-        }
         logger_1.logger.info({
             msg: 'starting_download',
-            repoId,
+            repoId: downloadRequest.repoId,
             userId,
-            hasToken: !!token
+            hasToken: !!downloadRequest.token
         });
-        const downloadId = await download_manager_service_1.downloadManager.startDownload(repoId, repoId, userId, token);
+        const downloadId = await download_manager_service_1.downloadManager.startDownload(downloadRequest.repoId, downloadRequest.repoId, userId, downloadRequest.token);
         res.json({
             success: true,
             data: {
                 downloadId,
-                repoId,
+                repoId: downloadRequest.repoId,
                 message: 'Download started successfully'
             }
         });
@@ -128,7 +116,7 @@ router.post('/download', async (req, res) => {
  * Get download status
  * GET /api/sources/download/:downloadId
  */
-router.get('/download/:downloadId', async (req, res) => {
+router.get('/download/:downloadId', (0, validation_1.validate)(sources_schema_1.sourcesSchemas.getDownload), async (req, res) => {
     try {
         const { downloadId } = req.params;
         const download = await download_manager_service_1.downloadManager.getDownloadStatus(downloadId);
@@ -178,7 +166,7 @@ router.get('/downloads', async (req, res) => {
  * Cancel download
  * DELETE /api/sources/download/:downloadId
  */
-router.delete('/download/:downloadId', async (req, res) => {
+router.delete('/download/:downloadId', (0, validation_1.validate)(sources_schema_1.sourcesSchemas.cancelDownload), async (req, res) => {
     try {
         const { downloadId } = req.params;
         const cancelled = await download_manager_service_1.downloadManager.cancelDownload(downloadId);
@@ -240,16 +228,9 @@ router.get('/installed', async (req, res) => {
  * POST /api/sources/validate-token
  * Body: { token: string }
  */
-router.post('/validate-token', async (req, res) => {
+router.post('/validate-token', (0, validation_1.validate)(sources_schema_1.sourcesSchemas.validateToken), async (req, res) => {
     try {
         const { token } = req.body;
-        if (!token) {
-            res.status(400).json({
-                success: false,
-                error: 'Token is required'
-            });
-            return;
-        }
         const validation = await huggingface_service_1.hfService.validateToken(token);
         res.json({
             success: true,

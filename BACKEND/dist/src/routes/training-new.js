@@ -6,35 +6,24 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const logger_1 = require("../middleware/logger");
 const training_service_1 = require("../services/training.service");
+const validation_1 = require("../middleware/validation");
+const training_schema_1 = require("../schemas/training.schema");
 const router = (0, express_1.Router)();
 /**
  * Create new training job
  * POST /api/training
  * Body: TrainingConfig
  */
-router.post('/', async (req, res) => {
+router.post('/', (0, validation_1.validate)(training_schema_1.trainingSchemas.create), async (req, res) => {
     try {
         const userId = req.user?.id || 'default';
-        const config = req.body;
-        // Validate config
-        if (!config.datasetId || !config.epochs || !config.batchSize || !config.learningRate) {
-            res.status(400).json({
-                success: false,
-                error: 'Missing required fields: datasetId, epochs, batchSize, learningRate'
-            });
-            return;
-        }
-        // Set defaults
-        config.modelType = config.modelType || 'simple';
-        config.validationSplit = config.validationSplit || 0.2;
-        config.optimizer = config.optimizer || 'adam';
+        const config = req.body; // Already validated by middleware
         logger_1.logger.info({
             msg: 'creating_training_job',
             userId,
             config
         });
-        const jobId = await training_service_1.trainingService.createTrainingJob(userId, 'default-model', // TODO: Get from config
-        config);
+        const jobId = await training_service_1.trainingService.createTrainingJob(userId, config.modelName || 'default-model', config);
         res.json({
             success: true,
             data: {
@@ -55,7 +44,7 @@ router.post('/', async (req, res) => {
  * Get training job status
  * GET /api/training/:jobId
  */
-router.get('/:jobId', async (req, res) => {
+router.get('/:jobId', (0, validation_1.validate)(training_schema_1.trainingSchemas.getJob), async (req, res) => {
     try {
         const { jobId } = req.params;
         const job = await training_service_1.trainingService.getJobStatus(jobId);
@@ -105,7 +94,7 @@ router.get('/', async (req, res) => {
  * Cancel training job
  * DELETE /api/training/:jobId
  */
-router.delete('/:jobId', async (req, res) => {
+router.delete('/:jobId', (0, validation_1.validate)(training_schema_1.trainingSchemas.cancelJob), async (req, res) => {
     try {
         const { jobId } = req.params;
         const cancelled = await training_service_1.trainingService.cancelJob(jobId);

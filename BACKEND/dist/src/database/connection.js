@@ -13,11 +13,23 @@ const pg_1 = require("pg");
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const logger_1 = require("../middleware/logger");
+const connection_new_1 = require("./connection-new");
 let pool = null;
+let useNewConnection = false;
 /**
  * Initialize PostgreSQL database connection
  */
 async function initDatabase(config) {
+    // Check if we should use the new connection system
+    if (process.env.USE_NEW_DB === 'true' || process.env.DB_ENGINE) {
+        useNewConnection = true;
+        await (0, connection_new_1.initDatabase)({
+            engine: process.env.DB_ENGINE || 'postgres',
+            postgres: config
+        });
+        // Return a fake pool for compatibility
+        return {};
+    }
     try {
         // Use provided config or environment variables
         const dbConfig = config || {
@@ -93,6 +105,17 @@ function getDatabase() {
  * Execute a query with automatic connection handling
  */
 async function query(text, params) {
+    if (useNewConnection) {
+        const result = await (0, connection_new_1.query)(text, params);
+        // Convert to pg QueryResult format
+        return {
+            rows: result.rows,
+            rowCount: result.rowCount,
+            command: result.command,
+            oid: 0,
+            fields: []
+        };
+    }
     const db = getDatabase();
     try {
         const start = Date.now();
@@ -140,6 +163,10 @@ async function transaction(callback) {
  * Close database connection
  */
 async function closeDatabase() {
+    if (useNewConnection) {
+        await (0, connection_new_1.closeDatabase)();
+        return;
+    }
     if (pool) {
         await pool.end();
         pool = null;
@@ -150,6 +177,9 @@ async function closeDatabase() {
  * Check if database is connected and healthy
  */
 async function healthCheck() {
+    if (useNewConnection) {
+        return await (0, connection_new_1.healthCheck)();
+    }
     try {
         if (!pool) {
             return false;

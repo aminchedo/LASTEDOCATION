@@ -1,4 +1,4 @@
-import { apiGet, apiPost } from '../utils/api';
+import { apiGet, apiPost } from '@/shared/utils/api';
 
 interface ApiResponse<T = any> {
   success: boolean;

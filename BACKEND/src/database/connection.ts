@@ -2,8 +2,18 @@ import { Pool, PoolClient, QueryResult, QueryResultRow } from 'pg';
 import fs from 'fs';
 import path from 'path';
 import { logger } from '../middleware/logger';
+import { 
+  initDatabase as initDatabaseNew, 
+  getDatabase as getDatabaseNew,
+  query as queryNew,
+  transaction as transactionNew,
+  closeDatabase as closeDatabaseNew,
+  healthCheck as healthCheckNew,
+  DatabaseAdapter
+} from './connection-new';
 
 let pool: Pool | null = null;
+let useNewConnection = false;
 
 export interface DatabaseConfig {
   connectionString?: string;
@@ -22,6 +32,16 @@ export interface DatabaseConfig {
  * Initialize PostgreSQL database connection
  */
 export async function initDatabase(config?: DatabaseConfig): Promise<Pool> {
+  // Check if we should use the new connection system
+  if (process.env.USE_NEW_DB === 'true' || process.env.DB_ENGINE) {
+    useNewConnection = true;
+    await initDatabaseNew({
+      engine: (process.env.DB_ENGINE as 'postgres' | 'sqlite') || 'postgres',
+      postgres: config
+    });
+    // Return a fake pool for compatibility
+    return {} as Pool;
+  }
   try {
     // Use provided config or environment variables
     const dbConfig: DatabaseConfig = config || {
@@ -109,6 +129,17 @@ export async function query<T extends QueryResultRow = any>(
   text: string,
   params?: any[]
 ): Promise<QueryResult<T>> {
+  if (useNewConnection) {
+    const result = await queryNew<T>(text, params);
+    // Convert to pg QueryResult format
+    return {
+      rows: result.rows,
+      rowCount: result.rowCount,
+      command: result.command,
+      oid: 0,
+      fields: []
+    };
+  }
   const db = getDatabase();
   
   try {
@@ -161,6 +192,10 @@ export async function transaction<T>(
  * Close database connection
  */
 export async function closeDatabase(): Promise<void> {
+  if (useNewConnection) {
+    await closeDatabaseNew();
+    return;
+  }
   if (pool) {
     await pool.end();
     pool = null;
@@ -172,6 +207,9 @@ export async function closeDatabase(): Promise<void> {
  * Check if database is connected and healthy
  */
 export async function healthCheck(): Promise<boolean> {
+  if (useNewConnection) {
+    return await healthCheckNew();
+  }
   try {
     if (!pool) {
       return false;
