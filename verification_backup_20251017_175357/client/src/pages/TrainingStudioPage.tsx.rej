@@ -1,0 +1,49 @@
+--- client/src/pages/TrainingStudioPage.tsx
++++ client/src/pages/TrainingStudioPage.tsx
+@@ -65,8 +65,8 @@ export function TrainingStudioPage() {
+   const [logs, setLogs] = useState<string[]>([]);
+   const [currentStep, setCurrentStep] = useState<'model' | 'datasets' | 'type' | 'config'>('model');
+ 
+-  const { jobs, loading, startTraining, cancelTraining, getJobLogs } = useTraining();
+-  const { models: availableModels } = useAvailableModels('model');
++  const { jobs, loading, startTraining, stopTraining } = useTraining();
++  const { models: availableModels } = useAvailableModels();
+   const [installedSources, setInstalledSources] = useState<any[]>([]);
+ 
+   useEffect(() => {
+@@ -83,15 +83,9 @@ export function TrainingStudioPage() {
+ 
+   useEffect(() => {
+     if (selectedJobLogs) {
+-      const fetchLogs = async () => {
+-        const jobLogs = await getJobLogs(selectedJobLogs);
+-        setLogs(jobLogs);
+-      };
+-      fetchLogs();
+-      const interval = setInterval(fetchLogs, 2000);
+-      return () => clearInterval(interval);
++      setLogs(['Log fetching not yet implemented']);
+     }
+-  }, [selectedJobLogs, getJobLogs]);
++  }, [selectedJobLogs]);
+ 
+   const handleModelSelect = (model: DetectedModel) => {
+     setSelectedModel(model);
+@@ -162,7 +156,7 @@ export function TrainingStudioPage() {
+     };
+ 
+     try {
+-      await startTraining(jobName, config);
++      await startTraining({ ...config, name: jobName });
+       toast.success('آموزش با موفقیت شروع شد');
+       setActiveTab('jobs');
+       // Reset form
+@@ -187,7 +181,7 @@ export function TrainingStudioPage() {
+ 
+   const handleCancelTraining = async (jobId: string) => {
+     try {
+-      await cancelTraining(jobId);
++      await stopTraining(jobId);
+       toast.success('آموزش لغو شد');
+     } catch (error) {
+ 

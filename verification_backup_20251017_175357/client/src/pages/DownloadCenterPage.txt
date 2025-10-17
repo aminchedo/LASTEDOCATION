@@ -1,0 +1,385 @@
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { CheckCircle, AlertTriangle, Play, RefreshCw, FileText, AlertCircle, Download, Pause } from 'lucide-react';
+import toast from 'react-hot-toast';
+
+type DownloadStatus = 'not_started' | 'downloading' | 'paused' | 'completed' | 'error' | 'cancelled';
+
+type Asset = {
+  id: string;            // key: 'text' | 'asr' | 'tts'
+  title: string;
+  description: string;
+  status: DownloadStatus;
+  progress: number;      // 0..100
+  totalSize: number;     // bytes (optional from server)
+  downloadedSize: number;// bytes
+  speed: number;         // bytes/s (client-side estimate)
+  jobId?: string | null; // server job id
+  dest?: string;         // server destination path
+  error?: string;
+  estimatedTime?: number;
+};
+
+type LocalBootstrapState = {
+  phase: string;
+  startedAt?: string | number | null;
+  finishedAt?: string | number | null;
+  assets: Record<string, Asset>;
+  error?: string;
+  isOnline: boolean;
+};
+
+// -------- REAL API (no mocks) --------
+const API_BASE = (import.meta as any)?.env?.VITE_API_BASE || 'http://localhost:3001';
+const api = {
+  async start(assetKey: string, payload: { url: string; dest: string; kind: 'text'|'asr'|'tts'|'generic'; }) {
+    const r = await fetch(`${API_BASE}/api/bootstrap`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!r.ok) {
+      const txt = await r.text().catch(()=>''); 
+      throw new Error(`start_failed:${r.status}:${txt}`);
+    }
+    return r.json() as Promise<{ ok: boolean; id: string }>;
+  },
+  async status(jobId: string) {
+    const r = await fetch(`${API_BASE}/api/bootstrap/status?id=${encodeURIComponent(jobId)}`);
+    if (!r.ok) {
+      const txt = await r.text().catch(()=>''); 
+      throw new Error(`status_failed:${r.status}:${txt}`);
+    }
+    return r.json() as Promise<{ ok: boolean; job: any }>;
+  },
+  async log() {
+    const r = await fetch(`${API_BASE}/api/bootstrap/log`);
+    return r.ok ? r.text() : '';
+  }
+};
+
+const Badge: React.FC<{ status: DownloadStatus; className?: string }> = ({ status, className = '' }) => {
+  const statusConfig: Record<DownloadStatus, { bg: string; text: string; label: string }> = {
+    not_started: { bg: 'bg-gray-100 dark:bg-gray-700', text: 'text-gray-700 dark:text-gray-200', label: 'آماده دانلود' },
+    downloading: { bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-700 dark:text-blue-300', label: 'در حال دانلود' },
+    paused: { bg: 'bg-yellow-100 dark:bg-yellow-900/30', text: 'text-yellow-700 dark:text-yellow-300', label: 'متوقف شده' },
+    completed: { bg: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-700 dark:text-green-300', label: 'تکمیل شده' },
+    error: { bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-700 dark:text-red-300', label: 'خطا' },
+    cancelled: { bg: 'bg-gray-100 dark:bg-gray-700', text: 'text-gray-700 dark:text-gray-200', label: 'لغو شده' }
+  };
+  const config = statusConfig[status];
+  return <span className={`px-2 py-1 rounded-full text-xs font-medium ${config.bg} ${config.text} ${className}`}>{config.label}</span>;
+};
+
+const Progress: React.FC<{ progress: number; className?: string }> = ({ progress = 0, className = '' }) => {
+  const safeProgress = Math.max(0, Math.min(100, progress));
+  return (
+    <div className={`w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 ${className}`}>
+      <div className="h-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 transition-all duration-500 ease-out" style={{ width: `${safeProgress}%` }} />
+    </div>
+  );
+};
+
+const formatBytes = (bytes: number): string => {
+  if (!Number.isFinite(bytes) || bytes <= 0) return '—';
+  const k = 1024; const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+};
+const formatSpeed = (bps: number): string => `${formatBytes(bps)}/s`;
+const formatTime = (seconds: number): string => seconds < 60 ? `${Math.round(seconds)}s` : seconds < 3600 ? `${Math.round(seconds/60)}m` : `${Math.round(seconds/3600)}h`;
+
+// ---- REAL asset config (put your actual URLs & destinations here) ----
+const ASSET_SOURCES: Record<'text'|'asr'|'tts', { url: string; dest: string; kind: 'text'|'asr'|'tts' }> = {
+  text: { url: import.meta?.env?.VITE_TEXT_URL || 'https://ipv4.download.thinkbroadband.com/10MB.zip', dest: '/tmp/text_dataset.bin', kind: 'text' },
+  asr:  { url: import.meta?.env?.VITE_ASR_URL  || 'https://ipv4.download.thinkbroadband.com/20MB.zip', dest: '/tmp/asr_dataset.bin',  kind: 'asr'  },
+  tts:  { url: import.meta?.env?.VITE_TTS_URL  || 'https://ipv4.download.thinkbroadband.com/5MB.zip',  dest: '/tmp/tts_dataset.bin',  kind: 'tts'  },
+};
+
+export const DownloadCenterPage: React.FC = () => {
+  const [state, setState] = useState<LocalBootstrapState | null>(null);
+  const [log, setLog] = useState<string>('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const pollTimers = useRef<Record<string, any>>({}); // key -> timer
+
+  const initializeAssets = useCallback((): Record<string, Asset> => {
+    return {
+      text: { id: 'text', title: 'مجموعه متن فارسی', description: 'داده‌های متنی برای آموزش مدل زبان فارسی', status: 'not_started', progress: 0, totalSize: 0, downloadedSize: 0, speed: 0 },
+      asr:  { id: 'asr',  title: 'داده گفتار فارسی',  description: 'داده‌های صوتی برای تشخیص گفتار فارسی',     status: 'not_started', progress: 0, totalSize: 0, downloadedSize: 0, speed: 0 },
+      tts:  { id: 'tts',  title: 'داده گفتار به متن',  description: 'داده‌های صوتی برای تولید گفتار فارسی',      status: 'not_started', progress: 0, totalSize: 0, downloadedSize: 0, speed: 0 },
+    };
+  }, []);
+
+  const refresh = useCallback(async () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      const txt = await api.log();
+      setLog(txt || '');
+      setState(prev => ({
+        phase: prev?.phase || 'ready',
+        startedAt: prev?.startedAt || null,
+        finishedAt: prev?.finishedAt || null,
+        assets: prev?.assets || initializeAssets(),
+        isOnline: navigator.onLine,
+        error: undefined
+      }));
+    } catch (error: any) {
+      setState(prev => ({
+        phase: 'error',
+        error: error?.message || 'خطا در اتصال به سرور',
+        assets: prev?.assets || initializeAssets(),
+        isOnline: navigator.onLine,
+        startedAt: prev?.startedAt,
+        finishedAt: prev?.finishedAt
+      }));
+    } finally { setIsRefreshing(false); }
+  }, [isRefreshing, initializeAssets]);
+
+  // ---- Start a real download ----
+  const startDownload = async (assetKey: 'text'|'asr'|'tts') => {
+    const assetCfg = ASSET_SOURCES[assetKey];
+    if (!assetCfg?.url || !assetCfg?.dest) {
+      toast.error('URL/Dest واقعی برای این آیتم پیکربندی نشده.');
+      return;
+    }
+    try {
+      const resp = await api.start(assetKey, { url: assetCfg.url, dest: assetCfg.dest, kind: assetCfg.kind });
+      const jobId = resp.id;
+      setState(prev => {
+        if (!prev) return null;
+        const updated = { ...prev.assets };
+        updated[assetKey] = { ...updated[assetKey], status: 'downloading', jobId, dest: assetCfg.dest, progress: 0, downloadedSize: 0, speed: 0 };
+        return { ...prev, phase: 'downloading', startedAt: Date.now(), assets: updated };
+      });
+      toast.success(`شروع دانلود ${assetKey}`);
+      // start polling
+      startPolling(assetKey, jobId);
+    } catch (e: any) {
+      toast.error(`خطا در شروع دانلود: ${e?.message || e}`);
+      setState(prev => {
+        if (!prev) return null;
+        const updated = { ...prev.assets };
+        updated[assetKey] = { ...updated[assetKey], status: 'error', error: e?.message || 'start_failed' };
+        return { ...prev, assets: updated };
+      });
+    }
+  };
+
+  const startPolling = (assetKey: string, jobId: string) => {
+    stopPolling(assetKey);
+    const tick = async () => {
+      try {
+        const data = await api.status(jobId); // { ok, job }
+        if (!data?.ok || !data?.job) throw new Error('bad_status');
+        const j = data.job;
+        // server provides: bytesTotal, bytesReceived, status, finishedAt, etc.
+        setState(prev => {
+          if (!prev) return null;
+          const updated = { ...prev.assets };
+          const total = Number(j.bytesTotal || 0) || 0;
+          const recvd = Number(j.bytesReceived || 0) || 0;
+          const percent = typeof j.percent === 'number' ? j.percent : (total > 0 ? Math.min(100, Math.round((recvd/total)*100)) : 0);
+          let st: DownloadStatus = 'downloading';
+          if (j.status === 'done' || percent >= 100) st = 'completed';
+          if (j.status === 'error') st = 'error';
+          updated[assetKey] = {
+            ...updated[assetKey],
+            status: st,
+            progress: percent,
+            totalSize: total,
+            downloadedSize: recvd,
+            estimatedTime: undefined, // could compute via delta timestamps
+          };
+          return { ...prev, assets: updated, phase: st === 'completed' ? 'done' : 'downloading', finishedAt: st==='completed'? (j.finishedAt || Date.now()): prev.finishedAt };
+        });
+        if (data.job.status === 'done' || (typeof data.job.percent === 'number' && data.job.percent >= 100)) {
+          stopPolling(assetKey);
+          toast.success(`دانلود ${assetKey} تکمیل شد`);
+        }
+      } catch (e: any) {
+        // if 404 or similar => stop polling and mark error
+        stopPolling(assetKey);
+        setState(prev => {
+          if (!prev) return null;
+          const updated = { ...prev.assets };
+          updated[assetKey] = { ...updated[assetKey], status: 'error', error: e?.message || 'poll_failed' };
+          return { ...prev, assets: updated };
+        });
+      }
+    };
+    const id = setInterval(tick, 1000);
+    pollTimers.current[assetKey] = id;
+    // immediate first tick
+    tick();
+  };
+
+  const stopPolling = (assetKey: string) => {
+    const t = pollTimers.current[assetKey];
+    if (t) { clearInterval(t); delete pollTimers.current[assetKey]; }
+  };
+
+  const pauseDownload = async (assetKey: 'text'|'asr'|'tts') => {
+    // اگر API pause ندارید، فعلاً فقط polling را قطع و وضعیت را paused کنیم
+    stopPolling(assetKey);
+    setState(prev => {
+      if (!prev) return null;
+      const updated = { ...prev.assets };
+      updated[assetKey] = { ...updated[assetKey], status: 'paused', speed: 0 };
+      return { ...prev, assets: updated };
+    });
+    toast.success(`دانلود ${assetKey} متوقف شد`);
+  };
+
+  useEffect(() => {
+    setState({ phase: 'ready', assets: initializeAssets(), isOnline: navigator.onLine });
+    refresh();
+    const interval = setInterval(refresh, 5000);
+    const handleOnline = () => { setState(prev => prev ? { ...prev, isOnline: true } : null); refresh(); };
+    const handleOffline = () => { setState(prev => prev ? { ...prev, isOnline: false } : null); };
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      // stop all polling
+      Object.keys(pollTimers.current).forEach(k => stopPolling(k));
+    };
+  }, [refresh, initializeAssets]);
+
+  const assetRow = (key: 'text' | 'asr' | 'tts') => {
+    const asset = state?.assets[key];
+    if (!asset) return null;
+    const canStart = asset.status === 'not_started' || asset.status === 'error' || asset.status === 'paused';
+    const canPause  = asset.status === 'downloading';
+    const isActive  = asset.status === 'downloading';
+    return (
+      <div className="p-6 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-shadow">
+        <div className="space-y-4">
+          <div className="flex items-start justify-between">
+            <div className="space-y-2 flex-1">
+              <div className="flex items-center gap-3">
+                <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-lg">{asset.title}</h3>
+                <Badge status={asset.status} />
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">{asset.description}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-500">شناسه: <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">{asset.id}</code></p>
+              {asset.dest && <p className="text-xs text-gray-500 dark:text-gray-500">مسیر مقصد: <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">{asset.dest}</code></p>}
+            </div>
+            <div className="flex items-center gap-2">
+              {canStart && (
+                <button onClick={() => startDownload(key)} disabled={!state?.isOnline} className="p-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg transition-colors disabled:cursor-not-allowed" title={!state?.isOnline ? 'اتصال اینترنت قطع است' : 'شروع دانلود'}>
+                  <Download className="w-4 h-4" />
+                </button>
+              )}
+              {canPause && (
+                <button onClick={() => pauseDownload(key)} className="p-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg transition-colors" title="متوقف کردن دانلود">
+                  <Pause className="w-4 h-4" />
+                </button>
+              )}
+              {asset.status === 'completed' && (<CheckCircle className="w-6 h-6 text-green-600" />)}
+              {asset.status === 'error' && (<AlertTriangle className="w-6 h-6 text-red-600" />)}
+              {isActive && (<RefreshCw className="w-6 h-6 text-blue-600 animate-spin opacity-70" />)}
+            </div>
+          </div>
+
+          {(asset.status === 'downloading' || asset.status === 'paused' || asset.status === 'completed') && (
+            <div className="space-y-2">
+              <Progress progress={asset.progress} />
+              <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
+                <span>{asset.progress.toFixed(1)}%</span>
+                <span>{formatBytes(asset.downloadedSize)} / {formatBytes(asset.totalSize || 0)}</span>
+              </div>
+              {asset.status === 'downloading' && (
+                <div className="flex justify-between text-xs text-gray-500 dark:text-gray-500">
+                  <span>سرعت: {formatSpeed(asset.speed)}</span>
+                  {asset.estimatedTime && (<span>زمان باقی‌مانده: {formatTime(asset.estimatedTime)}</span>)}
+                </div>
+              )}
+            </div>
+          )}
+          {asset.status === 'error' && asset.error && (
+            <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+              <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
+              <p className="text-sm text-red-700 dark:text-red-300">{asset.error}</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  if (!state) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center" dir="rtl">
+        <div className="text-center p-8">
+          <RefreshCw className="w-12 h-12 animate-spin mx-auto mb-4 text-blue-600" />
+          <p className="text-lg text-gray-600 dark:text-gray-400">در حال بارگیری مرکز دانلود...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const hasDownloadingAssets = Object.values(state.assets).some(a => a.status === 'downloading');
+  const hasCompletedAssets = Object.values(state.assets).some(a => a.status === 'completed');
+  const hasErrorAssets = Object.values(state.assets).some(a => a.status === 'error');
+
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900" dir="rtl">
+      <div className="max-w-6xl mx-auto p-6 space-y-8">
+        <header className="text-center space-y-4">
+          <div className="flex items-center justify-center gap-3">
+            <Download className="w-8 h-8 text-blue-600" />
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">مرکز دانلود</h1>
+          </div>
+          <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">حداقل داده‌های واقعی برای اجرای چت، ASR و TTS روی CPU دانلود می‌شوند. هیچ داده‌ی ساختگی استفاده نمی‌شود.</p>
+          <div className="flex items-center justify-center gap-4">
+            <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm ${state.isOnline ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'}`}>
+              <div className={`w-2 h-2 rounded-full ${state.isOnline ? 'bg-green-500' : 'bg-red-500'}`} />
+              {state.isOnline ? 'آنلاین' : 'آفلاین'}
+            </div>
+          </div>
+          <div className="flex items-center justify-center gap-4 pt-4">
+            <button onClick={() => Object.keys(state.assets).forEach(k => startDownload(k as any))} disabled={!state.isOnline || hasDownloadingAssets} className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors disabled:cursor-not-allowed">
+              <Play className="w-5 h-5" />
+              {hasDownloadingAssets ? 'در حال دانلود...' : 'شروع همه دانلودها'}
+            </button>
+            <button onClick={refresh} disabled={isRefreshing} className="inline-flex items-center gap-2 px-4 py-3 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg font-medium transition-colors disabled:opacity-50">
+              <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+              بروزرسانی
+            </button>
+          </div>
+        </header>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+          {assetRow('text')}{assetRow('asr')}{assetRow('tts')}
+        </div>
+
+        <div className="p-6 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">خلاصه وضعیت</h3>
+            <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+              {hasCompletedAssets && (<span className="flex items-center gap-1"><CheckCircle className="w-4 h-4 text-green-600" />تکمیل شده</span>)}
+              {hasDownloadingAssets && (<span className="flex items-center gap-1"><RefreshCw className="w-4 h-4 animate-spin text-blue-600" />در حال دانلود</span>)}
+              {hasErrorAssets && (<span className="flex items-center gap-1"><AlertTriangle className="w-4 h-4 text-red-600" />خطا</span>)}
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div className="space-y-1"><p className="text-gray-500 dark:text-gray-400">مرحله:</p><p className="font-medium text-gray-900 dark:text-gray-100">{state.phase}</p></div>
+            <div className="space-y-1"><p className="text-gray-500 dark:text-gray-400">شروع:</p><p className="font-medium text-gray-900 dark:text-gray-100">{state.startedAt ? new Date(state.startedAt).toLocaleString('fa-IR') : '—'}</p></div>
+            <div className="space-y-1"><p className="text-gray-500 dark:text-gray-400">پایان:</p><p className="font-medium text-gray-900 dark:text-gray-100">{state.finishedAt ? new Date(state.finishedAt).toLocaleString('fa-IR') : '—'}</p></div>
+          </div>
+          {state.error && (<div className="mt-4 flex items-center gap-2 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg"><AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400" /><p className="text-sm text-red-700 dark:text-red-300">{state.error}</p></div>)}
+        </div>
+
+        <div className="p-6 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+          <div className="flex items-center gap-3 mb-4"><FileText className="w-5 h-5 text-gray-500" /><h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">گزارش سیستم</h3></div>
+          <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 max-h-80 overflow-y-auto"><pre className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap font-mono">{log || 'هیچ گزارشی در دسترس نیست...'}</pre></div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default DownloadCenterPage;
