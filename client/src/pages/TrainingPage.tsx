@@ -13,7 +13,11 @@ import { Rocket, Activity } from 'lucide-react';
 
 export function TrainingPage() {
   const [activeTab, setActiveTab] = useState<'overview' | 'metrics' | 'checkpoints' | 'downloads'>('overview');
-  const { status, isLoading, error } = useTraining();
+  const { jobs, loading, error } = useTraining();
+  
+  // Derive status from jobs
+  const activeJob = jobs.find(job => job.status === 'running' || job.status === 'paused' || job.status === 'error');
+  const status = activeJob;
 
   const tabs = [
     { id: 'overview', label: 'نمای کلی', icon: Activity },
@@ -29,9 +33,9 @@ export function TrainingPage() {
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-[color:var(--c-text)] flex items-center gap-3">
             <Rocket className="w-8 h-8 text-[color:var(--c-primary)]" />
-            آموزش مدل
+            استودیوی آموزش
           </h1>
-          <p className="text-sm text-[color:var(--c-text-muted)] mt-1.5">
+          <p className="text-[color:var(--c-text-muted)] mt-1">
             آموزش و مدیریت مدل‌های زبانی فارسی
           </p>
         </div>
@@ -115,7 +119,7 @@ export function TrainingPage() {
       )}
 
       {/* Loading State */}
-      {isLoading && (
+      {loading && (
         <div className="flex items-center justify-center py-12">
           <div className="flex items-center gap-3 text-[color:var(--c-text-muted)]">
             <div className="w-5 h-5 border-2 border-[color:var(--c-primary)] border-t-transparent rounded-full animate-spin"></div>
@@ -126,5 +130,3 @@ export function TrainingPage() {
     </div>
   );
 }
-
-export default TrainingPage;
