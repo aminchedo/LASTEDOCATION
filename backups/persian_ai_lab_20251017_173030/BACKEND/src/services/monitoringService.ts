@@ -1,0 +1,310 @@
+/**
+ * Real Monitoring Service - Collects actual metrics from the application
+ */
+
+import { logger } from '../middleware/logger';
+import fs from 'fs';
+import path from 'path';
+
+export interface MetricData {
+  timestamp: number;
+  value: number;
+}
+
+export interface TimeSeriesData {
+  requests: MetricData[];
+  responseTime: MetricData[];
+  errorRate: MetricData[];
+  activeUsers: MetricData[];
+}
+
+export interface ModelBreakdown {
+  model: string;
+  requests: number;
+  avgResponseTime: number;
+  successRate: number;
+  color: string;
+}
+
+export interface MonitoringStats {
+  totalRequests: number;
+  avgResponseTime: number;
+  errorRate: number;
+  activeUsers: number;
+  uptime: number;
+}
+
+export class MonitoringService {
+  private readonly metricsPath: string;
+  private startTime: number;
+
+  constructor() {
+    this.metricsPath = path.join(process.cwd(), 'logs', 'metrics.json');
+    this.startTime = Date.now();
+    this.initializeMetrics();
+  }
+
+  private initializeMetrics(): void {
+    try {
+      if (!fs.existsSync(this.metricsPath)) {
+        const initialMetrics = {
+          requests: [],
+          responseTimes: [],
+          errors: [],
+          users: new Set()
+        };
+        fs.writeFileSync(this.metricsPath, JSON.stringify(initialMetrics, null, 2));
+      }
+    } catch (error: any) {
+      logger.error({ msg: 'failed_to_initialize_metrics', error: error.message });
+    }
+  }
+
+  private loadMetrics(): any {
+    try {
+      if (fs.existsSync(this.metricsPath)) {
+        const data = fs.readFileSync(this.metricsPath, 'utf-8');
+        return JSON.parse(data);
+      }
+    } catch (error: any) {
+      logger.error({ msg: 'failed_to_load_metrics', error: error.message });
+    }
+    return { requests: [], responseTimes: [], errors: [], users: [] };
+  }
+
+  private saveMetrics(metrics: any): void {
+    try {
+      // Convert Set to Array for JSON serialization
+      const serializableMetrics = {
+        ...metrics,
+        users: Array.from(metrics.users || [])
+      };
+      fs.writeFileSync(this.metricsPath, JSON.stringify(serializableMetrics, null, 2));
+    } catch (error: any) {
+      logger.error({ msg: 'failed_to_save_metrics', error: error.message });
+    }
+  }
+
+  recordRequest(responseTime: number, success: boolean, userId?: string): void {
+    try {
+      const metrics = this.loadMetrics();
+      const timestamp = Date.now();
+
+      // Record request
+      metrics.requests.push({
+        timestamp,
+        responseTime,
+        success
+      });
+
+      // Record response time
+      metrics.responseTimes.push({
+        timestamp,
+        value: responseTime
+      });
+
+      // Record error if not successful
+      if (!success) {
+        metrics.errors.push({
+          timestamp,
+          error: 'request_failed'
+        });
+      }
+
+      // Record user activity
+      if (userId) {
+        if (!metrics.users) {
+          metrics.users = new Set();
+        }
+        metrics.users.add(userId);
+      }
+
+      // Keep only last 24 hours of data
+      const cutoff = timestamp - (24 * 60 * 60 * 1000);
+      metrics.requests = metrics.requests.filter((r: any) => r.timestamp > cutoff);
+      metrics.responseTimes = metrics.responseTimes.filter((r: any) => r.timestamp > cutoff);
+      metrics.errors = metrics.errors.filter((e: any) => e.timestamp > cutoff);
+
+      this.saveMetrics(metrics);
+    } catch (error: any) {
+      logger.error({ msg: 'failed_to_record_request', error: error.message });
+    }
+  }
+
+  getTimeSeriesData(): TimeSeriesData {
+    try {
+      const metrics = this.loadMetrics();
+      const now = Date.now();
+      const hours = 24;
+      const interval = 60 * 60 * 1000; // 1 hour
+
+      const requests: MetricData[] = [];
+      const responseTime: MetricData[] = [];
+      const errorRate: MetricData[] = [];
+      const activeUsers: MetricData[] = [];
+
+      for (let i = 0; i < hours; i++) {
+        const timestamp = now - (hours - 1 - i) * interval;
+        const hourStart = timestamp;
+        const hourEnd = timestamp + interval;
+
+        // Count requests in this hour
+        const hourRequests = metrics.requests.filter((r: any) => 
+          r.timestamp >= hourStart && r.timestamp < hourEnd
+        );
+        
+        // Calculate average response time for this hour
+        const hourResponseTimes = metrics.responseTimes.filter((r: any) => 
+          r.timestamp >= hourStart && r.timestamp < hourEnd
+        );
+        
+        // Calculate error rate for this hour
+        const hourErrors = metrics.errors.filter((e: any) => 
+          e.timestamp >= hourStart && e.timestamp < hourEnd
+        );
+
+        requests.push({
+          timestamp,
+          value: hourRequests.length
+        });
+
+        responseTime.push({
+          timestamp,
+          value: hourResponseTimes.length > 0 
+            ? hourResponseTimes.reduce((sum: number, r: any) => sum + r.value, 0) / hourResponseTimes.length
+            : 0
+        });
+
+        errorRate.push({
+          timestamp,
+          value: hourRequests.length > 0 ? (hourErrors.length / hourRequests.length) * 100 : 0
+        });
+
+        activeUsers.push({
+          timestamp,
+          value: Math.min(hourRequests.length * 0.3, 50) // Estimate active users
+        });
+      }
+
+      return { requests, responseTime, errorRate, activeUsers };
+    } catch (error: any) {
+      logger.error({ msg: 'failed_to_get_timeseries', error: error.message });
+      return {
+        requests: [],
+        responseTime: [],
+        errorRate: [],
+        activeUsers: []
+      };
+    }
+  }
+
+  getModelBreakdown(): ModelBreakdown[] {
+    try {
+      const metrics = this.loadMetrics();
+      const now = Date.now();
+      const last24Hours = now - (24 * 60 * 60 * 1000);
+
+      // Filter recent requests
+      const recentRequests = metrics.requests.filter((r: any) => r.timestamp > last24Hours);
+      const recentResponseTimes = metrics.responseTimes.filter((r: any) => r.timestamp > last24Hours);
+
+      // Calculate stats for Persian model
+      const persianRequests = recentRequests.length;
+      const avgResponseTime = recentResponseTimes.length > 0
+        ? recentResponseTimes.reduce((sum: number, r: any) => sum + r.value, 0) / recentResponseTimes.length
+        : 0;
+      
+      const successfulRequests = recentRequests.filter((r: any) => r.success).length;
+      const successRate = persianRequests > 0 ? (successfulRequests / persianRequests) * 100 : 100;
+
+      return [
+        {
+          model: 'persian-chat-v1.0',
+          requests: persianRequests,
+          avgResponseTime: Math.round(avgResponseTime),
+          successRate: Math.round(successRate * 10) / 10,
+          color: 'from-blue-500 to-blue-600'
+        }
+      ];
+    } catch (error: any) {
+      logger.error({ msg: 'failed_to_get_model_breakdown', error: error.message });
+      return [];
+    }
+  }
+
+  getMonitoringStats(): MonitoringStats {
+    try {
+      const metrics = this.loadMetrics();
+      const now = Date.now();
+      const last24Hours = now - (24 * 60 * 60 * 1000);
+
+      const recentRequests = metrics.requests.filter((r: any) => r.timestamp > last24Hours);
+      const recentResponseTimes = metrics.responseTimes.filter((r: any) => r.timestamp > last24Hours);
+      const recentErrors = metrics.errors.filter((e: any) => e.timestamp > last24Hours);
+
+      const totalRequests = recentRequests.length;
+      const avgResponseTime = recentResponseTimes.length > 0
+        ? recentResponseTimes.reduce((sum: number, r: any) => sum + r.value, 0) / recentResponseTimes.length
+        : 0;
+      
+      const errorRate = totalRequests > 0 ? (recentErrors.length / totalRequests) * 100 : 0;
+      const activeUsers = metrics.users ? metrics.users.length : 0;
+      const uptime = Date.now() - this.startTime;
+
+      return {
+        totalRequests,
+        avgResponseTime: Math.round(avgResponseTime),
+        errorRate: Math.round(errorRate * 10) / 10,
+        activeUsers,
+        uptime: Math.round(uptime / 1000) // Convert to seconds
+      };
+    } catch (error: any) {
+      logger.error({ msg: 'failed_to_get_monitoring_stats', error: error.message });
+      return {
+        totalRequests: 0,
+        avgResponseTime: 0,
+        errorRate: 0,
+        activeUsers: 0,
+        uptime: 0
+      };
+    }
+  }
+
+  getPercentiles(): Array<{ percentile: string; value: number; color: string }> {
+    try {
+      const metrics = this.loadMetrics();
+      const recentResponseTimes = metrics.responseTimes
+        .map((r: any) => r.value)
+        .sort((a: number, b: number) => a - b);
+
+      if (recentResponseTimes.length === 0) {
+        return [
+          { percentile: 'P50', value: 0, color: 'text-[color:var(--c-primary)]' },
+          { percentile: 'P90', value: 0, color: 'text-[color:var(--c-warning)]' },
+          { percentile: 'P95', value: 0, color: 'text-[color:var(--c-danger)]' },
+          { percentile: 'P99', value: 0, color: 'text-[color:var(--c-danger)]' }
+        ];
+      }
+
+      const getPercentile = (p: number) => {
+        const index = Math.ceil((p / 100) * recentResponseTimes.length) - 1;
+        return recentResponseTimes[Math.max(0, index)];
+      };
+
+      return [
+        { percentile: 'P50', value: Math.round(getPercentile(50)), color: 'text-[color:var(--c-primary)]' },
+        { percentile: 'P90', value: Math.round(getPercentile(90)), color: 'text-[color:var(--c-warning)]' },
+        { percentile: 'P95', value: Math.round(getPercentile(95)), color: 'text-[color:var(--c-danger)]' },
+        { percentile: 'P99', value: Math.round(getPercentile(99)), color: 'text-[color:var(--c-danger)]' }
+      ];
+    } catch (error: any) {
+      logger.error({ msg: 'failed_to_get_percentiles', error: error.message });
+      return [
+        { percentile: 'P50', value: 0, color: 'text-[color:var(--c-primary)]' },
+        { percentile: 'P90', value: 0, color: 'text-[color:var(--c-warning)]' },
+        { percentile: 'P95', value: 0, color: 'text-[color:var(--c-danger)]' },
+        { percentile: 'P99', value: 0, color: 'text-[color:var(--c-danger)]' }
+      ];
+    }
+  }
+}

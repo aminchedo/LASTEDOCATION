@@ -1,0 +1,1 @@
+const t={initial:{opacity:0},animate:{opacity:1},exit:{opacity:0},transition:{duration:.2}},a={initial:{opacity:0,y:20},animate:{opacity:1,y:0},exit:{opacity:0,y:20},transition:{duration:.3}},i={animate:{transition:{staggerChildren:.1}}},n={initial:{opacity:0,y:10},animate:{opacity:1,y:0}};export{i as a,n as b,t as f,a as s};
