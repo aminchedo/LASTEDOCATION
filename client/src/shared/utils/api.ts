@@ -20,6 +20,8 @@ export function resetApiInstance() {
 interface ApiRequestOptions extends RequestInit {
   signal?: AbortSignal;
   skipAuth?: boolean;
+  onUploadProgress?: (progressEvent: any) => void;
+  responseType?: string;
 }
 
 interface APIResponse<T = any> {

@@ -151,7 +151,7 @@ class ModelArchitectureFactory {
             }
         }
         // Flatten and dense layers
-        model.add(tf.layers.globalAveragePooling2d());
+        model.add(tf.layers.globalAveragePooling2d({}));
         model.add(tf.layers.dense({
             units: 256,
             activation: 'relu'
@@ -214,6 +214,10 @@ class ModelArchitectureFactory {
         // Position embeddings are handled internally
         // Position embeddings would normally be added here
         // For simplicity, we'll skip them in this implementation
+        // const positionEmbedding = tf.layers.embedding({
+        //   inputDim: maxLength,
+        //   outputDim: embeddingSize
+        // });
         // Combine embeddings
         let embeddings = tf.layers.add().apply([
             tokenEmbedding,

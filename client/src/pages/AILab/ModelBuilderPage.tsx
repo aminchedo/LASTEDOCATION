@@ -15,6 +15,8 @@ interface ModelConfig {
   architecture: string;
   datasetId: string;
   layers: number;
+  modelName: string;
+  modelType: string;
   parameters: {
     learningRate: number;
     batchSize: number;
@@ -32,6 +34,8 @@ export function ModelBuilderPage() {
     architecture: 'transformer',
     datasetId: '',
     layers: 12,
+    modelName: '',
+    modelType: 'tts',
     parameters: {
       learningRate: 0.001,
       batchSize: 32,
@@ -70,7 +74,22 @@ export function ModelBuilderPage() {
     setIsBuilding(true);
     
     try {
-      const jobId = await startTraining(modelConfig);
+      // Convert ModelConfig to TrainingConfig for useAILab
+      const trainingConfig = {
+        modelName: modelConfig.name,
+        modelType: modelConfig.type as 'tts' | 'stt' | 'nlp' | 'cv' | 'custom',
+        architecture: modelConfig.architecture,
+        datasetId: modelConfig.datasetId,
+        parameters: {
+          epochs: modelConfig.parameters.epochs,
+          batchSize: modelConfig.parameters.batchSize,
+          learningRate: modelConfig.parameters.learningRate,
+          optimizer: modelConfig.parameters.optimizer
+        },
+        layers: modelConfig.layers
+      };
+      
+      const jobId = await startTraining(trainingConfig);
       setSelectedJob(jobId);
       toast.success('آموزش مدل شروع شد');
     } catch (error) {
