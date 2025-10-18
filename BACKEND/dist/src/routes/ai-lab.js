@@ -236,7 +236,7 @@ router.post('/import', upload.single('model'), (0, validateRequest_1.validateReq
  */
 router.get('/datasets', async (req, res) => {
     try {
-        const userId = req.user?.id;
+        const userId = req.user?.userId;
         if (!userId) {
             res.status(401).json({ error: 'Unauthorized' });
             return;
@@ -255,7 +255,7 @@ router.get('/datasets', async (req, res) => {
  */
 router.get('/models', async (req, res) => {
     try {
-        const userId = req.user?.id;
+        const userId = req.user?.userId;
         if (!userId) {
             res.status(401).json({ error: 'Unauthorized' });
             return;
@@ -341,7 +341,7 @@ router.post('/settings', (0, validateRequest_1.validateRequest)([
  */
 router.get('/settings', async (req, res) => {
     try {
-        const userId = req.user?.id;
+        const userId = req.user?.userId;
         if (!userId) {
             res.status(401).json({ error: 'Unauthorized' });
             return;

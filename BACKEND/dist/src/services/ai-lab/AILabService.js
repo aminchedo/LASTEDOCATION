@@ -362,7 +362,9 @@ class AILabService {
             const settingsPath = path_1.default.join(this.storageBasePath, 'settings', `${userId}.json`);
             if (await fs_extra_1.default.pathExists(settingsPath)) {
                 settings = await fs_extra_1.default.readJson(settingsPath);
-                this.settings.set(userId, settings);
+                if (settings) {
+                    this.settings.set(userId, settings);
+                }
             }
             else {
                 // Return default settings

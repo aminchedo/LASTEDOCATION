@@ -39,7 +39,7 @@ export function AILabSettingsPage() {
   const handleSelectDirectory = () => {
     // In a real implementation, this would open a directory picker
     // For now, we'll just show a message
-    toast.info('انتخاب دایرکتوری در حال حاضر در مرورگر پشتیبانی نمی‌شود. لطفاً مسیر را به صورت دستی وارد کنید.');
+    toast('انتخاب دایرکتوری در حال حاضر در مرورگر پشتیبانی نمی‌شود. لطفاً مسیر را به صورت دستی وارد کنید.');
   };
 
   return (

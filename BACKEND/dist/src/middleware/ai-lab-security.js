@@ -101,9 +101,10 @@ function rateLimitOperation(operation) {
         }
         if (userOps.count >= MAX_OPERATIONS[operation]) {
             const remainingTime = Math.ceil((userOps.resetTime - now) / 1000);
-            return res.status(429).json({
+            res.status(429).json({
                 error: `Rate limit exceeded. Try again in ${remainingTime} seconds.`
             });
+            return;
         }
         userOps.count++;
         next();
