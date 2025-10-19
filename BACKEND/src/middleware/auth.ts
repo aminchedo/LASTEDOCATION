@@ -45,7 +45,7 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
         req.user = decoded;
         return next();
     } catch (error) {
-        return res.status(403).json({
+        return res.status(401).json({
             success: false,
             error: 'Invalid token',
             message: 'توکن نامعتبر است'

@@ -7,6 +7,8 @@ const supertest_1 = __importDefault(require("supertest"));
 const express_1 = __importDefault(require("express"));
 const auth_1 = __importDefault(require("../../routes/auth"));
 const training_1 = __importDefault(require("../../routes/training"));
+const fs_1 = __importDefault(require("fs"));
+const path_1 = __importDefault(require("path"));
 // Create test app
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
@@ -15,6 +17,17 @@ app.use('/api/training', training_1.default);
 describe('Training Flow Integration Tests', () => {
     let authToken;
     let userId;
+    // Clean up before each test
+    beforeEach(async () => {
+        // Clear users data
+        const usersFile = path_1.default.join(process.cwd(), 'data', 'users.json');
+        try {
+            await fs_1.default.promises.writeFile(usersFile, JSON.stringify([], null, 2));
+        }
+        catch (error) {
+            // File might not exist, that's okay
+        }
+    });
     describe('Authentication', () => {
         it('should register a new user', async () => {
             const response = await (0, supertest_1.default)(app)
