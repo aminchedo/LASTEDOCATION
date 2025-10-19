@@ -1,11 +1,1 @@
-[
-  {
-    "id": "user_1760711507620_3v03ntqv7",
-    "email": "test@example.com",
-    "name": "Test User",
-    "password": "$2b$10$.o8LaaVTTfoB0hs9ZCs79.UonV0XpIVWm9VU8ZxOAG.xkpDsznY0O",
-    "role": "admin",
-    "createdAt": "2025-10-17T14:31:47.620Z",
-    "updatedAt": "2025-10-17T14:31:47.620Z"
-  }
-]
+[]
