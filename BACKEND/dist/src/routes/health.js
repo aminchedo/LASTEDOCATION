@@ -366,17 +366,17 @@ router.get('/ready', async (req, res) => {
 });
 /**
  * GET /health/detailed
- * Detailed health check for monitoring dashboard
+ * Detailed health check with comprehensive metrics for monitoring dashboard
  */
 router.get('/detailed', async (req, res) => {
     try {
-        // Run all health checks
+        // Run all health checks in parallel
         const [database, filesystem, memory] = await Promise.all([
             checkDatabase(),
             checkFilesystem(),
             Promise.resolve(checkMemory())
         ]);
-        // Format checks for dashboard
+        // Format checks for dashboard compatibility (array format)
         const checks = [
             {
                 componentName: 'database',
@@ -405,10 +405,31 @@ router.get('/detailed', async (req, res) => {
         ];
         const overallStatus = checks.every(c => c.status === 'pass') ? 'healthy' :
             checks.some(c => c.status === 'fail') ? 'unhealthy' : 'degraded';
+        // Additional metrics for enhanced monitoring
+        const totalMem = os_1.default.totalmem();
+        const freeMem = os_1.default.freemem();
+        const usedMem = totalMem - freeMem;
+        const memPercent = ((usedMem / totalMem) * 100).toFixed(1);
+        const loadAvg = os_1.default.loadavg();
+        const cpuUsage = loadAvg[0] / os_1.default.cpus().length * 100;
         res.json({
             status: overallStatus,
             data: {
-                checks
+                checks,
+                metrics: {
+                    system: {
+                        cpu: {
+                            usage: cpuUsage,
+                            cores: os_1.default.cpus().length
+                        },
+                        memory: {
+                            used: usedMem,
+                            total: totalMem,
+                            usagePercent: parseFloat(memPercent)
+                        },
+                        uptime: process.uptime()
+                    }
+                }
             }
         });
     }
